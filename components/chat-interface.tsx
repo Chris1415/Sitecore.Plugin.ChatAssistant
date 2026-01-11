@@ -36,6 +36,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import {
   MessageCircle,
   Sparkles,
@@ -50,6 +52,12 @@ import {
   MicOff,
   Info,
 } from "lucide-react";
+import usePagesContext from "./hooks/usePagesContext";
+import {
+  createContextMessage,
+  shouldShowMessage,
+  CONTEXT_MESSAGE_CONFIG,
+} from "@/lib/context-messages";
 
 const COLOR_THEMES = [
   {
@@ -123,25 +131,29 @@ const PREDEFINED_QUESTIONS = [
   {
     id: 1,
     label: "Recent Changes",
-    question: "Can you summarize the recent content changes I've made across my site? Include any pages I've edited, created, or published in the last few days.",
+    question:
+      "Can you summarize the recent content changes I've made across my site? Include any pages I've edited, created, or published in the last few days.",
     icon: BookOpen,
   },
   {
     id: 2,
     label: "Page Insights",
-    question: "Please analyze the current page I'm working on and suggest improvements for better engagement, SEO, and content quality.",
+    question:
+      "Please analyze the current page I'm working on and suggest improvements for better engagement, SEO, and content quality.",
     icon: Sparkles,
   },
   {
     id: 3,
     label: "Related Content",
-    question: "Help me find related content and pages in my Sitecore site that could be linked to or referenced from my current page.",
+    question:
+      "Help me find related content and pages in my Sitecore site that could be linked to or referenced from my current page.",
     icon: Layers,
   },
   {
     id: 4,
     label: "Write Headline",
-    question: "Help me write a compelling and engaging headline for my current page. Consider SEO best practices and make it attention-grabbing for my target audience.",
+    question:
+      "Help me write a compelling and engaging headline for my current page. Consider SEO best practices and make it attention-grabbing for my target audience.",
     icon: MessageCircle,
   },
 ];
@@ -152,12 +164,16 @@ function ChatHeader({
   onNewChat,
   selectedTheme,
   onThemeChange,
+  listenToContextUpdates,
+  onListenToContextUpdatesChange,
 }: {
   selectedModel: string;
   onModelChange: (model: string) => void;
   onNewChat: () => void;
   selectedTheme: string;
   onThemeChange: (theme: string) => void;
+  listenToContextUpdates: boolean;
+  onListenToContextUpdatesChange: (checked: boolean) => void;
 }) {
   const theme =
     COLOR_THEMES.find((t) => t.id === selectedTheme) || COLOR_THEMES[0];
@@ -264,6 +280,23 @@ function ChatHeader({
           <div className="hidden lg:block shrink-0">
             <ThemeToggle />
           </div>
+
+          {/* Context updates toggle */}
+          <div className="col-span-3 lg:col-span-1 flex items-center gap-2 px-1 pt-2">
+            <Checkbox
+              id="context-updates"
+              checked={listenToContextUpdates}
+              onCheckedChange={(checked) =>
+                onListenToContextUpdatesChange(checked === true)
+              }
+            />
+            <Label
+              htmlFor="context-updates"
+              className="text-xs lg:text-sm text-muted-foreground cursor-pointer select-none"
+            >
+              Listen to page updates
+            </Label>
+          </div>
         </div>
       </div>
     </div>
@@ -284,10 +317,7 @@ function PredefinedQuestions({
           {PREDEFINED_QUESTIONS.map((item) => {
             const Icon = item.icon;
             return (
-              <div
-                key={item.id}
-                className="relative flex items-center"
-              >
+              <div key={item.id} className="relative flex items-center">
                 <Button
                   variant="outline"
                   className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all active:scale-[0.98]"
@@ -305,9 +335,7 @@ function PredefinedQuestions({
                   }}
                 >
                   <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground" />
-                  <span className="line-clamp-1">
-                    {item.label}
-                  </span>
+                  <span className="line-clamp-1">{item.label}</span>
                 </Button>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -319,7 +347,10 @@ function PredefinedQuestions({
                       <Info className="size-3.5 lg:size-4" />
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs text-center text-white dark:text-white">
+                  <TooltipContent
+                    side="top"
+                    className="max-w-xs text-center text-white dark:text-white"
+                  >
                     {item.question}
                   </TooltipContent>
                 </Tooltip>
@@ -537,13 +568,76 @@ function ChatInput({
 export function ChatInterface() {
   const [selectedModel, setSelectedModel] = useState("openai/gpt-4o");
   const [selectedTheme, setSelectedTheme] = useState("purple");
-
+  const [listenToContextUpdates, setListenToContextUpdates] = useState(false);
+  
+  // Use ref to access current value in callback (avoids stale closure)
+  const listenToContextUpdatesRef = useRef(listenToContextUpdates);
+  const prevListenToContextUpdatesRef = useRef(listenToContextUpdates);
+  
   const { messages, status, sendMessage, setMessages, stop } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
       body: { model: selectedModel },
     }),
   });
+
+  const { pagesContext } = usePagesContext({
+    onContextChange: (context, isInitial) => {
+      if (!context) return;
+
+      console.log(
+        "[ChatInterface] Pages context:",
+        isInitial ? "initial" : "update",
+        context,
+        "| Listening:",
+        listenToContextUpdatesRef.current
+      );
+
+      const messageText = createContextMessage(context, isInitial);
+
+      // Always add to messages array so context is available
+      setMessages([
+        ...messages,
+        {
+          role: "system",
+          id: (messages.length + 1).toString(),
+          parts: [{ type: "text", text: messageText }],
+        },
+      ]);
+
+      // Only send to AI if listening is enabled
+      if (listenToContextUpdatesRef.current) {
+        sendMessage({ text: messageText });
+      } else {
+        console.log("[ChatInterface] Context added to messages but not sent to AI");
+      }
+    },
+  });
+
+  // When checkbox is checked, send the current page context immediately
+  useEffect(() => {
+    listenToContextUpdatesRef.current = listenToContextUpdates;
+    
+    // Check if checkbox was just enabled (changed from false to true)
+    if (listenToContextUpdates && !prevListenToContextUpdatesRef.current && pagesContext) {
+      console.log("[ChatInterface] Checkbox enabled - sending current page context");
+      
+      const messageText = createContextMessage(pagesContext, true);
+      
+      setMessages([
+        ...messages,
+        {
+          role: "system",
+          id: (messages.length + 1).toString(),
+          parts: [{ type: "text", text: messageText }],
+        },
+      ]);
+      
+      sendMessage({ text: messageText });
+    }
+    
+    prevListenToContextUpdatesRef.current = listenToContextUpdates;
+  }, [listenToContextUpdates, pagesContext, messages, setMessages, sendMessage]);
 
   const isStreaming = status === "streaming" || status === "submitted";
   const isThinking = status === "submitted";
@@ -573,155 +667,182 @@ export function ChatInterface() {
   };
 
   return (
-    <PromptInputProvider>
-      <div className="flex h-screen flex-col bg-linear-to-br from-background via-background to-muted/20">
-        <ChatHeader
-          selectedModel={selectedModel}
-          onModelChange={setSelectedModel}
-          onNewChat={handleNewChat}
-          selectedTheme={selectedTheme}
-          onThemeChange={setSelectedTheme}
-        />
+    <>
+      <PromptInputProvider>
+        <div className="flex h-screen flex-col bg-linear-to-br from-background via-background to-muted/20">
+          <ChatHeader
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            onNewChat={handleNewChat}
+            selectedTheme={selectedTheme}
+            onThemeChange={setSelectedTheme}
+            listenToContextUpdates={listenToContextUpdates}
+            onListenToContextUpdatesChange={setListenToContextUpdates}
+          />
 
-        <Conversation className="flex-1">
-          <ConversationContent>
-            {messages.length === 0 ? (
-              <ConversationEmptyState className="flex items-center justify-center p-3 pb-4 lg:p-4 lg:pb-8">
-                <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
-                  <div className="relative flex size-12 lg:size-16 items-center justify-center">
-                    <div
-                      className="absolute inset-0 rounded-full blur-xl lg:blur-2xl"
-                      style={{ backgroundColor: `${currentTheme.primary}1A` }}
-                    />
-                    <div
-                      className="relative flex size-12 lg:size-16 items-center justify-center rounded-xl lg:rounded-2xl shadow-lg"
-                      style={{
-                        background: `linear-gradient(135deg, ${currentTheme.primary} 0%, ${currentTheme.primaryLight} 100%)`,
-                        boxShadow: `0 10px 25px -5px ${currentTheme.primary}33`,
-                      }}
-                    >
-                      <MessageCircle className="size-6 lg:size-8 text-white" />
+          <Conversation className="flex-1">
+            <ConversationContent>
+              {messages.length === 0 ? (
+                <ConversationEmptyState className="flex items-center justify-center p-3 pb-4 lg:p-4 lg:pb-8">
+                  <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
+                    <div className="relative flex size-12 lg:size-16 items-center justify-center">
+                      <div
+                        className="absolute inset-0 rounded-full blur-xl lg:blur-2xl"
+                        style={{ backgroundColor: `${currentTheme.primary}1A` }}
+                      />
+                      <div
+                        className="relative flex size-12 lg:size-16 items-center justify-center rounded-xl lg:rounded-2xl shadow-lg"
+                        style={{
+                          background: `linear-gradient(135deg, ${currentTheme.primary} 0%, ${currentTheme.primaryLight} 100%)`,
+                          boxShadow: `0 10px 25px -5px ${currentTheme.primary}33`,
+                        }}
+                      >
+                        <MessageCircle className="size-6 lg:size-8 text-white" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5 lg:space-y-2">
+                      <h2 className="text-balance text-3xl lg:text-5xl font-bold tracking-tight text-foreground">
+                        Your Content Intelligence
+                      </h2>
+                      <p className="text-pretty text-base lg:text-lg leading-relaxed text-muted-foreground">
+                        AI-powered assistant that knows your content inside out.
+                        <span className="hidden lg:inline">
+                          <br />
+                          Ask anything about your pages, campaigns, or content
+                          strategy.
+                        </span>
+                      </p>
+                    </div>
+                    <div className="grid w-full grid-cols-2 gap-2.5 lg:gap-4">
+                      <div
+                        className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all hover:shadow-md"
+                        style={{
+                          ["--theme-color" as string]: currentTheme.primary,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = `${currentTheme.primary}4D`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "";
+                        }}
+                      >
+                        <div
+                          className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-colors"
+                          style={{
+                            backgroundColor: `${currentTheme.primary}1A`,
+                          }}
+                        >
+                          <Layers
+                            className="size-5 lg:size-6"
+                            style={{ color: currentTheme.primary }}
+                          />
+                        </div>
+                        <div className="space-y-1 text-center">
+                          <p className="text-base lg:text-xl font-semibold text-foreground">
+                            Content Aware
+                          </p>
+                          <p className="text-xs lg:text-base text-muted-foreground leading-tight">
+                            Deeply integrated with your Sitecore pages and
+                            components
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all hover:shadow-md"
+                        style={{
+                          ["--theme-color" as string]: currentTheme.primary,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = `${currentTheme.primary}4D`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = "";
+                        }}
+                      >
+                        <div
+                          className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-colors"
+                          style={{
+                            backgroundColor: `${currentTheme.primary}1A`,
+                          }}
+                        >
+                          <Sparkles
+                            className="size-5 lg:size-6"
+                            style={{ color: currentTheme.primary }}
+                          />
+                        </div>
+                        <div className="space-y-1 text-center">
+                          <p className="text-base lg:text-xl font-semibold text-foreground">
+                            Smart Suggestions
+                          </p>
+                          <p className="text-xs lg:text-base text-muted-foreground leading-tight">
+                            Get AI insights to improve your content and
+                            campaigns
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="space-y-1.5 lg:space-y-2">
-                    <h2 className="text-balance text-3xl lg:text-5xl font-bold tracking-tight text-foreground">
-                      Your Content Intelligence
-                    </h2>
-                    <p className="text-pretty text-base lg:text-lg leading-relaxed text-muted-foreground">
-                      AI-powered assistant that knows your content inside out.
-                      <span className="hidden lg:inline">
-                        <br />
-                        Ask anything about your pages, campaigns, or content strategy.
+                </ConversationEmptyState>
+              ) : (
+                <>
+                  {messages
+                    .filter(({ parts }) => {
+                      // Filter out messages that only contain context messages (when hiding is enabled)
+                      if (!CONTEXT_MESSAGE_CONFIG.hideContextMessages) {
+                        return true;
+                      }
+                      const hasVisibleContent = parts.some(
+                        (part) =>
+                          part.type === "text" && shouldShowMessage(part.text)
+                      );
+                      return hasVisibleContent;
+                    })
+                    .map(({ role, parts }, index) => (
+                      <Message from={role} key={index}>
+                        <MessageContent>
+                          {parts.map((part, i) => {
+                            switch (part.type) {
+                              case "text":
+                                // Hide context messages from display (when enabled)
+                                if (!shouldShowMessage(part.text)) {
+                                  return null;
+                                }
+                                return (
+                                  <MessageResponse key={`${role}-${i}`}>
+                                    {part.text}
+                                  </MessageResponse>
+                                );
+                            }
+                          })}
+                        </MessageContent>
+                      </Message>
+                    ))}
+                  {isThinking && (
+                    <div className="flex items-center gap-2.5 px-4 py-3">
+                      <Brain className="size-4 text-gray-400 dark:text-gray-500" />
+                      <span className="text-sm font-medium bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 dark:from-gray-400 dark:via-gray-300 dark:to-gray-400 bg-clip-text text-transparent bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]">
+                        Thinking...
                       </span>
-                    </p>
-                  </div>
-                  <div className="grid w-full grid-cols-2 gap-2.5 lg:gap-4">
-                    <div
-                      className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all hover:shadow-md"
-                      style={{
-                        ["--theme-color" as string]: currentTheme.primary,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = `${currentTheme.primary}4D`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "";
-                      }}
-                    >
-                      <div
-                        className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-colors"
-                        style={{ backgroundColor: `${currentTheme.primary}1A` }}
-                      >
-                        <Layers
-                          className="size-5 lg:size-6"
-                          style={{ color: currentTheme.primary }}
-                        />
-                      </div>
-                      <div className="space-y-1 text-center">
-                        <p className="text-base lg:text-xl font-semibold text-foreground">
-                          Content Aware
-                        </p>
-                        <p className="text-xs lg:text-base text-muted-foreground leading-tight">
-                          Deeply integrated with your Sitecore pages and components
-                        </p>
-                      </div>
                     </div>
-                    <div
-                      className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all hover:shadow-md"
-                      style={{
-                        ["--theme-color" as string]: currentTheme.primary,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = `${currentTheme.primary}4D`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "";
-                      }}
-                    >
-                      <div
-                        className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-colors"
-                        style={{ backgroundColor: `${currentTheme.primary}1A` }}
-                      >
-                        <Sparkles
-                          className="size-5 lg:size-6"
-                          style={{ color: currentTheme.primary }}
-                        />
-                      </div>
-                      <div className="space-y-1 text-center">
-                        <p className="text-base lg:text-xl font-semibold text-foreground">
-                          Smart Suggestions
-                        </p>
-                        <p className="text-xs lg:text-base text-muted-foreground leading-tight">
-                          Get AI insights to improve your content and campaigns
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </ConversationEmptyState>
-            ) : (
-              <>
-                {messages.map(({ role, parts }, index) => (
-                  <Message from={role} key={index}>
-                    <MessageContent>
-                      {parts.map((part, i) => {
-                        switch (part.type) {
-                          case "text":
-                            return (
-                              <MessageResponse key={`${role}-${i}`}>
-                                {part.text}
-                              </MessageResponse>
-                            );
-                        }
-                      })}
-                    </MessageContent>
-                  </Message>
-                ))}
-                {isThinking && (
-                  <div className="flex items-center gap-2.5 px-4 py-3">
-                    <Brain className="size-4 text-gray-400 dark:text-gray-500" />
-                    <span className="text-sm font-medium bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 dark:from-gray-400 dark:via-gray-300 dark:to-gray-400 bg-clip-text text-transparent bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]">
-                      Thinking...
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-          </ConversationContent>
-          <ConversationScrollButton />
-        </Conversation>
+                  )}
+                </>
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
-        <PredefinedQuestions
-          onSelect={handleQuestionSelect}
-          themeColor={currentTheme.primary}
-        />
-        <ChatInput
-          onSubmit={handleMessageSubmit}
-          isStreaming={isStreaming}
-          onAbort={stop}
-          themeColor={currentTheme.primary}
-        />
-      </div>
-    </PromptInputProvider>
+          <PredefinedQuestions
+            onSelect={handleQuestionSelect}
+            themeColor={currentTheme.primary}
+          />
+          <ChatInput
+            onSubmit={handleMessageSubmit}
+            isStreaming={isStreaming}
+            onAbort={stop}
+            themeColor={currentTheme.primary}
+          />
+        </div>
+      </PromptInputProvider>
+    </>
   );
 }
