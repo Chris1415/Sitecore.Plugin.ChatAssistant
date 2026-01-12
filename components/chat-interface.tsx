@@ -39,11 +39,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
-  MessageCircle,
-  Sparkles,
-  BookOpen,
   Paperclip,
-  Layers,
   Send,
   Plus,
   Square,
@@ -58,51 +54,13 @@ import {
   shouldShowMessage,
   CONTEXT_MESSAGE_CONFIG,
 } from "@/lib/context-messages";
-
-const COLOR_THEMES = [
-  {
-    id: "purple",
-    name: "Purple (Primary)",
-    primary: "#5a4fcf",
-    primaryLight: "#6e3fff",
-    primaryDark: "#4715af",
-  },
-  {
-    id: "teal",
-    name: "Teal",
-    primary: "#007c85",
-    primaryLight: "#019ea5",
-    primaryDark: "#00626b",
-  },
-  {
-    id: "red",
-    name: "Red",
-    primary: "#d92739",
-    primaryLight: "#f4595a",
-    primaryDark: "#b30426",
-  },
-  {
-    id: "blue",
-    name: "Blue",
-    primary: "#4a65e8",
-    primaryLight: "#6987f9",
-    primaryDark: "#344bc3",
-  },
-  {
-    id: "green",
-    name: "Green",
-    primary: "#007f66",
-    primaryLight: "#0ea184",
-    primaryDark: "#006450",
-  },
-  {
-    id: "orange",
-    name: "Orange",
-    primary: "#ba5200",
-    primaryLight: "#e26e00",
-    primaryDark: "#953d00",
-  },
-];
+import {
+  AGENT_CONFIGS,
+  DEFAULT_AGENT,
+  getAgentConfig,
+  AgentType,
+  type AgentConfig,
+} from "@/lib/agent-configs";
 
 const AI_MODELS = [
   { id: "openai/gpt-4o", name: "GPT-4o", provider: "OpenAI" },
@@ -127,56 +85,25 @@ const AI_MODELS = [
   { id: "google/gemini-ultra", name: "Gemini Ultra", provider: "Google" },
 ];
 
-const PREDEFINED_QUESTIONS = [
-  {
-    id: 1,
-    label: "Recent Changes",
-    question:
-      "Can you summarize the recent content changes I've made across my site? Include any pages I've edited, created, or published in the last few days.",
-    icon: BookOpen,
-  },
-  {
-    id: 2,
-    label: "Page Insights",
-    question:
-      "Please analyze the current page I'm working on and suggest improvements for better engagement, SEO, and content quality.",
-    icon: Sparkles,
-  },
-  {
-    id: 3,
-    label: "Related Content",
-    question:
-      "Help me find related content and pages in my Sitecore site that could be linked to or referenced from my current page.",
-    icon: Layers,
-  },
-  {
-    id: 4,
-    label: "Write Headline",
-    question:
-      "Help me write a compelling and engaging headline for my current page. Consider SEO best practices and make it attention-grabbing for my target audience.",
-    icon: MessageCircle,
-  },
-];
-
 function ChatHeader({
   selectedModel,
   onModelChange,
   onNewChat,
-  selectedTheme,
-  onThemeChange,
+  selectedAgent,
+  onAgentChange,
   listenToContextUpdates,
   onListenToContextUpdatesChange,
 }: {
   selectedModel: string;
   onModelChange: (model: string) => void;
   onNewChat: () => void;
-  selectedTheme: string;
-  onThemeChange: (theme: string) => void;
+  selectedAgent: AgentType;
+  onAgentChange: (agent: AgentType) => void;
   listenToContextUpdates: boolean;
   onListenToContextUpdatesChange: (checked: boolean) => void;
 }) {
-  const theme =
-    COLOR_THEMES.find((t) => t.id === selectedTheme) || COLOR_THEMES[0];
+  const agentConfig = getAgentConfig(selectedAgent);
+  const AgentIcon = agentConfig.icon;
 
   return (
     <div className="border-b border-border bg-card px-3 py-3 lg:px-6 lg:py-4">
@@ -185,17 +112,17 @@ function ChatHeader({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 lg:gap-3">
             <div
-              className="relative flex size-8 lg:size-10 items-center justify-center rounded-lg lg:rounded-xl shadow-md transition-colors"
+              className="relative flex size-8 lg:size-10 items-center justify-center rounded-lg lg:rounded-xl shadow-md transition-all duration-300 ease-in-out"
               style={{
-                backgroundColor: theme.primary,
-                boxShadow: `0 4px 6px -1px ${theme.primary}33`,
+                backgroundColor: agentConfig.colors.primary,
+                boxShadow: `0 4px 6px -1px ${agentConfig.colors.primary}33`,
               }}
             >
-              <Sparkles className="size-4 lg:size-5 text-white" />
+              <AgentIcon className="size-4 lg:size-5 text-white transition-all duration-300 ease-in-out" />
             </div>
             <div>
-              <h1 className="text-base lg:text-xl font-semibold tracking-tight text-foreground">
-                Sitecore Assistant
+              <h1 className="text-base lg:text-xl font-semibold tracking-tight text-foreground transition-colors duration-300 ease-in-out">
+                {agentConfig.name} Assistant
               </h1>
               <p className="text-[10px] lg:text-xs text-muted-foreground">
                 Powered by AI
@@ -215,12 +142,12 @@ function ChatHeader({
             onClick={onNewChat}
             className="h-10 gap-1.5 lg:gap-2 rounded-lg border-border bg-card shadow-sm transition-colors px-2.5 lg:px-4 w-full lg:w-auto"
             style={{
-              ["--hover-border" as string]: `${theme.primary}4D`,
-              ["--hover-bg" as string]: `${theme.primary}0D`,
+              ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
+              ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = `${theme.primary}4D`;
-              e.currentTarget.style.backgroundColor = `${theme.primary}0D`;
+              e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
+              e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.borderColor = "";
@@ -231,30 +158,35 @@ function ChatHeader({
             <span className="text-xs lg:text-sm">New Chat</span>
           </Button>
 
-          <Select value={selectedTheme} onValueChange={onThemeChange}>
-            <SelectTrigger className="h-9 w-full lg:w-[140px] rounded-lg border-border bg-card shadow-sm text-xs lg:text-sm">
+          <Select
+            value={selectedAgent}
+            onValueChange={(value) => onAgentChange(value as AgentType)}
+          >
+            <SelectTrigger className="h-9 w-full lg:w-[160px] rounded-lg border-border bg-card shadow-sm text-xs lg:text-sm">
               <div className="flex items-center gap-1.5 lg:gap-2">
                 <div
                   className="size-3 rounded-full shrink-0"
-                  style={{ backgroundColor: theme.primary }}
+                  style={{ backgroundColor: agentConfig.colors.primary }}
                 />
-                <span className="truncate">
-                  {theme.name.replace(" (Primary)", "")}
-                </span>
+                <span className="truncate">{agentConfig.name}</span>
               </div>
             </SelectTrigger>
             <SelectContent>
-              {COLOR_THEMES.map((themeItem) => (
-                <SelectItem key={themeItem.id} value={themeItem.id}>
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="size-3 rounded-full"
-                      style={{ backgroundColor: themeItem.primary }}
-                    />
-                    <span>{themeItem.name}</span>
-                  </div>
-                </SelectItem>
-              ))}
+              {AGENT_CONFIGS.map((agent) => {
+                const Icon = agent.icon;
+                return (
+                  <SelectItem key={agent.id} value={agent.id}>
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="size-3 rounded-full"
+                        style={{ backgroundColor: agent.colors.primary }}
+                      />
+                      <Icon className="size-3.5" />
+                      <span>{agent.name}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
 
@@ -305,22 +237,36 @@ function ChatHeader({
 
 function PredefinedQuestions({
   onSelect,
-  themeColor,
+  agentConfig,
+  isTransitioning,
 }: {
   onSelect: (question: string) => void;
-  themeColor: string;
+  agentConfig: AgentConfig;
+  isTransitioning: boolean;
 }) {
+  const themeColor = agentConfig.colors.primary;
+
   return (
     <div className="border-t border-border bg-card/50 px-3 py-3 lg:px-6 lg:py-4">
       <div className="mx-auto max-w-full">
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
-          {PREDEFINED_QUESTIONS.map((item) => {
+          {agentConfig.predefinedQuestions.map((item, index) => {
             const Icon = item.icon;
             return (
-              <div key={item.id} className="relative flex items-center">
+              <div
+                key={`${agentConfig.id}-${item.id}`}
+                className="relative flex items-center transition-all duration-300 ease-in-out"
+                style={{
+                  opacity: isTransitioning ? 0 : 1,
+                  transform: isTransitioning
+                    ? "translateY(10px) scale(0.95)"
+                    : "translateY(0) scale(1)",
+                  transitionDelay: `${index * 30}ms`,
+                }}
+              >
                 <Button
                   variant="outline"
-                  className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all active:scale-[0.98]"
+                  className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]"
                   onClick={() => onSelect(item.question)}
                   style={{
                     ["--theme-color" as string]: themeColor,
@@ -334,7 +280,7 @@ function PredefinedQuestions({
                     e.currentTarget.style.backgroundColor = "";
                   }}
                 >
-                  <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground" />
+                  <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
                   <span className="line-clamp-1">{item.label}</span>
                 </Button>
                 <Tooltip>
@@ -567,19 +513,105 @@ function ChatInput({
 
 export function ChatInterface() {
   const [selectedModel, setSelectedModel] = useState("openai/gpt-4o");
-  const [selectedTheme, setSelectedTheme] = useState("purple");
+  const [selectedAgent, setSelectedAgent] = useState<AgentType>(DEFAULT_AGENT);
   const [listenToContextUpdates, setListenToContextUpdates] = useState(false);
-  
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [displayAgent, setDisplayAgent] = useState<AgentType>(DEFAULT_AGENT);
+  const [userManuallySelectedAgent, setUserManuallySelectedAgent] =
+    useState(false);
+
+  // Get the current agent configuration
+  const currentAgentConfig = getAgentConfig(displayAgent);
+
+  // Handle agent change with smooth transition effect
+  const handleAgentChange = (newAgent: AgentType) => {
+    if (newAgent === selectedAgent) return;
+
+    setUserManuallySelectedAgent(true);
+    setIsTransitioning(true);
+    // Fade out current content
+    setTimeout(() => {
+      setSelectedAgent(newAgent);
+      setDisplayAgent(newAgent);
+      // Fade in new content
+      setTimeout(() => {
+        setIsTransitioning(false);
+      }, 50);
+    }, 200);
+  };
+
+  // Determine agent based on template name
+  const getAgentForTemplate = (
+    templateName: string | undefined | null
+  ): AgentType | null => {
+    if (!templateName) return null;
+    
+    // News templates → News Agent
+    if (templateName === "Article Page" || templateName === "Article Root") {
+      return AgentType.News;
+    }
+
+    // Home or Page templates → Sitecore Agent
+    if (templateName === "Page") {
+      return AgentType.Sitecore;
+    }
+
+    return null;
+  };
+
   // Use ref to access current value in callback (avoids stale closure)
   const listenToContextUpdatesRef = useRef(listenToContextUpdates);
   const prevListenToContextUpdatesRef = useRef(listenToContextUpdates);
-  
+  const currentAgentRef = useRef(selectedAgent);
+  const userManuallySelectedAgentRef = useRef(userManuallySelectedAgent);
+
+  // Keep refs updated
+  useEffect(() => {
+    currentAgentRef.current = selectedAgent;
+    userManuallySelectedAgentRef.current = userManuallySelectedAgent;
+  }, [selectedAgent, userManuallySelectedAgent]);
+
   const { messages, status, sendMessage, setMessages, stop } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: { model: selectedModel },
+      body: { model: selectedModel, agentType: selectedAgent },
     }),
+    onFinish: ({ message }) => {
+      // Add agent metadata to assistant messages
+      if (message.role === "assistant") {
+        setMessages((prevMessages) =>
+          prevMessages.map((msg) =>
+            msg.id === message.id
+              ? {
+                  ...msg,
+                  metadata: { agentType: currentAgentRef.current },
+                }
+              : msg
+          )
+        );
+      }
+    },
   });
+
+  // Add agent metadata to assistant messages that don't have it
+  useEffect(() => {
+    setMessages((prevMessages) =>
+      prevMessages.map((msg) => {
+        // Add agent metadata to assistant messages without it
+        if (
+          msg.role === "assistant" &&
+          (!msg.metadata ||
+            !(msg.metadata as { agentType?: AgentType })?.agentType)
+        ) {
+          return {
+            ...msg,
+            metadata: { agentType: currentAgentRef.current },
+          };
+        }
+        return msg;
+      })
+    );
+  }, [messages.length, setMessages]); // Trigger when new messages are added
 
   const { pagesContext } = usePagesContext({
     onContextChange: (context, isInitial) => {
@@ -592,6 +624,25 @@ export function ChatInterface() {
         "| Listening:",
         listenToContextUpdatesRef.current
       );
+
+      console.error(JSON.stringify(context.pageInfo, null, 2));
+
+      const templateName = context.pageInfo?.template?.name;
+      const suggestedAgent = getAgentForTemplate(templateName);
+
+      if (suggestedAgent && suggestedAgent !== currentAgentRef.current) {
+        console.log(
+          `[ChatInterface] Auto-switching to ${suggestedAgent} agent based on template: ${templateName}`
+        );
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setSelectedAgent(suggestedAgent);
+          setDisplayAgent(suggestedAgent);
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 50);
+        }, 200);
+      }
 
       const messageText = createContextMessage(context, isInitial);
 
@@ -609,7 +660,9 @@ export function ChatInterface() {
       if (listenToContextUpdatesRef.current) {
         sendMessage({ text: messageText });
       } else {
-        console.log("[ChatInterface] Context added to messages but not sent to AI");
+        console.log(
+          "[ChatInterface] Context added to messages but not sent to AI"
+        );
       }
     },
   });
@@ -617,13 +670,19 @@ export function ChatInterface() {
   // When checkbox is checked, send the current page context immediately
   useEffect(() => {
     listenToContextUpdatesRef.current = listenToContextUpdates;
-    
+
     // Check if checkbox was just enabled (changed from false to true)
-    if (listenToContextUpdates && !prevListenToContextUpdatesRef.current && pagesContext) {
-      console.log("[ChatInterface] Checkbox enabled - sending current page context");
-      
+    if (
+      listenToContextUpdates &&
+      !prevListenToContextUpdatesRef.current &&
+      pagesContext
+    ) {
+      console.log(
+        "[ChatInterface] Checkbox enabled - sending current page context"
+      );
+
       const messageText = createContextMessage(pagesContext, true);
-      
+
       setMessages([
         ...messages,
         {
@@ -632,21 +691,25 @@ export function ChatInterface() {
           parts: [{ type: "text", text: messageText }],
         },
       ]);
-      
+
       sendMessage({ text: messageText });
     }
-    
+
     prevListenToContextUpdatesRef.current = listenToContextUpdates;
-  }, [listenToContextUpdates, pagesContext, messages, setMessages, sendMessage]);
+  }, [
+    listenToContextUpdates,
+    pagesContext,
+    messages,
+    setMessages,
+    sendMessage,
+  ]);
 
   const isStreaming = status === "streaming" || status === "submitted";
   const isThinking = status === "submitted";
 
-  const currentTheme =
-    COLOR_THEMES.find((t) => t.id === selectedTheme) || COLOR_THEMES[0];
-
   const handleNewChat = () => {
     setMessages([]);
+    setUserManuallySelectedAgent(false); // Reset manual selection on new chat
   };
 
   const handleQuestionSelect = (question: string) => {
@@ -674,172 +737,254 @@ export function ChatInterface() {
             selectedModel={selectedModel}
             onModelChange={setSelectedModel}
             onNewChat={handleNewChat}
-            selectedTheme={selectedTheme}
-            onThemeChange={setSelectedTheme}
+            selectedAgent={selectedAgent}
+            onAgentChange={handleAgentChange}
             listenToContextUpdates={listenToContextUpdates}
             onListenToContextUpdatesChange={setListenToContextUpdates}
           />
 
           <Conversation className="flex-1">
             <ConversationContent>
-              {messages.length === 0 ? (
-                <ConversationEmptyState className="flex items-center justify-center p-3 pb-4 lg:p-4 lg:pb-8">
-                  <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
-                    <div className="relative flex size-12 lg:size-16 items-center justify-center">
-                      <div
-                        className="absolute inset-0 rounded-full blur-xl lg:blur-2xl"
-                        style={{ backgroundColor: `${currentTheme.primary}1A` }}
-                      />
-                      <div
-                        className="relative flex size-12 lg:size-16 items-center justify-center rounded-xl lg:rounded-2xl shadow-lg"
-                        style={{
-                          background: `linear-gradient(135deg, ${currentTheme.primary} 0%, ${currentTheme.primaryLight} 100%)`,
-                          boxShadow: `0 10px 25px -5px ${currentTheme.primary}33`,
-                        }}
-                      >
-                        <MessageCircle className="size-6 lg:size-8 text-white" />
-                      </div>
-                    </div>
-                    <div className="space-y-1.5 lg:space-y-2">
-                      <h2 className="text-balance text-3xl lg:text-5xl font-bold tracking-tight text-foreground">
-                        Your Content Intelligence
-                      </h2>
-                      <p className="text-pretty text-base lg:text-lg leading-relaxed text-muted-foreground">
-                        AI-powered assistant that knows your content inside out.
-                        <span className="hidden lg:inline">
-                          <br />
-                          Ask anything about your pages, campaigns, or content
-                          strategy.
-                        </span>
-                      </p>
-                    </div>
-                    <div className="grid w-full grid-cols-2 gap-2.5 lg:gap-4">
-                      <div
-                        className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all hover:shadow-md"
-                        style={{
-                          ["--theme-color" as string]: currentTheme.primary,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = `${currentTheme.primary}4D`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = "";
-                        }}
-                      >
-                        <div
-                          className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-colors"
-                          style={{
-                            backgroundColor: `${currentTheme.primary}1A`,
-                          }}
-                        >
-                          <Layers
-                            className="size-5 lg:size-6"
-                            style={{ color: currentTheme.primary }}
+              {(() => {
+                // Filter messages to get only visible ones
+                const visibleMessages = messages.filter(({ parts }) => {
+                  // Filter out messages that only contain context messages (when hiding is enabled)
+                  if (!CONTEXT_MESSAGE_CONFIG.hideContextMessages) {
+                    return true;
+                  }
+                  const hasVisibleContent = parts.some(
+                    (part) =>
+                      part.type === "text" && shouldShowMessage(part.text)
+                  );
+                  return hasVisibleContent;
+                });
+
+                // Show empty state if no visible messages
+                if (visibleMessages.length === 0) {
+                  return (
+                    <ConversationEmptyState className="flex items-center justify-center p-3 pb-4 lg:p-4 lg:pb-8">
+                      <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
+                        <div className="relative flex size-12 lg:size-16 items-center justify-center">
+                          <div
+                            className="absolute inset-0 rounded-full blur-xl lg:blur-2xl transition-all duration-300 ease-in-out"
+                            style={{
+                              backgroundColor: `${currentAgentConfig.colors.primary}1A`,
+                              opacity: isTransitioning ? 0 : 1,
+                            }}
                           />
+                          <div
+                            className="relative flex size-12 lg:size-16 items-center justify-center rounded-xl lg:rounded-2xl shadow-lg transition-all duration-300 ease-in-out"
+                            style={{
+                              background: `linear-gradient(135deg, ${currentAgentConfig.colors.primary} 0%, ${currentAgentConfig.colors.primaryLight} 100%)`,
+                              boxShadow: `0 10px 25px -5px ${currentAgentConfig.colors.primary}33`,
+                              opacity: isTransitioning ? 0 : 1,
+                              transform: isTransitioning
+                                ? "scale(0.95)"
+                                : "scale(1)",
+                            }}
+                          >
+                            {(() => {
+                              const Icon = currentAgentConfig.icon;
+                              return (
+                                <Icon
+                                  className="size-6 lg:size-8 text-white transition-all duration-300 ease-in-out"
+                                  style={{
+                                    opacity: isTransitioning ? 0 : 1,
+                                    transform: isTransitioning
+                                      ? "rotate(-10deg)"
+                                      : "rotate(0deg)",
+                                  }}
+                                />
+                              );
+                            })()}
+                          </div>
                         </div>
-                        <div className="space-y-1 text-center">
-                          <p className="text-base lg:text-xl font-semibold text-foreground">
-                            Content Aware
-                          </p>
-                          <p className="text-xs lg:text-base text-muted-foreground leading-tight">
-                            Deeply integrated with your Sitecore pages and
-                            components
-                          </p>
-                        </div>
-                      </div>
-                      <div
-                        className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all hover:shadow-md"
-                        style={{
-                          ["--theme-color" as string]: currentTheme.primary,
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.borderColor = `${currentTheme.primary}4D`;
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.borderColor = "";
-                        }}
-                      >
-                        <div
-                          className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-colors"
-                          style={{
-                            backgroundColor: `${currentTheme.primary}1A`,
-                          }}
-                        >
-                          <Sparkles
-                            className="size-5 lg:size-6"
-                            style={{ color: currentTheme.primary }}
-                          />
-                        </div>
-                        <div className="space-y-1 text-center">
-                          <p className="text-base lg:text-xl font-semibold text-foreground">
-                            Smart Suggestions
-                          </p>
-                          <p className="text-xs lg:text-base text-muted-foreground leading-tight">
-                            Get AI insights to improve your content and
-                            campaigns
+                        <div className="space-y-1.5 lg:space-y-2">
+                          <h2
+                            className="text-balance text-3xl lg:text-5xl font-bold tracking-tight text-foreground transition-all duration-300 ease-in-out"
+                            style={{
+                              opacity: isTransitioning ? 0 : 1,
+                              transform: isTransitioning
+                                ? "translateY(-10px)"
+                                : "translateY(0)",
+                            }}
+                          >
+                            {currentAgentConfig.headline}
+                          </h2>
+                          <p
+                            className="text-pretty text-base lg:text-lg leading-relaxed text-muted-foreground transition-all duration-300 ease-in-out"
+                            style={{
+                              opacity: isTransitioning ? 0 : 1,
+                              transform: isTransitioning
+                                ? "translateY(-10px)"
+                                : "translateY(0)",
+                              transitionDelay: "50ms",
+                            }}
+                          >
+                            {currentAgentConfig.subheadline}
                           </p>
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </ConversationEmptyState>
-              ) : (
-                <>
-                  {messages
-                    .filter(({ parts }) => {
-                      // Filter out messages that only contain context messages (when hiding is enabled)
-                      if (!CONTEXT_MESSAGE_CONFIG.hideContextMessages) {
-                        return true;
-                      }
-                      const hasVisibleContent = parts.some(
-                        (part) =>
-                          part.type === "text" && shouldShowMessage(part.text)
-                      );
-                      return hasVisibleContent;
-                    })
-                    .map(({ role, parts }, index) => (
-                      <Message from={role} key={index}>
-                        <MessageContent>
-                          {parts.map((part, i) => {
-                            switch (part.type) {
-                              case "text":
-                                // Hide context messages from display (when enabled)
-                                if (!shouldShowMessage(part.text)) {
-                                  return null;
-                                }
-                                return (
-                                  <MessageResponse key={`${role}-${i}`}>
-                                    {part.text}
-                                  </MessageResponse>
-                                );
-                            }
+                        <div className="grid w-full grid-cols-1 lg:grid-cols-2 gap-2.5 lg:gap-4">
+                          {currentAgentConfig.teaserCards.map((card, index) => {
+                            const CardIcon = card.icon;
+                            return (
+                              <div
+                                key={`${displayAgent}-teaser-${index}`}
+                                className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md"
+                                style={{
+                                  opacity: isTransitioning ? 0 : 1,
+                                  transform: isTransitioning
+                                    ? "translateY(20px) scale(0.95)"
+                                    : "translateY(0) scale(1)",
+                                  transitionDelay: `${index * 50}ms`,
+                                  ["--theme-color" as string]:
+                                    currentAgentConfig.colors.primary,
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.borderColor = `${currentAgentConfig.colors.primary}4D`;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.borderColor = "";
+                                }}
+                              >
+                                <div
+                                  className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-all duration-300 ease-in-out"
+                                  style={{
+                                    backgroundColor: `${currentAgentConfig.colors.primary}1A`,
+                                  }}
+                                >
+                                  <CardIcon
+                                    className="size-5 lg:size-6 transition-all duration-300 ease-in-out"
+                                    style={{
+                                      color: currentAgentConfig.colors.primary,
+                                    }}
+                                  />
+                                </div>
+                                <div className="space-y-1 text-center">
+                                  <p className="text-base lg:text-xl font-semibold text-foreground transition-colors duration-300">
+                                    {card.title}
+                                  </p>
+                                  <p className="text-xs lg:text-base text-muted-foreground leading-tight">
+                                    {card.description}
+                                  </p>
+                                </div>
+                              </div>
+                            );
                           })}
-                        </MessageContent>
-                      </Message>
-                    ))}
-                  {isThinking && (
-                    <div className="flex items-center gap-2.5 px-4 py-3">
-                      <Brain className="size-4 text-gray-400 dark:text-gray-500" />
-                      <span className="text-sm font-medium bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 dark:from-gray-400 dark:via-gray-300 dark:to-gray-400 bg-clip-text text-transparent bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]">
-                        Thinking...
-                      </span>
-                    </div>
-                  )}
-                </>
-              )}
+                        </div>
+                      </div>
+                    </ConversationEmptyState>
+                  );
+                }
+
+                // Render visible messages
+                return (
+                  <>
+                    {visibleMessages.map((message, index) => {
+                            const { role, parts, metadata } = message;
+                            // Get agent info from metadata or use current agent for assistant messages
+                            const agentType =
+                              (metadata as { agentType?: AgentType })?.agentType ||
+                              (role === "assistant" ? selectedAgent : undefined);
+                            const agentConfig = agentType
+                              ? getAgentConfig(agentType)
+                              : null;
+
+                            return (
+                              <Message from={role} key={index}>
+                                {role === "assistant" && agentConfig && (
+                                  <div
+                                    className="mb-1.5 flex items-center gap-2 px-1"
+                                    style={{
+                                      color: agentConfig.colors.primary,
+                                    }}
+                                  >
+                                    <div
+                                      className="flex size-5 items-center justify-center rounded-md"
+                                      style={{
+                                        backgroundColor: `${agentConfig.colors.primary}1A`,
+                                      }}
+                                    >
+                                      {(() => {
+                                        const Icon = agentConfig.icon;
+                                        return (
+                                          <Icon
+                                            className="size-3"
+                                            style={{
+                                              color: agentConfig.colors.primary,
+                                            }}
+                                          />
+                                        );
+                                      })()}
+                                    </div>
+                                    <span className="text-xs font-medium">
+                                      {agentConfig.name} Assistant
+                                    </span>
+                                  </div>
+                                )}
+                                <MessageContent
+                                  className={
+                                    role === "assistant" && agentConfig
+                                      ? "transition-colors duration-300"
+                                      : ""
+                                  }
+                                  style={
+                                    role === "assistant" && agentConfig
+                                      ? {
+                                          backgroundColor: `${agentConfig.colors.primary}08`,
+                                          borderLeft: `3px solid ${agentConfig.colors.primary}`,
+                                          paddingLeft: "12px",
+                                          paddingRight: "12px",
+                                          paddingTop: "10px",
+                                          paddingBottom: "10px",
+                                          borderRadius: "8px",
+                                        }
+                                      : undefined
+                                  }
+                                >
+                                  {parts.map((part, i) => {
+                                    switch (part.type) {
+                                      case "text":
+                                        // Hide context messages from display (when enabled)
+                                        if (!shouldShowMessage(part.text)) {
+                                          return null;
+                                        }
+                                        return (
+                                          <MessageResponse key={`${role}-${i}`}>
+                                            {part.text}
+                                          </MessageResponse>
+                                        );
+                                    }
+                                  })}
+                                </MessageContent>
+                              </Message>
+                            );
+                          })}
+                    {isThinking && (
+                      <div className="flex items-center gap-2.5 px-4 py-3">
+                        <Brain className="size-4 text-gray-400 dark:text-gray-500" />
+                        <span className="text-sm font-medium bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 dark:from-gray-400 dark:via-gray-300 dark:to-gray-400 bg-clip-text text-transparent bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]">
+                          Thinking...
+                        </span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
 
           <PredefinedQuestions
             onSelect={handleQuestionSelect}
-            themeColor={currentTheme.primary}
+            agentConfig={currentAgentConfig}
+            isTransitioning={isTransitioning}
           />
           <ChatInput
             onSubmit={handleMessageSubmit}
             isStreaming={isStreaming}
             onAbort={stop}
-            themeColor={currentTheme.primary}
+            themeColor={currentAgentConfig.colors.primary}
           />
         </div>
       </PromptInputProvider>

@@ -1,24 +1,50 @@
-import { consumeStream, convertToModelMessages, streamText, type UIMessage } from "ai"
+import { consumeStream, createAgentUIStreamResponse, type UIMessage } from "ai";
+import { createSitecoreAgent } from "@/components/agents/SitecoreAgent";
+import { createAllmightyAgent } from "@/components/agents/AllightyAgent";
+import { AgentType } from "@/lib/agent-configs";
 
-export const maxDuration = 30
+export const maxDuration = 30;
+
+const DEFAULT_MODEL = "openai/gpt-4o";
+
+// Define the shape of additional context you might receive
+interface RequestBody {
+  messages: UIMessage[];
+  model: string;
+  agentType: AgentType;
+}
 
 export async function POST(req: Request) {
-  const { messages, model }: { messages: UIMessage[]; model: string } = await req.json()
+  const { messages, model, agentType }: RequestBody = await req.json();
 
-  const modelMessages = await convertToModelMessages(messages)
+  let agent;
+  switch (agentType) {
+    case AgentType.Sitecore:
+      agent = createSitecoreAgent(model || DEFAULT_MODEL);
+      break;
+    case AgentType.Products:
+      // TODO: Create dedicated ProductsAgent when ready
+      agent = createAllmightyAgent(model || DEFAULT_MODEL);
+      break;
+    case AgentType.News:
+      // TODO: Create dedicated NewsAgent when ready
+      agent = createAllmightyAgent(model || DEFAULT_MODEL);
+      break;
+    case AgentType.Events:
+      // TODO: Create dedicated EventsAgent when ready
+      agent = createAllmightyAgent(model || DEFAULT_MODEL);
+      break;
+    case AgentType.Allmighty:
+    default:
+      agent = createAllmightyAgent(model || DEFAULT_MODEL);
+      break;
+  }
 
-  const result = streamText({
-    model: model || "openai/gpt-4o",
-    messages: modelMessages,
+  // Use the agent to handle the request with UI message streaming
+  return createAgentUIStreamResponse({
+    agent,
+    uiMessages: messages,
     abortSignal: req.signal,
-  })
-
-  return result.toUIMessageStreamResponse({
-    onFinish: async ({ isAborted }) => {
-      if (isAborted) {
-        console.log("[v0] Chat request aborted")
-      }
-    },
     consumeSseStream: consumeStream,
-  })
+  });
 }
