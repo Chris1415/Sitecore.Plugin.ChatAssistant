@@ -7,6 +7,7 @@ import {
   useAuth0,
   Auth0ContextInterface,
 } from "@auth0/auth0-react";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 // Get tenant ID from URL query params (passed by Marketplace) or fall back to env var
 function getTenantFromUrl(): string | undefined {
@@ -43,21 +44,30 @@ const WithPopupAuth = ({ children }: { children: React.ReactNode }) => {
   }, [isLoading, isAuthenticated, authAttempted, loginWithPopup, error]);
 
   if (isLoading) {
-    return <div>Loading authentication...</div>;
+    return <LoadingScreen message="Loading authentication..." />;
   }
 
   if (error) {
     return (
-      <div>
-        <h2>Authentication Error</h2>
-        <p>{error.message}</p>
-        <button onClick={() => setAuthAttempted(false)}>Retry</button>
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-8">
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center">
+          <h2 className="mb-2 text-xl font-semibold text-destructive">
+            Authentication Error
+          </h2>
+          <p className="mb-4 text-foreground">{error.message}</p>
+          <button
+            onClick={() => setAuthAttempted(false)}
+            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return <div>Authenticating via popup...</div>;
+    return <LoadingScreen message="Authenticating via popup..." />;
   }
 
   return <>{children}</>;

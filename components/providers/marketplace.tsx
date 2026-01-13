@@ -12,6 +12,7 @@ import {
   ClientSDK,
 } from "@sitecore-marketplace-sdk/client";
 import { XMC } from "@sitecore-marketplace-sdk/xmc";
+import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface ClientSDKProviderProps {
   children: ReactNode;
@@ -61,17 +62,21 @@ export const MarketplaceProvider: React.FC<ClientSDKProviderProps> = ({
   }, []);
 
   if (loading) {
-    return <div>Attempting to connect to Sitecore Marketplace...</div>;
+    return <LoadingScreen message="Connecting to Sitecore Marketplace..." />;
   }
 
   if (error) {
     return (
-      <div>
-        <h1>Error initializing Marketplace SDK</h1>
-        <div>{error}</div>
-        <div>
-          Please check if the client SDK is loaded inside Sitecore Marketplace
-          parent window and you have properly set your app's extention points.
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-8">
+        <div className="rounded-lg border border-destructive bg-destructive/10 p-6 text-center max-w-md">
+          <h1 className="mb-2 text-xl font-semibold text-destructive">
+            Error initializing Marketplace SDK
+          </h1>
+          <div className="mb-4 text-foreground">{error}</div>
+          <div className="text-sm text-muted-foreground">
+            Please check if the client SDK is loaded inside Sitecore Marketplace
+            parent window and you have properly set your app's extension points.
+          </div>
         </div>
       </div>
     );
