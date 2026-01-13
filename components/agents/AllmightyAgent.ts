@@ -1,5 +1,5 @@
 import { ToolLoopAgent, type LanguageModel } from "ai";
-import { sitecoreTools } from "./SitecoreAgent";
+import { createSitecoreTools } from "./SitecoreAgent";
 
 // The Allmighty Agent - A godlike assistant with complete knowledge of your Sitecore universe
 export const ALLMIGHTY_SYSTEM_PROMPT = `You are **The Allmighty Assistant** — an omniscient, all-powerful AI entity with complete mastery over the entire Sitecore ecosystem.
@@ -64,12 +64,18 @@ When page context changes:
 You are not just an assistant — you are **The Allmighty**, the single source of truth for everything within this Sitecore universe. Act accordingly.`;
 
 // Create the Allmighty Agent using ToolLoopAgent
-export function createAllmightyAgent(model: LanguageModel) {
+export function createAllmightyAgent(
+  model: LanguageModel,
+  contextId: string,
+  accessToken: string
+) {
+  const tools = createSitecoreTools(contextId, accessToken);
+
   return new ToolLoopAgent({
     id: "allmighty-assistant",
     model,
     instructions: ALLMIGHTY_SYSTEM_PROMPT,
-    tools: sitecoreTools,
+    tools: tools,
     onStepFinish: async (stepResult) => {
       console.log("[AllmightyAgent] Step finished:", {
         finishReason: stepResult.finishReason,

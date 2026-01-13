@@ -61,6 +61,8 @@ import {
   AgentType,
   type AgentConfig,
 } from "@/lib/agent-configs";
+import { useAppContext } from "./providers/marketplace";
+import { useAuth } from "./providers/auth";
 
 const AI_MODELS = [
   { id: "openai/gpt-4o", name: "GPT-4o", provider: "OpenAI" },
@@ -519,6 +521,8 @@ export function ChatInterface() {
   const [displayAgent, setDisplayAgent] = useState<AgentType>(DEFAULT_AGENT);
   const [userManuallySelectedAgent, setUserManuallySelectedAgent] =
     useState(false);
+  const { resourceAccess } = useAppContext();
+  const { getAccessTokenSilently } = useAuth();
 
   // Get the current agent configuration
   const currentAgentConfig = getAgentConfig(displayAgent);
@@ -545,7 +549,7 @@ export function ChatInterface() {
     templateName: string | undefined | null
   ): AgentType | null => {
     if (!templateName) return null;
-    
+
     // News templates → News Agent
     if (templateName === "Article Page" || templateName === "Article Root") {
       return AgentType.News;
@@ -574,7 +578,11 @@ export function ChatInterface() {
   const { messages, status, sendMessage, setMessages, stop } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: { model: selectedModel, agentType: selectedAgent },
+      body: {
+        model: selectedModel,
+        agentType: selectedAgent,
+        contextId: resourceAccess?.[0]?.context?.preview,
+      },
     }),
     onFinish: ({ message }) => {
       // Add agent metadata to assistant messages
@@ -722,10 +730,14 @@ export function ChatInterface() {
     sendMessage({ text: question });
   };
 
-  const handleMessageSubmit = (text: string) => {
+  const handleMessageSubmit = async (text: string) => {
+    const accessToken = await getAccessTokenSilently();
     console.log("[v0] Message submitted:", text, "Status:", status);
     if (text.trim() && !isStreaming) {
-      sendMessage({ text: text });
+      sendMessage(
+        { text: text },
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
     }
   };
 
@@ -881,85 +893,85 @@ export function ChatInterface() {
                 return (
                   <>
                     {visibleMessages.map((message, index) => {
-                            const { role, parts, metadata } = message;
-                            // Get agent info from metadata or use current agent for assistant messages
-                            const agentType =
-                              (metadata as { agentType?: AgentType })?.agentType ||
-                              (role === "assistant" ? selectedAgent : undefined);
-                            const agentConfig = agentType
-                              ? getAgentConfig(agentType)
-                              : null;
+                      const { role, parts, metadata } = message;
+                      // Get agent info from metadata or use current agent for assistant messages
+                      const agentType =
+                        (metadata as { agentType?: AgentType })?.agentType ||
+                        (role === "assistant" ? selectedAgent : undefined);
+                      const agentConfig = agentType
+                        ? getAgentConfig(agentType)
+                        : null;
 
-                            return (
-                              <Message from={role} key={index}>
-                                {role === "assistant" && agentConfig && (
-                                  <div
-                                    className="mb-1.5 flex items-center gap-2 px-1"
-                                    style={{
-                                      color: agentConfig.colors.primary,
-                                    }}
-                                  >
-                                    <div
-                                      className="flex size-5 items-center justify-center rounded-md"
+                      return (
+                        <Message from={role} key={index}>
+                          {role === "assistant" && agentConfig && (
+                            <div
+                              className="mb-1.5 flex items-center gap-2 px-1"
+                              style={{
+                                color: agentConfig.colors.primary,
+                              }}
+                            >
+                              <div
+                                className="flex size-5 items-center justify-center rounded-md"
+                                style={{
+                                  backgroundColor: `${agentConfig.colors.primary}1A`,
+                                }}
+                              >
+                                {(() => {
+                                  const Icon = agentConfig.icon;
+                                  return (
+                                    <Icon
+                                      className="size-3"
                                       style={{
-                                        backgroundColor: `${agentConfig.colors.primary}1A`,
+                                        color: agentConfig.colors.primary,
                                       }}
-                                    >
-                                      {(() => {
-                                        const Icon = agentConfig.icon;
-                                        return (
-                                          <Icon
-                                            className="size-3"
-                                            style={{
-                                              color: agentConfig.colors.primary,
-                                            }}
-                                          />
-                                        );
-                                      })()}
-                                    </div>
-                                    <span className="text-xs font-medium">
-                                      {agentConfig.name} Assistant
-                                    </span>
-                                  </div>
-                                )}
-                                <MessageContent
-                                  className={
-                                    role === "assistant" && agentConfig
-                                      ? "transition-colors duration-300"
-                                      : ""
+                                    />
+                                  );
+                                })()}
+                              </div>
+                              <span className="text-xs font-medium">
+                                {agentConfig.name} Assistant
+                              </span>
+                            </div>
+                          )}
+                          <MessageContent
+                            className={
+                              role === "assistant" && agentConfig
+                                ? "transition-colors duration-300"
+                                : ""
+                            }
+                            style={
+                              role === "assistant" && agentConfig
+                                ? {
+                                    backgroundColor: `${agentConfig.colors.primary}08`,
+                                    borderLeft: `3px solid ${agentConfig.colors.primary}`,
+                                    paddingLeft: "12px",
+                                    paddingRight: "12px",
+                                    paddingTop: "10px",
+                                    paddingBottom: "10px",
+                                    borderRadius: "8px",
                                   }
-                                  style={
-                                    role === "assistant" && agentConfig
-                                      ? {
-                                          backgroundColor: `${agentConfig.colors.primary}08`,
-                                          borderLeft: `3px solid ${agentConfig.colors.primary}`,
-                                          paddingLeft: "12px",
-                                          paddingRight: "12px",
-                                          paddingTop: "10px",
-                                          paddingBottom: "10px",
-                                          borderRadius: "8px",
-                                        }
-                                      : undefined
+                                : undefined
+                            }
+                          >
+                            {parts.map((part, i) => {
+                              switch (part.type) {
+                                case "text":
+                                  // Hide context messages from display (when enabled)
+                                  if (!shouldShowMessage(part.text)) {
+                                    return null;
                                   }
-                                >
-                                  {parts.map((part, i) => {
-                                    switch (part.type) {
-                                      case "text":
-                                        // Hide context messages from display (when enabled)
-                                        if (!shouldShowMessage(part.text)) {
-                                          return null;
-                                        }
-                                        return (
-                                          <MessageResponse key={`${role}-${i}`}>
-                                            {part.text}
-                                          </MessageResponse>
-                                        );
-                                    }
-                                  })}
-                                </MessageContent>
-                              </Message>
-                            );
-                          })}
+                                  return (
+                                    <MessageResponse key={`${role}-${i}`}>
+                                      {part.text}
+                                    </MessageResponse>
+                                  );
+                              }
+                            })}
+                          </MessageContent>
+                        </Message>
+                      );
+                    })}
                     {isThinking && (
                       <div className="flex items-center gap-2.5 px-4 py-3">
                         <Brain className="size-4 text-gray-400 dark:text-gray-500" />
