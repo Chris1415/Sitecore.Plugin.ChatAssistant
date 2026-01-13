@@ -25,27 +25,9 @@ export function shouldShowMessage(text: string): boolean {
   return !isContextMessage(text);
 }
 
-// Extract context summary from PagesContext
-export interface ContextSummary {
-  PageName: string | undefined;
-  Language: string | undefined;
-  SiteName: string | undefined;
-  Version: string | undefined;
-}
-
-export function extractContextSummary(context: PagesContext): ContextSummary {
-  const pageInfo = context.pageInfo;
-  return {
-    PageName: pageInfo?.displayName || pageInfo?.name,
-    Language: pageInfo?.language,
-    SiteName: context?.siteInfo?.displayName,
-    Version: pageInfo?.version?.toString(),
-  };
-}
-
 // Message templates
 export function createInitialContextMessage(
-  contextSummary: ContextSummary
+  contextSummary: PagesContext
 ): string {
   return `[Initial Page Context]
 
@@ -58,7 +40,7 @@ Start with **Page Context:** and then the facts. No other words. Use one line pe
 }
 
 export function createContextUpdateMessage(
-  contextSummary: ContextSummary
+  contextSummary: PagesContext
 ): string {
   return `The page context has been updated. Here is the current page information as JSON:
 
@@ -68,7 +50,7 @@ ${JSON.stringify(contextSummary, null, 2)}
 
 What has changed compared to the previous context? Present each change in the format:
 **Page Context Updated:** 
-**Field:** {OLD} → {NEW}. Only show fields that actually changed.`;
+**Field:** {OLD} → {NEW}. Only show fields that actually changed. In the output stick to Name, Language and version and only display the fields which have actually changed`;
 }
 
 // Generate the appropriate context message based on whether it's initial or update
@@ -76,9 +58,7 @@ export function createContextMessage(
   context: PagesContext,
   isInitial: boolean
 ): string {
-  const contextSummary = extractContextSummary(context);
   return isInitial
-    ? createInitialContextMessage(contextSummary)
-    : createContextUpdateMessage(contextSummary);
+    ? createInitialContextMessage(context)
+    : createContextUpdateMessage(context);
 }
-

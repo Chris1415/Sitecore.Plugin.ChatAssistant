@@ -47,6 +47,7 @@ import {
   Mic,
   MicOff,
   Info,
+  Wrench,
 } from "lucide-react";
 import usePagesContext from "./hooks/usePagesContext";
 import {
@@ -580,7 +581,6 @@ export function ChatInterface() {
       api: "/api/chat",
       body: {
         model: selectedModel,
-        agentType: selectedAgent,
         contextId: resourceAccess?.[0]?.context?.preview,
       },
     }),
@@ -622,7 +622,7 @@ export function ChatInterface() {
   }, [messages.length, setMessages]); // Trigger when new messages are added
 
   const { pagesContext } = usePagesContext({
-    onContextChange: (context, isInitial) => {
+    onContextChange: async (context, isInitial) => {
       if (!context) return;
 
       console.log(
@@ -666,7 +666,16 @@ export function ChatInterface() {
 
       // Only send to AI if listening is enabled
       if (listenToContextUpdatesRef.current) {
-        sendMessage({ text: messageText });
+        const accessToken = await getAccessTokenSilently();
+        sendMessage(
+          { text: messageText },
+          {
+            body: {
+              agentType: selectedAgent,
+            },
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
       } else {
         console.log(
           "[ChatInterface] Context added to messages but not sent to AI"
@@ -677,6 +686,17 @@ export function ChatInterface() {
 
   // When checkbox is checked, send the current page context immediately
   useEffect(() => {
+    async function sendMessageWithAccessToken(messageText: string) {
+      const accessToken = await getAccessTokenSilently();
+      sendMessage(
+        { text: messageText },
+        {
+          body: { agentType: selectedAgent },
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+    }
+
     listenToContextUpdatesRef.current = listenToContextUpdates;
 
     // Check if checkbox was just enabled (changed from false to true)
@@ -700,7 +720,7 @@ export function ChatInterface() {
         },
       ]);
 
-      sendMessage({ text: messageText });
+      sendMessageWithAccessToken(messageText);
     }
 
     prevListenToContextUpdatesRef.current = listenToContextUpdates;
@@ -710,6 +730,8 @@ export function ChatInterface() {
     messages,
     setMessages,
     sendMessage,
+    getAccessTokenSilently,
+    selectedAgent,
   ]);
 
   const isStreaming = status === "streaming" || status === "submitted";
@@ -720,14 +742,23 @@ export function ChatInterface() {
     setUserManuallySelectedAgent(false); // Reset manual selection on new chat
   };
 
-  const handleQuestionSelect = (question: string) => {
+  const handleQuestionSelect = async (question: string) => {
     console.log(
       "[v0] Predefined question clicked:",
       question,
       "Status:",
       status
     );
-    sendMessage({ text: question });
+    const accessToken = await getAccessTokenSilently();
+    sendMessage(
+      { text: question },
+      {
+        body: {
+          agentType: selectedAgent,
+        },
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
   };
 
   const handleMessageSubmit = async (text: string) => {
@@ -736,7 +767,12 @@ export function ChatInterface() {
     if (text.trim() && !isStreaming) {
       sendMessage(
         { text: text },
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        {
+          body: {
+            agentType: selectedAgent,
+          },
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
       );
     }
   };
@@ -902,6 +938,39 @@ export function ChatInterface() {
                         ? getAgentConfig(agentType)
                         : null;
 
+                      // Extract tool names from tool parts
+                      const toolNames = parts
+                        .filter(
+                          (part) =>
+                            part.type &&
+                            typeof part.type === "string" &&
+                            part.type.startsWith("tool-")
+                        )
+                        .map((part) => {
+                          // Check if part has a toolName property
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          const partAny = part as any;
+                          if (partAny.toolName) {
+                            return partAny.toolName;
+                          }
+                          // Tool type format is usually "tool-{toolName}" or similar
+                          const toolType = part.type as string;
+                          // Extract tool name from type (e.g., "tool-getLanguages" -> "getLanguages")
+                          const toolName = toolType
+                            .replace(/^tool-/, "")
+                            .split("-")
+                            .map(
+                              (word) =>
+                                word.charAt(0).toUpperCase() +
+                                word.slice(1).toLowerCase()
+                            )
+                            .join(" ");
+                          return toolName;
+                        })
+                        .filter(
+                          (name, index, self) => self.indexOf(name) === index
+                        ); // Remove duplicates
+
                       return (
                         <Message from={role} key={index}>
                           {role === "assistant" && agentConfig && (
@@ -932,6 +1001,43 @@ export function ChatInterface() {
                               <span className="text-xs font-medium">
                                 {agentConfig.name} Assistant
                               </span>
+                              {toolNames.length > 0 && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/50 hover:bg-muted dark:hover:bg-muted/50 transition-colors cursor-help group">
+                                      <Wrench className="size-3 text-foreground/70 group-hover:text-foreground transition-colors" />
+                                      <span className="text-xs font-medium text-foreground">
+                                        Tools Used ({toolNames.length})
+                                      </span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="top"
+                                    className="max-w-xs bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg p-3"
+                                  >
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
+                                        <Wrench className="size-3.5 text-foreground" />
+                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                          Tools Used ({toolNames.length})
+                                        </p>
+                                      </div>
+                                      <ul className="list-disc list-inside space-y-1">
+                                        {toolNames.map(
+                                          (toolName, toolIndex) => (
+                                            <li
+                                              key={toolIndex}
+                                              className="text-sm font-medium text-gray-800 dark:text-gray-200"
+                                            >
+                                              {toolName}
+                                            </li>
+                                          )
+                                        )}
+                                      </ul>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
                             </div>
                           )}
                           <MessageContent
@@ -974,8 +1080,8 @@ export function ChatInterface() {
                     })}
                     {isThinking && (
                       <div className="flex items-center gap-2.5 px-4 py-3">
-                        <Brain className="size-4 text-gray-400 dark:text-gray-500" />
-                        <span className="text-sm font-medium bg-gradient-to-r from-gray-500 via-gray-400 to-gray-500 dark:from-gray-400 dark:via-gray-300 dark:to-gray-400 bg-clip-text text-transparent bg-[length:200%_100%] animate-[shimmer_2s_ease-in-out_infinite]">
+                        <Brain className="size-4 text-gray-400 dark:text-gray-500 animate-pulse" />
+                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">
                           Thinking...
                         </span>
                       </div>

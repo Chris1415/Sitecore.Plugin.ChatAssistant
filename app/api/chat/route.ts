@@ -1,7 +1,13 @@
-import { consumeStream, createAgentUIStreamResponse, type UIMessage } from "ai";
+import {
+  consumeStream,
+  createAgentUIStreamResponse,
+  type UIMessage,
+  type Agent,
+} from "ai";
 import { createSitecoreAgent } from "@/components/agents/SitecoreAgent";
 import { createAllmightyAgent } from "@/components/agents/AllmightyAgent";
 import { AgentType } from "@/lib/agent-configs";
+import { createNewsAgent } from "@/components/agents/NewsAgent";
 
 export const maxDuration = 30;
 
@@ -18,8 +24,15 @@ interface RequestBody {
 export async function POST(request: Request) {
   const { messages, model, agentType, contextId }: RequestBody =
     await request.json();
+  console.error("Request body:", {
+    messages,
+    model,
+    agentType,
+    contextId,
+  });
   const accessToken = request.headers.get("authorization")?.split(" ")[1];
-  let agent;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let agent: Agent<any, any, any>;
   if (!contextId || !accessToken) {
     return new Response(
       JSON.stringify({
@@ -47,11 +60,7 @@ export async function POST(request: Request) {
       break;
     case AgentType.News:
       // TODO: Create dedicated NewsAgent when ready
-      agent = createAllmightyAgent(
-        model || DEFAULT_MODEL,
-        contextId,
-        accessToken
-      );
+      agent = createNewsAgent(model || DEFAULT_MODEL, contextId, accessToken);
       break;
     case AgentType.Events:
       // TODO: Create dedicated EventsAgent when ready
