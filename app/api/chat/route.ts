@@ -2,12 +2,13 @@ import {
   consumeStream,
   createAgentUIStreamResponse,
   type UIMessage,
-  type Agent,
+  wrapLanguageModel,
+  gateway,
 } from "ai";
-import { createSitecoreAgent } from "@/components/agents/SitecoreAgent";
-import { createAllmightyAgent } from "@/components/agents/AllmightyAgent";
 import { AgentType } from "@/lib/agent-configs";
-import { createNewsAgent } from "@/components/agents/NewsAgent";
+import { devToolsMiddleware } from "@ai-sdk/devtools";
+import { getAgent } from "@/components/agents/AgentsFactory";
+import { PagesContext } from "@sitecore-marketplace-sdk/client";
 
 export const maxDuration = 30;
 
@@ -18,21 +19,20 @@ interface RequestBody {
   messages: UIMessage[];
   model: string;
   agentType: AgentType;
+  pageContext: PagesContext;
   contextId?: string;
 }
 
 export async function POST(request: Request) {
-  const { messages, model, agentType, contextId }: RequestBody =
+  const { messages, model, agentType, contextId, pageContext }: RequestBody =
     await request.json();
-  console.error("Request body:", {
-    messages,
-    model,
-    agentType,
-    contextId,
+  const accessToken = request.headers.get("authorization")?.split(" ")[1]; 
+
+  const devToolsEnabledModel = wrapLanguageModel({
+    model: gateway(model || DEFAULT_MODEL),
+    middleware: devToolsMiddleware(),
   });
-  const accessToken = request.headers.get("authorization")?.split(" ")[1];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let agent: Agent<any, any, any>;
+
   if (!contextId || !accessToken) {
     return new Response(
       JSON.stringify({
@@ -42,43 +42,13 @@ export async function POST(request: Request) {
     );
   }
 
-  switch (agentType) {
-    case AgentType.Sitecore:
-      agent = createSitecoreAgent(
-        model || DEFAULT_MODEL,
-        contextId,
-        accessToken
-      );
-      break;
-    case AgentType.Products:
-      // TODO: Create dedicated ProductsAgent when ready
-      agent = createAllmightyAgent(
-        model || DEFAULT_MODEL,
-        contextId,
-        accessToken
-      );
-      break;
-    case AgentType.News:
-      // TODO: Create dedicated NewsAgent when ready
-      agent = createNewsAgent(model || DEFAULT_MODEL, contextId, accessToken);
-      break;
-    case AgentType.Events:
-      // TODO: Create dedicated EventsAgent when ready
-      agent = createAllmightyAgent(
-        model || DEFAULT_MODEL,
-        contextId,
-        accessToken
-      );
-      break;
-    case AgentType.Allmighty:
-    default:
-      agent = createAllmightyAgent(
-        model || DEFAULT_MODEL,
-        contextId,
-        accessToken
-      );
-      break;
-  }
+  const agent = getAgent(
+    agentType,
+    devToolsEnabledModel,
+    contextId,
+    accessToken,
+    pageContext
+  );
 
   // Use the agent to handle the request with UI message streaming
   return createAgentUIStreamResponse({

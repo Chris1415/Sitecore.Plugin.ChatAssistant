@@ -41,7 +41,6 @@ export const ListLanguagesFromApiRoute = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
-      console.log("languages from api", data);
       setLanguages(data.data);
     } catch (error) {
       console.error("error from api", error);

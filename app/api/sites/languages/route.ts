@@ -34,7 +34,6 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    console.log("languages from API", languages);
     return NextResponse.json(languages);
   } catch (error) {
     console.error("Error fetching languages", error);

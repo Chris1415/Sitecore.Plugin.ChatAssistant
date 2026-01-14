@@ -71,31 +71,31 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "Recent Changes",
+        label: "Page Context",
         question:
-          "Can you summarize the recent content changes I've made across my site? Include any pages I've edited, created, or published in the last few days.",
-        icon: BookOpen,
+          "Please provide me with the current page context. I'd like to understand the page structure, template information, fields, and any relevant metadata about the page I'm currently viewing or working on.",
+        icon: FileText,
       },
       {
         id: 2,
-        label: "Page Insights",
+        label: "All Sites",
         question:
-          "Please analyze the current page I'm working on and suggest improvements for better engagement, SEO, and content quality.",
-        icon: Sparkles,
+          "Get all available sites configured in this Sitecore instance. Show me the site names, IDs, and their configuration details.",
+        icon: Globe,
       },
       {
         id: 3,
-        label: "Related Content",
+        label: "All Languages",
         question:
-          "Help me find related content and pages in my Sitecore site that could be linked to or referenced from my current page.",
-        icon: Layers,
+          "Retrieve all available languages configured in this Sitecore site. Show me the language codes, display names, and metadata.",
+        icon: Globe,
       },
       {
         id: 4,
-        label: "Write Headline",
+        label: "Content Overview",
         question:
-          "Help me write a compelling and engaging headline for my current page. Consider SEO best practices and make it attention-grabbing.",
-        icon: MessageCircle,
+          "Give me a general overview of the content structure and organization in my Sitecore site.",
+        icon: Layers,
       },
     ],
     teaserCards: [
@@ -185,30 +185,30 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "Recent Articles",
+        label: "News Count",
         question:
-          "Show me the most recently published articles and their performance. Include any drafts that are pending review.",
+          "How many news articles are currently in the system? Please provide a count of all news items, including published and draft articles.",
         icon: FileText,
       },
       {
         id: 2,
-        label: "Content Calendar",
+        label: "Create News Page",
         question:
-          "What articles are scheduled for publication this week? Are there any gaps in my content calendar I should fill?",
-        icon: Calendar,
+          "Help me create a new news page. I'll provide the details like title, content, and other required fields. Guide me through the process.",
+        icon: Newspaper,
       },
       {
         id: 3,
-        label: "Topic Analysis",
+        label: "Analyze Current News",
         question:
-          "Analyze the topics I've been covering. What subjects are underrepresented? Suggest new article ideas based on gaps.",
+          "Analyze the content of the current news page I'm viewing. Provide insights about the article structure, content quality, SEO, and suggest any improvements.",
         icon: Search,
       },
       {
         id: 4,
-        label: "SEO Check",
+        label: "News Overview",
         question:
-          "Review my recent articles for SEO optimization. Identify any that need better headlines, meta descriptions, or keywords.",
+          "Give me a general overview of the news articles and content in my Sitecore site, including recent publications and editorial trends.",
         icon: TrendingUp,
       },
     ],

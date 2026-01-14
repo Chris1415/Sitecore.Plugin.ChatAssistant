@@ -9,7 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@ai-sdk/devtools": "^0.0.4",
     "@ai-sdk/mcp": "^1.0.5",
+    "@ai-sdk/openai": "^3.0.9",
     "@ai-sdk/react": "^3.0.29",
     "@auth0/auth0-react": "^2.11.0",
     "@emotion/is-prop-valid": "latest",

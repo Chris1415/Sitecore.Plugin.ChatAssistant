@@ -2,7 +2,9 @@
 import type React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type FileUIPart } from "ai";
+import { toast } from "sonner";
+import { AlertCircle, X } from "lucide-react";
 import {
   Conversation,
   ConversationContent,
@@ -27,7 +29,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -36,8 +40,6 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import {
   Paperclip,
   Send,
@@ -48,13 +50,10 @@ import {
   MicOff,
   Info,
   Wrench,
+  Trash2,
+  User,
 } from "lucide-react";
 import usePagesContext from "./hooks/usePagesContext";
-import {
-  createContextMessage,
-  shouldShowMessage,
-  CONTEXT_MESSAGE_CONFIG,
-} from "@/lib/context-messages";
 import {
   AGENT_CONFIGS,
   DEFAULT_AGENT,
@@ -64,11 +63,20 @@ import {
 } from "@/lib/agent-configs";
 import { useAppContext } from "./providers/marketplace";
 import { useAuth } from "./providers/auth";
+import { Toaster } from "@/components/ui/sonner";
 
 const AI_MODELS = [
+  // OpenAI - Top 3 models
   { id: "openai/gpt-4o", name: "GPT-4o", provider: "OpenAI" },
   { id: "openai/gpt-4-turbo", name: "GPT-4 Turbo", provider: "OpenAI" },
-  { id: "openai/gpt-3.5-turbo", name: "GPT-3.5 Turbo", provider: "OpenAI" },
+  { id: "openai/gpt-4", name: "GPT-4", provider: "OpenAI" },
+
+  // Anthropic - Top 3 models
+  {
+    id: "anthropic/claude-3.5-sonnet",
+    name: "Claude 3.5 Sonnet",
+    provider: "Anthropic",
+  },
   {
     id: "anthropic/claude-3-opus",
     name: "Claude 3 Opus",
@@ -76,17 +84,51 @@ const AI_MODELS = [
   },
   {
     id: "anthropic/claude-3-sonnet",
-    name: "Claude 3.5 Sonnet",
+    name: "Claude 3 Sonnet",
     provider: "Anthropic",
+  },
+
+  // Google - Top models
+  {
+    id: "google/gemini-2.5-flash-image-preview",
+    name: "Gemini 2.5 Flash Image Preview",
+    provider: "Google",
   },
   {
-    id: "anthropic/claude-3-haiku",
-    name: "Claude 3 Haiku",
-    provider: "Anthropic",
+    id: "google/gemini-2.0-flash-exp",
+    name: "Gemini 2.0 Flash (Exp)",
+    provider: "Google",
   },
-  { id: "google/gemini-pro", name: "Gemini Pro", provider: "Google" },
-  { id: "google/gemini-ultra", name: "Gemini Ultra", provider: "Google" },
+  { id: "google/gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google" },
+  {
+    id: "google/gemini-1.5-flash",
+    name: "Gemini 1.5 Flash",
+    provider: "Google",
+  },
+
+  // Meta - Top 2 models (only 2 available)
+  { id: "meta-llama/llama-3.1-405b", name: "Llama 3.1 405B", provider: "Meta" },
+  { id: "meta-llama/llama-3.1-70b", name: "Llama 3.1 70B", provider: "Meta" },
+
+  // Mistral AI - Top 1 model
+  {
+    id: "mistralai/mistral-large",
+    name: "Mistral Large",
+    provider: "Mistral AI",
+  },
 ];
+
+// Group models by provider
+const groupedModels = AI_MODELS.reduce((acc, model) => {
+  if (!acc[model.provider]) {
+    acc[model.provider] = [];
+  }
+  acc[model.provider].push(model);
+  return acc;
+}, {} as Record<string, typeof AI_MODELS>);
+
+// Provider order (best providers first)
+const PROVIDER_ORDER = ["OpenAI", "Anthropic", "Google", "Meta", "Mistral AI"];
 
 function ChatHeader({
   selectedModel,
@@ -94,16 +136,12 @@ function ChatHeader({
   onNewChat,
   selectedAgent,
   onAgentChange,
-  listenToContextUpdates,
-  onListenToContextUpdatesChange,
 }: {
   selectedModel: string;
   onModelChange: (model: string) => void;
   onNewChat: () => void;
   selectedAgent: AgentType;
   onAgentChange: (agent: AgentType) => void;
-  listenToContextUpdates: boolean;
-  onListenToContextUpdatesChange: (checked: boolean) => void;
 }) {
   const agentConfig = getAgentConfig(selectedAgent);
   const AgentIcon = agentConfig.icon;
@@ -198,39 +236,31 @@ function ChatHeader({
               <SelectValue placeholder="Model" />
             </SelectTrigger>
             <SelectContent>
-              {AI_MODELS.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{model.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {model.provider}
-                    </span>
-                  </div>
-                </SelectItem>
-              ))}
+              {PROVIDER_ORDER.map((provider) => {
+                const models = groupedModels[provider];
+                if (!models || models.length === 0) return null;
+                return (
+                  <SelectGroup key={provider}>
+                    <SelectLabel>{provider}</SelectLabel>
+                    {models.map((model) => (
+                      <SelectItem key={model.id} value={model.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{model.name}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {model.provider}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                );
+              })}
             </SelectContent>
           </Select>
 
           {/* Desktop-only theme toggle - visible at lg and above */}
           <div className="hidden lg:block shrink-0">
             <ThemeToggle />
-          </div>
-
-          {/* Context updates toggle */}
-          <div className="col-span-3 lg:col-span-1 flex items-center gap-2 px-1 pt-2">
-            <Checkbox
-              id="context-updates"
-              checked={listenToContextUpdates}
-              onCheckedChange={(checked) =>
-                onListenToContextUpdatesChange(checked === true)
-              }
-            />
-            <Label
-              htmlFor="context-updates"
-              className="text-xs lg:text-sm text-muted-foreground cursor-pointer select-none"
-            >
-              Listen to page updates
-            </Label>
           </div>
         </div>
       </div>
@@ -318,7 +348,7 @@ function ChatInput({
   onAbort,
   themeColor,
 }: {
-  onSubmit: (message: string) => void;
+  onSubmit: (message: { text: string; files: FileUIPart[] }) => void;
   isStreaming: boolean;
   onAbort: () => void;
   themeColor: string;
@@ -378,16 +408,22 @@ function ChatInput({
   }, [isRecording]);
 
   const handleSubmit = async (
-    message: { text: string; files: unknown[] },
+    message: { text: string; files: FileUIPart[] },
     event: React.FormEvent
   ) => {
     event.preventDefault();
-    if (message.text.trim()) {
+    if (message.text.trim() || message.files.length > 0) {
       if (isRecording && recognitionRef.current) {
         recognitionRef.current.stop();
         setIsRecording(false);
       }
-      onSubmit(message.text);
+      try {
+        onSubmit({ text: message.text, files: message.files });
+      } catch (error) {
+        toast.error("Error", {
+          description: error instanceof Error ? error.message : "An error occurred",
+        });
+      }
     }
   };
 
@@ -517,8 +553,8 @@ function ChatInput({
 export function ChatInterface() {
   const [selectedModel, setSelectedModel] = useState("openai/gpt-4o");
   const [selectedAgent, setSelectedAgent] = useState<AgentType>(DEFAULT_AGENT);
-  const [listenToContextUpdates, setListenToContextUpdates] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [displayAgent, setDisplayAgent] = useState<AgentType>(DEFAULT_AGENT);
   const [userManuallySelectedAgent, setUserManuallySelectedAgent] =
     useState(false);
@@ -565,8 +601,6 @@ export function ChatInterface() {
   };
 
   // Use ref to access current value in callback (avoids stale closure)
-  const listenToContextUpdatesRef = useRef(listenToContextUpdates);
-  const prevListenToContextUpdatesRef = useRef(listenToContextUpdates);
   const currentAgentRef = useRef(selectedAgent);
   const userManuallySelectedAgentRef = useRef(userManuallySelectedAgent);
 
@@ -599,6 +633,13 @@ export function ChatInterface() {
         );
       }
     },
+    onError: (error) => {
+      console.error("[ChatInterface] Error:", error);
+      const message = error.message || "An error occurred";
+      setErrorMessage(message);
+      // Auto-hide after 10 seconds
+      setTimeout(() => setErrorMessage(null), 10000);
+    },
   });
 
   // Add agent metadata to assistant messages that don't have it
@@ -622,26 +663,13 @@ export function ChatInterface() {
   }, [messages.length, setMessages]); // Trigger when new messages are added
 
   const { pagesContext } = usePagesContext({
-    onContextChange: async (context, isInitial) => {
+    onContextChange: async (context) => {
       if (!context) return;
-
-      console.log(
-        "[ChatInterface] Pages context:",
-        isInitial ? "initial" : "update",
-        context,
-        "| Listening:",
-        listenToContextUpdatesRef.current
-      );
-
-      console.error(JSON.stringify(context.pageInfo, null, 2));
 
       const templateName = context.pageInfo?.template?.name;
       const suggestedAgent = getAgentForTemplate(templateName);
 
       if (suggestedAgent && suggestedAgent !== currentAgentRef.current) {
-        console.log(
-          `[ChatInterface] Auto-switching to ${suggestedAgent} agent based on template: ${templateName}`
-        );
         setIsTransitioning(true);
         setTimeout(() => {
           setSelectedAgent(suggestedAgent);
@@ -651,88 +679,8 @@ export function ChatInterface() {
           }, 50);
         }, 200);
       }
-
-      const messageText = createContextMessage(context, isInitial);
-
-      // Always add to messages array so context is available
-      setMessages([
-        ...messages,
-        {
-          role: "system",
-          id: (messages.length + 1).toString(),
-          parts: [{ type: "text", text: messageText }],
-        },
-      ]);
-
-      // Only send to AI if listening is enabled
-      if (listenToContextUpdatesRef.current) {
-        const accessToken = await getAccessTokenSilently();
-        sendMessage(
-          { text: messageText },
-          {
-            body: {
-              agentType: selectedAgent,
-            },
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
-      } else {
-        console.log(
-          "[ChatInterface] Context added to messages but not sent to AI"
-        );
-      }
     },
   });
-
-  // When checkbox is checked, send the current page context immediately
-  useEffect(() => {
-    async function sendMessageWithAccessToken(messageText: string) {
-      const accessToken = await getAccessTokenSilently();
-      sendMessage(
-        { text: messageText },
-        {
-          body: { agentType: selectedAgent },
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
-    }
-
-    listenToContextUpdatesRef.current = listenToContextUpdates;
-
-    // Check if checkbox was just enabled (changed from false to true)
-    if (
-      listenToContextUpdates &&
-      !prevListenToContextUpdatesRef.current &&
-      pagesContext
-    ) {
-      console.log(
-        "[ChatInterface] Checkbox enabled - sending current page context"
-      );
-
-      const messageText = createContextMessage(pagesContext, true);
-
-      setMessages([
-        ...messages,
-        {
-          role: "system",
-          id: (messages.length + 1).toString(),
-          parts: [{ type: "text", text: messageText }],
-        },
-      ]);
-
-      sendMessageWithAccessToken(messageText);
-    }
-
-    prevListenToContextUpdatesRef.current = listenToContextUpdates;
-  }, [
-    listenToContextUpdates,
-    pagesContext,
-    messages,
-    setMessages,
-    sendMessage,
-    getAccessTokenSilently,
-    selectedAgent,
-  ]);
 
   const isStreaming = status === "streaming" || status === "submitted";
   const isThinking = status === "submitted";
@@ -742,73 +690,85 @@ export function ChatInterface() {
     setUserManuallySelectedAgent(false); // Reset manual selection on new chat
   };
 
-  const handleQuestionSelect = async (question: string) => {
-    console.log(
-      "[v0] Predefined question clicked:",
-      question,
-      "Status:",
-      status
+  const handleDeleteMessage = (messageId: string) => {
+    setMessages((prevMessages) =>
+      prevMessages.filter((msg) => msg.id !== messageId)
     );
+  };
+
+  const handleQuestionSelect = async (question: string) => {
     const accessToken = await getAccessTokenSilently();
     sendMessage(
-      { text: question },
+      { text: question,  },
       {
         body: {
           agentType: selectedAgent,
+          pageContext: pagesContext,
         },
         headers: { Authorization: `Bearer ${accessToken}` },
       }
     );
   };
 
-  const handleMessageSubmit = async (text: string) => {
-    const accessToken = await getAccessTokenSilently();
-    console.log("[v0] Message submitted:", text, "Status:", status);
-    if (text.trim() && !isStreaming) {
-      sendMessage(
-        { text: text },
-        {
-          body: {
-            agentType: selectedAgent,
+  const handleMessageSubmit = async (message: { text: string; files: FileUIPart[] }) => {
+    try {
+      const accessToken = await getAccessTokenSilently();
+      if ((message.text.trim() || message.files.length > 0) && !isStreaming) {
+        sendMessage(
+          { 
+            text: message.text,
+            files: message.files,
           },
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
+          {
+            body: {
+              agentType: selectedAgent,
+              pageContext: pagesContext,
+            },
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
+      }
+    } catch (error) {
+      toast.error("Error", {
+        description: error instanceof Error ? error.message : "An error occurred",
+      });
     }
   };
 
   return (
     <>
+      {errorMessage && (
+        <div className="fixed top-0 left-0 right-0 z-50 w-screen bg-red-600 dark:bg-red-700 text-white shadow-lg">
+          <div className="flex items-center justify-between px-6 py-4 max-w-full">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <AlertCircle className="size-5 shrink-0" />
+              <p className="text-base font-semibold truncate">{errorMessage}</p>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="ml-4 shrink-0 hover:bg-red-700 dark:hover:bg-red-800 rounded p-1 transition-colors"
+              aria-label="Close error"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
+        </div>
+      )}
       <PromptInputProvider>
-        <div className="flex h-screen flex-col bg-linear-to-br from-background via-background to-muted/20">
+        <div className={`flex h-screen flex-col bg-linear-to-br from-background via-background to-muted/20 ${errorMessage ? 'pt-[73px]' : ''}`}>
           <ChatHeader
             selectedModel={selectedModel}
             onModelChange={setSelectedModel}
             onNewChat={handleNewChat}
             selectedAgent={selectedAgent}
             onAgentChange={handleAgentChange}
-            listenToContextUpdates={listenToContextUpdates}
-            onListenToContextUpdatesChange={setListenToContextUpdates}
           />
 
           <Conversation className="flex-1">
             <ConversationContent>
               {(() => {
-                // Filter messages to get only visible ones
-                const visibleMessages = messages.filter(({ parts }) => {
-                  // Filter out messages that only contain context messages (when hiding is enabled)
-                  if (!CONTEXT_MESSAGE_CONFIG.hideContextMessages) {
-                    return true;
-                  }
-                  const hasVisibleContent = parts.some(
-                    (part) =>
-                      part.type === "text" && shouldShowMessage(part.text)
-                  );
-                  return hasVisibleContent;
-                });
-
                 // Show empty state if no visible messages
-                if (visibleMessages.length === 0) {
+                if (messages.length === 0) {
                   return (
                     <ConversationEmptyState className="flex items-center justify-center p-3 pb-4 lg:p-4 lg:pb-8">
                       <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
@@ -928,7 +888,7 @@ export function ChatInterface() {
                 // Render visible messages
                 return (
                   <>
-                    {visibleMessages.map((message, index) => {
+                    {messages.map((message, index) => {
                       const { role, parts, metadata } = message;
                       // Get agent info from metadata or use current agent for assistant messages
                       const agentType =
@@ -972,120 +932,224 @@ export function ChatInterface() {
                         ); // Remove duplicates
 
                       return (
-                        <Message from={role} key={index}>
-                          {role === "assistant" && agentConfig && (
-                            <div
-                              className="mb-1.5 flex items-center gap-2 px-1"
-                              style={{
-                                color: agentConfig.colors.primary,
-                              }}
-                            >
-                              <div
-                                className="flex size-5 items-center justify-center rounded-md"
-                                style={{
-                                  backgroundColor: `${agentConfig.colors.primary}1A`,
-                                }}
-                              >
+                        <div key={index} className="relative group/message">
+                          <Message from={role} className="relative">
+                            {/* User message header */}
+                            {role === "user" && (
+                              <div className="mb-1.5 flex flex-col items-end gap-1.5 px-1">
+                                <div className="flex items-center justify-end gap-2">
+                                  {/* Delete button */}
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleDeleteMessage(message.id)
+                                        }
+                                        className="opacity-0 group-hover/message:opacity-100 transition-all duration-200 p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                        aria-label="Delete message"
+                                      >
+                                        <Trash2 className="size-3" />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-popover text-popover-foreground border border-border">
+                                      <p className="text-sm">Delete message</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  {/* "You" label and icon */}
+                                  <span className="text-xs font-medium text-muted-foreground">
+                                    You
+                                  </span>
+                                  <div className="flex size-5 items-center justify-center rounded-md bg-muted/50">
+                                    <User className="size-3 text-muted-foreground" />
+                                  </div>
+                                </div>
+                                {/* File attachments indicator */}
                                 {(() => {
-                                  const Icon = agentConfig.icon;
-                                  return (
-                                    <Icon
-                                      className="size-3"
-                                      style={{
-                                        color: agentConfig.colors.primary,
-                                      }}
-                                    />
-                                  );
+                                  const fileParts = parts.filter((p) => p.type === "file");
+                                  if (fileParts.length > 0) {
+                                    return (
+                                      <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 border border-border/50">
+                                        <Paperclip className="size-3 text-muted-foreground" />
+                                        <span className="text-xs text-muted-foreground">
+                                          {fileParts.length === 1
+                                            ? (() => {
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                const filePart = fileParts[0] as any;
+                                                return filePart.filename || "1 file";
+                                              })()
+                                            : `${fileParts.length} files`}
+                                        </span>
+                                      </div>
+                                    );
+                                  }
+                                  return null;
                                 })()}
                               </div>
-                              <span className="text-xs font-medium">
-                                {agentConfig.name} Assistant
-                              </span>
-                              {toolNames.length > 0 && (
+                            )}
+                            {/* Assistant message header */}
+                            {role === "assistant" && agentConfig && (
+                              <div
+                                className="mb-1.5 flex items-center gap-2 px-1"
+                                style={{
+                                  color: agentConfig.colors.primary,
+                                }}
+                              >
+                                <div
+                                  className="flex size-5 items-center justify-center rounded-md"
+                                  style={{
+                                    backgroundColor: `${agentConfig.colors.primary}1A`,
+                                  }}
+                                >
+                                  {(() => {
+                                    const Icon = agentConfig.icon;
+                                    return (
+                                      <Icon
+                                        className="size-3"
+                                        style={{
+                                          color: agentConfig.colors.primary,
+                                        }}
+                                      />
+                                    );
+                                  })()}
+                                </div>
+                                <span className="text-xs font-medium">
+                                  {agentConfig.name} Assistant
+                                </span>
+                                {toolNames.length > 0 && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/50 hover:bg-muted dark:hover:bg-muted/50 transition-colors cursor-help group">
+                                        <Wrench className="size-3 text-foreground/70 group-hover:text-foreground transition-colors" />
+                                        <span className="text-xs font-medium text-foreground">
+                                          Tools Used ({toolNames.length})
+                                        </span>
+                                      </div>
+                                    </TooltipTrigger>
+                                    <TooltipContent
+                                      side="top"
+                                      className="max-w-xs bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg p-3"
+                                    >
+                                      <div className="space-y-2">
+                                        <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
+                                          <Wrench className="size-3.5 text-foreground" />
+                                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                            Tools Used ({toolNames.length})
+                                          </p>
+                                        </div>
+                                        <ul className="list-disc list-inside space-y-1">
+                                          {toolNames.map(
+                                            (toolName, toolIndex) => (
+                                              <li
+                                                key={toolIndex}
+                                                className="text-sm font-medium text-gray-800 dark:text-gray-200"
+                                              >
+                                                {toolName}
+                                              </li>
+                                            )
+                                          )}
+                                        </ul>
+                                      </div>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {/* Delete button in assistant header */}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/50 hover:bg-muted dark:hover:bg-muted/50 transition-colors cursor-help group">
-                                      <Wrench className="size-3 text-foreground/70 group-hover:text-foreground transition-colors" />
-                                      <span className="text-xs font-medium text-foreground">
-                                        Tools Used ({toolNames.length})
-                                      </span>
-                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleDeleteMessage(message.id)
+                                      }
+                                      className="opacity-0 group-hover/message:opacity-100 transition-all duration-200 p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                      aria-label="Delete message"
+                                    >
+                                      <Trash2 className="size-3" />
+                                    </button>
                                   </TooltipTrigger>
-                                  <TooltipContent
-                                    side="top"
-                                    className="max-w-xs bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg p-3"
-                                  >
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
-                                        <Wrench className="size-3.5 text-foreground" />
-                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                          Tools Used ({toolNames.length})
-                                        </p>
-                                      </div>
-                                      <ul className="list-disc list-inside space-y-1">
-                                        {toolNames.map(
-                                          (toolName, toolIndex) => (
-                                            <li
-                                              key={toolIndex}
-                                              className="text-sm font-medium text-gray-800 dark:text-gray-200"
-                                            >
-                                              {toolName}
-                                            </li>
-                                          )
-                                        )}
-                                      </ul>
-                                    </div>
+                                  <TooltipContent className="bg-popover text-popover-foreground border border-border">
+                                    <p className="text-sm">Delete message</p>
                                   </TooltipContent>
                                 </Tooltip>
-                              )}
-                            </div>
-                          )}
-                          <MessageContent
-                            className={
-                              role === "assistant" && agentConfig
-                                ? "transition-colors duration-300"
-                                : ""
-                            }
-                            style={
-                              role === "assistant" && agentConfig
-                                ? {
-                                    backgroundColor: `${agentConfig.colors.primary}08`,
-                                    borderLeft: `3px solid ${agentConfig.colors.primary}`,
-                                    paddingLeft: "12px",
-                                    paddingRight: "12px",
-                                    paddingTop: "10px",
-                                    paddingBottom: "10px",
-                                    borderRadius: "8px",
-                                  }
-                                : undefined
-                            }
-                          >
-                            {parts.map((part, i) => {
-                              switch (part.type) {
-                                case "text":
-                                  // Hide context messages from display (when enabled)
-                                  if (!shouldShowMessage(part.text)) {
-                                    return null;
-                                  }
-                                  return (
-                                    <MessageResponse key={`${role}-${i}`}>
-                                      {part.text}
-                                    </MessageResponse>
-                                  );
+                              </div>
+                            )}
+                            <MessageContent
+                              className={
+                                role === "assistant" && agentConfig
+                                  ? "transition-colors duration-300"
+                                  : ""
                               }
-                            })}
-                          </MessageContent>
-                        </Message>
+                              style={
+                                role === "assistant" && agentConfig
+                                  ? {
+                                      backgroundColor: `${agentConfig.colors.primary}08`,
+                                      borderLeft: `3px solid ${agentConfig.colors.primary}`,
+                                      paddingLeft: "12px",
+                                      paddingRight: "12px",
+                                      paddingTop: "10px",
+                                      paddingBottom: "10px",
+                                      borderRadius: "8px",
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {parts.map((part, i) => {
+                                switch (part.type) {
+                                  case "text":
+                                    return (
+                                      <MessageResponse key={`${role}-${i}`}>
+                                        {part.text}
+                                      </MessageResponse>
+                                    );
+                                  case "file":
+                                    // File parts are handled above for user messages
+                                    // For assistant messages, show file info
+                                    if (role === "assistant") {
+                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                      const filePart = part as any;
+                                      return (
+                                        <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-2">
+                                          <Paperclip className="size-4 text-muted-foreground" />
+                                          <span className="text-sm text-muted-foreground">
+                                            {filePart.filename || "Attachment"}
+                                          </span>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  default:
+                                    return null;
+                                }
+                              })}
+                            </MessageContent>
+                          </Message>
+                        </div>
                       );
                     })}
-                    {isThinking && (
-                      <div className="flex items-center gap-2.5 px-4 py-3">
-                        <Brain className="size-4 text-gray-400 dark:text-gray-500 animate-pulse" />
-                        <span className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">
-                          Thinking...
-                        </span>
-                      </div>
-                    )}
+                    {isThinking ||
+                      (isStreaming && (
+                        <div className="px-4 py-3">
+                          <Message from="assistant">
+                            <MessageContent>
+                              <div className="flex items-center gap-3 px-1">
+                                <div className="flex size-6 items-center justify-center rounded-md bg-primary/10 dark:bg-primary/20">
+                                  <Brain className="size-3.5 text-primary animate-pulse" />
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-sm font-medium text-muted-foreground">
+                                    Thinking
+                                  </span>
+                                  <div className="flex gap-1">
+                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.3s]" />
+                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.15s]" />
+                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" />
+                                  </div>
+                                </div>
+                              </div>
+                            </MessageContent>
+                          </Message>
+                        </div>
+                      ))}
                   </>
                 );
               })()}
@@ -1106,6 +1170,7 @@ export function ChatInterface() {
           />
         </div>
       </PromptInputProvider>
+      <Toaster />
     </>
   );
 }

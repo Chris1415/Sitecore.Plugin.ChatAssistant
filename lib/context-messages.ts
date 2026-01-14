@@ -1,30 +1,5 @@
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
 
-// Configuration for context message handling
-export const CONTEXT_MESSAGE_CONFIG = {
-  // Set to true to hide context messages from the chat display
-  hideContextMessages: true,
-};
-
-// Prefixes used to identify context messages
-export const CONTEXT_MESSAGE_PREFIXES = [
-  "[Initial Page Context]",
-  "The page context has been updated",
-] as const;
-
-// Check if a message text is a context message
-export function isContextMessage(text: string): boolean {
-  return CONTEXT_MESSAGE_PREFIXES.some((prefix) => text.startsWith(prefix));
-}
-
-// Check if a message should be visible based on configuration
-export function shouldShowMessage(text: string): boolean {
-  if (!CONTEXT_MESSAGE_CONFIG.hideContextMessages) {
-    return true;
-  }
-  return !isContextMessage(text);
-}
-
 // Message templates
 export function createInitialContextMessage(
   contextSummary: PagesContext
