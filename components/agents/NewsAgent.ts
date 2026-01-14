@@ -6,9 +6,15 @@ import {
   createNewsPageTool,
   getNewsContentTool,
 } from "./tools/News";
-import { translatePageTool } from "./tools/Pages";
+import {
+  getPageHtmlTool,
+  getPageScreenshot,
+  translatePageTool,
+} from "./tools/Pages";
 import { createContextMessage } from "@/lib/context-messages";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
+import { getPageAnalyticsDataTool } from "./tools/Dummy";
+import { searchForAssetsTool, getAssetDetailsTool } from "./tools/Assets";
 
 // System prompt for News Assistant
 export const NEWS_SYSTEM_PROMPT = `You are News Assistant, a specialized AI-powered helper for content editors and marketers managing news content in Sitecore.
@@ -46,6 +52,11 @@ function createNewsTools(contextId: string, accessToken: string) {
     createNewsPage: createNewsPageTool(accessToken, contextId),
     getNewsContent: getNewsContentTool(accessToken, contextId),
     translatePage: translatePageTool(accessToken),
+    getContentAnalyticsData: getPageAnalyticsDataTool(),
+    searchForAssets: searchForAssetsTool(accessToken, contextId),
+    getAssetDetails: getAssetDetailsTool(accessToken, contextId),
+    getPageScreenshot: getPageScreenshot(accessToken, contextId),
+    getPageHtml: getPageHtmlTool(accessToken, contextId),
   };
 }
 
@@ -58,7 +69,7 @@ export function createNewsAgent(
 ) {
   const tools = createNewsTools(contextId, accessToken);
   const contextMessage = createContextMessage(pageContext, true);
-  
+
   return new ToolLoopAgent({
     id: "news-assistant",
     model,

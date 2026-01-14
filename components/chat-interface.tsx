@@ -11,6 +11,7 @@ import {
   ConversationEmptyState,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
+import { useStickToBottomContext } from "use-stick-to-bottom";
 import {
   Message,
   MessageContent,
@@ -52,6 +53,7 @@ import {
   Wrench,
   Trash2,
   User,
+  TrendingUp,
 } from "lucide-react";
 import usePagesContext from "./hooks/usePagesContext";
 import {
@@ -64,6 +66,22 @@ import {
 import { useAppContext } from "./providers/marketplace";
 import { useAuth } from "./providers/auth";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { LineChart, Line, XAxis, CartesianGrid } from "recharts";
+import type { ToolUIPart } from "ai";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 const AI_MODELS = [
   // OpenAI - Top 3 models
@@ -129,6 +147,62 @@ const groupedModels = AI_MODELS.reduce((acc, model) => {
 
 // Provider order (best providers first)
 const PROVIDER_ORDER = ["OpenAI", "Anthropic", "Google", "Meta", "Mistral AI"];
+
+// Component to handle auto-scrolling when messages are added
+function AutoScrollWrapper({
+  children,
+  messages,
+  status,
+}: {
+  children: React.ReactNode;
+  messages: Array<{ id: string; role: string; parts: unknown[] }>;
+  status: string;
+}) {
+  const { scrollToBottom, isAtBottom } = useStickToBottomContext();
+  const prevMessageCountRef = useRef(messages.length);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const messageCount = messages.length;
+    const prevCount = prevMessageCountRef.current;
+    
+    // Check if a new message was added
+    if (messageCount > prevCount) {
+      // Clear any pending scroll timeout
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+
+      // Scroll smoothly to bottom when new message is added
+      scrollTimeoutRef.current = setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+
+    prevMessageCountRef.current = messageCount;
+
+    // Cleanup timeout on unmount
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+    };
+  }, [messages.length, scrollToBottom]);
+
+  // Also scroll during streaming
+  useEffect(() => {
+    if (status === "streaming" && isAtBottom) {
+      // Small delay to allow content to render, then scroll smoothly
+      const interval = setInterval(() => {
+        scrollToBottom();
+      }, 100);
+
+      return () => clearInterval(interval);
+    }
+  }, [status, isAtBottom, scrollToBottom]);
+
+  return <>{children}</>;
+}
 
 function ChatHeader({
   selectedModel,
@@ -765,7 +839,8 @@ export function ChatInterface() {
           />
 
           <Conversation className="flex-1">
-            <ConversationContent>
+            <AutoScrollWrapper messages={messages} status={status}>
+              <ConversationContent>
               {(() => {
                 // Show empty state if no visible messages
                 if (messages.length === 0) {
@@ -930,6 +1005,15 @@ export function ChatInterface() {
                         .filter(
                           (name, index, self) => self.indexOf(name) === index
                         ); // Remove duplicates
+
+                      // Find the index of the analytics tool result part
+                      const analyticsToolIndex = parts.findIndex(
+                        (part) =>
+                          typeof part.type === "string" &&
+                          part.type.startsWith("tool-") &&
+                          part.type.includes("getContentAnalyticsData")
+                      );
+                      const hasAnalyticsTool = analyticsToolIndex !== -1;
 
                       return (
                         <div key={index} className="relative group/message">
@@ -1096,6 +1180,22 @@ export function ChatInterface() {
                               {parts.map((part, i) => {
                                 switch (part.type) {
                                   case "text":
+                                    // Skip text parts that come BEFORE the analytics tool result
+                                    // This prevents showing raw data, but allows AI response text after the chart
+                                    if (hasAnalyticsTool && i < analyticsToolIndex) {
+                                      return null;
+                                    }
+                                    // Also skip text parts that look like JSON data (raw tool output)
+                                    if (hasAnalyticsTool && part.text) {
+                                      try {
+                                        const parsed = JSON.parse(part.text);
+                                        if (parsed && typeof parsed === "object" && "data" in parsed && Array.isArray(parsed.data)) {
+                                          return null;
+                                        }
+                                      } catch {
+                                        // Not JSON, allow it to render
+                                      }
+                                    }
                                     return (
                                       <MessageResponse key={`${role}-${i}`}>
                                         {part.text}
@@ -1118,6 +1218,134 @@ export function ChatInterface() {
                                     }
                                     return null;
                                   default:
+                                    // Check if this is a tool result for analytics data
+                                    if (
+                                      typeof part.type === "string" &&
+                                      part.type.startsWith("tool-") &&
+                                      part.type.includes("getContentAnalyticsData")
+                                    ) {
+                                      // Check if it's a ToolUIPart with output
+                                      const toolPart = part as ToolUIPart;
+                                      if (
+                                        toolPart.output &&
+                                        typeof toolPart.output === "object" &&
+                                        "data" in toolPart.output
+                                      ) {
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        const analyticsData = (toolPart.output as any).data;
+                                        if (
+                                          Array.isArray(analyticsData) &&
+                                          analyticsData.length > 0
+                                        ) {
+                                          // Calculate total visits, sessions and date range
+                                          const totalVisits = analyticsData.reduce(
+                                            (sum: number, item: { "Number Visits": number }) =>
+                                              sum + item["Number Visits"],
+                                            0
+                                          );
+                                          const totalVisitors = analyticsData.reduce(
+                                            (sum: number, item: { "Number Visitors": number }) =>
+                                              sum + (item["Number Visitors"] || 0),
+                                            0
+                                          );
+                                          const firstDate = new Date(analyticsData[0].Day);
+                                          const lastDate = new Date(
+                                            analyticsData[analyticsData.length - 1].Day
+                                          );
+                                          const dateRange = `${firstDate.toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                          })} - ${lastDate.toLocaleDateString("en-US", {
+                                            month: "short",
+                                            day: "numeric",
+                                            year: "numeric",
+                                          })}`;
+
+                                          // Chart configuration with high contrast colors
+                                          const chartConfig = {
+                                            visits: {
+                                              label: "Number Visits",
+                                              color: "hsl(221, 83%, 53%)", // Blue
+                                            },
+                                            visitors: {
+                                              label: "Number Visitors",
+                                              color: "hsl(0, 72%, 51%)", // Red/Orange
+                                            },
+                                          } satisfies ChartConfig;
+
+                                          return (
+                                            <Card
+                                              key={`${role}-${i}`}
+                                              className="my-4 w-full max-w-full"
+                                            >
+                                              <CardHeader>
+                                                <CardTitle>Content Analytics</CardTitle>
+                                                <CardDescription>{dateRange}</CardDescription>
+                                              </CardHeader>
+                                              <CardContent className="w-full">
+                                                <ChartContainer config={chartConfig} className="w-full">
+                                                  <LineChart
+                                                    accessibilityLayer
+                                                    data={analyticsData}
+                                                    margin={{
+                                                      left: 12,
+                                                      right: 12,
+                                                    }}
+                                                    aria-label={`Line chart showing daily visits from ${dateRange}`}
+                                                  >
+                                                    <CartesianGrid vertical={false} />
+                                                    <XAxis
+                                                      dataKey="Day"
+                                                      tickLine={false}
+                                                      axisLine={false}
+                                                      tickMargin={8}
+                                                      tickFormatter={(value) => {
+                                                        const date = new Date(value);
+                                                        return date.toLocaleDateString("en-US", {
+                                                          month: "short",
+                                                          day: "numeric",
+                                                        });
+                                                      }}
+                                                    />
+                                                    <ChartTooltip
+                                                      cursor={false}
+                                                      content={<ChartTooltipContent />}
+                                                    />
+                                                    <Line
+                                                      dataKey="Number Visits"
+                                                      type="monotone"
+                                                      stroke="var(--color-visits)"
+                                                      strokeWidth={2}
+                                                      dot={false}
+                                                    />
+                                                    <Line
+                                                      dataKey="Number Visitors"
+                                                      type="monotone"
+                                                      stroke="var(--color-visitors)"
+                                                      strokeWidth={2}
+                                                      dot={false}
+                                                    />
+                                                  </LineChart>
+                                                </ChartContainer>
+                                              </CardContent>
+                                              <CardFooter>
+                                                <div className="flex w-full items-start gap-2 text-sm">
+                                                  <div className="grid gap-2">
+                                                    <div className="flex items-center gap-2 leading-none font-medium">
+                                                      Total: {totalVisits.toLocaleString()} visits, {totalVisitors.toLocaleString()} visitors{" "}
+                                                      <TrendingUp className="h-4 w-4" />
+                                                    </div>
+                                                    <div className="text-muted-foreground flex items-center gap-2 leading-none">
+                                                      Showing daily visits and visitors for the last 30 days
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </CardFooter>
+                                            </Card>
+                                          );
+                                        }
+                                      }
+                                    }
                                     return null;
                                 }
                               })}
@@ -1153,7 +1381,8 @@ export function ChatInterface() {
                   </>
                 );
               })()}
-            </ConversationContent>
+              </ConversationContent>
+            </AutoScrollWrapper>
             <ConversationScrollButton />
           </Conversation>
 

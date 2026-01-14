@@ -1,9 +1,10 @@
 import { ToolLoopAgent, type LanguageModel } from "ai";
 import { getLanguagesTool, getSitesTool } from "./tools/Sites";
-import { translatePageTool } from "./tools/Pages";
+import { getPageHtmlTool, getPageScreenshot, translatePageTool } from "./tools/Pages";
+import { getPageAnalyticsDataTool } from "./tools/Dummy";
 import { createContextMessage } from "@/lib/context-messages";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
-import { openai } from "@ai-sdk/openai";
+import { searchForAssetsTool, getAssetDetailsTool } from "./tools/Assets";
 
 // Default system prompt for Sitecore Assistant
 export const DEFAULT_SYSTEM_PROMPT = `You are Sitecore Assistant, an AI-powered helper for content editors and marketers using Sitecore.
@@ -29,6 +30,11 @@ function createSitecoreTools(contextId: string, accessToken: string) {
     // Tool to get all available sites
     getSites: getSitesTool(accessToken, contextId),
     translatePage: translatePageTool(accessToken),
+    getContentAnalyticsData: getPageAnalyticsDataTool(),
+    searchForAssets: searchForAssetsTool(accessToken, contextId),
+    getAssetDetails: getAssetDetailsTool(accessToken, contextId),
+    getPageScreenshot: getPageScreenshot(accessToken, contextId),
+    getPageHtml: getPageHtmlTool(accessToken, contextId),
   };
 }
 

@@ -153,6 +153,60 @@ export function createNewsPageTool(
         .describe(
           "Language code for the news page content (e.g., 'en' for English, 'de' for German, 'fr' for French). Use ISO 639-1 two-letter language codes. This determines which language version of the page is being created."
         ),
+      publishDate: z
+        .string()
+        .optional()
+        .describe(
+          "Publication date for the news article in format 'YYYYMMDDTHHMMSSZ' (e.g., '20250814T145600Z'). Optional field that specifies when the article should be published or was published."
+        ),
+      externalUrl: z
+        .string()
+        .optional()
+        .describe(
+          "External URL link for the news article. Optional field that can point to an external source or related content. Should be a valid URL format."
+        ),
+      readTime: z
+        .number()
+        .optional()
+        .describe(
+          "Estimated reading time for the article in minutes (e.g., 5, 10, 15). Optional field that helps readers understand how long it will take to read the article. Must be a number representing minutes."
+        ),
+      quote: z
+        .string()
+        .optional()
+        .describe(
+          "A notable quote or excerpt from the article that can be highlighted. Optional field for featuring important quotes or key statements."
+        ),
+      keyTakeaway1: z
+        .string()
+        .optional()
+        .describe(
+          "First key takeaway or main point from the article. Optional field for summarizing important insights or highlights."
+        ),
+      keyTakeaway2: z
+        .string()
+        .optional()
+        .describe(
+          "Second key takeaway or main point from the article. Optional field for summarizing important insights or highlights."
+        ),
+      keyTakeaway3: z
+        .string()
+        .optional()
+        .describe(
+          "Third key takeaway or main point from the article. Optional field for summarizing important insights or highlights."
+        ),
+      keyTakeaway4: z
+        .string()
+        .optional()
+        .describe(
+          "Fourth key takeaway or main point from the article. Optional field for summarizing important insights or highlights."
+        ),
+      keyTakeaway5: z
+        .string()
+        .optional()
+        .describe(
+          "Fifth key takeaway or main point from the article. Optional field for summarizing important insights or highlights."
+        ),
     }),
     outputSchema: z.object({
       success: z
@@ -186,6 +240,15 @@ export function createNewsPageTool(
       parent,
       template,
       language,
+      publishDate,
+      externalUrl,
+      readTime,
+      quote,
+      keyTakeaway1,
+      keyTakeaway2,
+      keyTakeaway3,
+      keyTakeaway4,
+      keyTakeaway5,
     }) => {
       try {
         const xmcClient = await createXMCClient(accessToken);
@@ -202,6 +265,15 @@ export function createNewsPageTool(
                 Content: content,
                 Excerpt: excerpt,
                 Subtitle: subtitle,
+                PublishDate: publishDate,
+                ExternalUrl: externalUrl,
+                ReadTime: readTime,
+                Quote: quote,
+                KeyTakeaway1: keyTakeaway1,
+                KeyTakeaway2: keyTakeaway2,
+                KeyTakeaway3: keyTakeaway3,
+                KeyTakeaway4: keyTakeaway4,
+                KeyTakeaway5: keyTakeaway5,
               },
             ],
           },

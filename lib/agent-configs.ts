@@ -78,24 +78,24 @@ export const AGENT_CONFIGS: AgentConfig[] = [
       },
       {
         id: 2,
+        label: "Get Analytics",
+        question:
+          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+        icon: TrendingUp,
+      },
+      {
+        id: 3,
         label: "All Sites",
         question:
           "Get all available sites configured in this Sitecore instance. Show me the site names, IDs, and their configuration details.",
         icon: Globe,
       },
       {
-        id: 3,
+        id: 4,
         label: "All Languages",
         question:
           "Retrieve all available languages configured in this Sitecore site. Show me the language codes, display names, and metadata.",
         icon: Globe,
-      },
-      {
-        id: 4,
-        label: "Content Overview",
-        question:
-          "Give me a general overview of the content structure and organization in my Sitecore site.",
-        icon: Layers,
       },
     ],
     teaserCards: [
@@ -128,31 +128,31 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
+        label: "Get Analytics",
+        question:
+          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+        icon: TrendingUp,
+      },
+      {
+        id: 2,
         label: "Catalog Overview",
         question:
           "Give me an overview of my product catalog including categories, total products, and any items that need attention.",
         icon: Package,
       },
       {
-        id: 2,
+        id: 3,
         label: "Top Products",
         question:
           "What are my top-performing products? Include insights on views, engagement, and any trends you notice.",
         icon: TrendingUp,
       },
       {
-        id: 3,
+        id: 4,
         label: "Product Gaps",
         question:
           "Identify any products with missing descriptions, images, or incomplete metadata that need to be updated.",
         icon: Search,
-      },
-      {
-        id: 4,
-        label: "Recommendations",
-        question:
-          "Based on my product catalog, suggest related products and cross-sell opportunities for the current page.",
-        icon: Sparkles,
       },
     ],
     teaserCards: [
@@ -185,31 +185,31 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
+        label: "Get Analytics",
+        question:
+          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+        icon: TrendingUp,
+      },
+      {
+        id: 2,
         label: "News Count",
         question:
           "How many news articles are currently in the system? Please provide a count of all news items, including published and draft articles.",
         icon: FileText,
       },
       {
-        id: 2,
+        id: 3,
         label: "Create News Page",
         question:
           "Help me create a new news page. I'll provide the details like title, content, and other required fields. Guide me through the process.",
         icon: Newspaper,
       },
       {
-        id: 3,
+        id: 4,
         label: "Analyze Current News",
         question:
           "Analyze the content of the current news page I'm viewing. Provide insights about the article structure, content quality, SEO, and suggest any improvements.",
         icon: Search,
-      },
-      {
-        id: 4,
-        label: "News Overview",
-        question:
-          "Give me a general overview of the news articles and content in my Sitecore site, including recent publications and editorial trends.",
-        icon: TrendingUp,
       },
     ],
     teaserCards: [
@@ -242,31 +242,31 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
+        label: "Get Analytics",
+        question:
+          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+        icon: TrendingUp,
+      },
+      {
+        id: 2,
         label: "Upcoming Events",
         question:
           "What events are coming up in the next 30 days? Include registration counts and any that need promotion.",
         icon: Calendar,
       },
       {
-        id: 2,
+        id: 3,
         label: "Event Performance",
         question:
           "How did my recent events perform? Show me attendance rates, engagement metrics, and feedback highlights.",
         icon: TrendingUp,
       },
       {
-        id: 3,
+        id: 4,
         label: "Event Content",
         question:
           "Review the content for my upcoming events. Are descriptions compelling? Do I have all speakers and agendas listed?",
         icon: FileText,
-      },
-      {
-        id: 4,
-        label: "Attendee Insights",
-        question:
-          "Give me insights about my event attendees. What are the most popular event types? Any patterns in registrations?",
-        icon: Users,
       },
     ],
     teaserCards: [
@@ -299,31 +299,31 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
+        label: "Get Analytics",
+        question:
+          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+        icon: TrendingUp,
+      },
+      {
+        id: 2,
         label: "Site Overview",
         question:
           "Give me a comprehensive overview of my Sitecore site including content structure, recent changes, upcoming events, and product highlights.",
         icon: Zap,
       },
       {
-        id: 2,
+        id: 3,
         label: "Content Health",
         question:
           "Analyze the health of my entire content ecosystem - identify outdated pages, missing metadata, broken links, and optimization opportunities.",
         icon: TrendingUp,
       },
       {
-        id: 3,
+        id: 4,
         label: "Cross-Content Links",
         question:
           "Find opportunities to connect my products, news articles, and events. Suggest cross-linking strategies to improve user engagement.",
         icon: Layers,
-      },
-      {
-        id: 4,
-        label: "Strategic Insights",
-        question:
-          "Based on my content, products, and events, what strategic recommendations do you have for improving my digital presence?",
-        icon: Star,
       },
     ],
     teaserCards: [
