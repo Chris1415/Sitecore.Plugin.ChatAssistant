@@ -1,6 +1,6 @@
 import z from "zod";
-import { createXMCClient } from "../base/sitecoreClient";
 import { Tool, tool } from "ai";
+import { createXMCClient } from "../../base/sitecoreClient";
 
 export function searchForAssetsTool(
   accessToken: string,

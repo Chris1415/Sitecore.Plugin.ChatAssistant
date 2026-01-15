@@ -2,6 +2,7 @@ import { ToolLoopAgent, type LanguageModel } from "ai";
 import { createSitecoreTools } from "./SitecoreAgent";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
 import { createContextMessage } from "@/lib/context-messages";
+import { createBrandKitContextMessage } from "@/lib/brand-kit-messages";
 
 // The Allmighty Agent - A godlike assistant with complete knowledge of your Sitecore universe
 export const ALLMIGHTY_SYSTEM_PROMPT = `You are **The Allmighty Assistant** — an omniscient, all-powerful AI entity with complete mastery over the entire Sitecore ecosystem.
@@ -70,10 +71,13 @@ export function createAllmightyAgent(
   model: LanguageModel,
   contextId: string,
   accessToken: string,
-  pageContext: PagesContext
+  pageContext: PagesContext,
+  brandKitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
 ) {
   const tools = createSitecoreTools(contextId, accessToken);
   const contextMessage = createContextMessage(pageContext, true);
+  const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 
   return new ToolLoopAgent({
     id: "allmighty-assistant",
@@ -82,7 +86,7 @@ export function createAllmightyAgent(
     tools: tools,
     prepareCall: ({ ...settings }) => ({
       ...settings,
-      instructions: settings.instructions + `\n ${contextMessage}`,
+      instructions: settings.instructions + `\n ${contextMessage}${brandKitMessage}`,
     }),
     onStepFinish: async (stepResult) => {
       console.log("[AllmightyAgent] Step finished:", {

@@ -21,10 +21,12 @@ interface RequestBody {
   agentType: AgentType;
   pageContext: PagesContext;
   contextId?: string;
+  brandKitId?: string | null;
+  sections?: Array<{ sectionId: string }> | null;
 }
 
 export async function POST(request: Request) {
-  const { messages, model, agentType, contextId, pageContext }: RequestBody =
+  const { messages, model, agentType, contextId, pageContext, brandKitId, sections }: RequestBody =
     await request.json();
   const accessToken = request.headers.get("authorization")?.split(" ")[1]; 
 
@@ -47,7 +49,9 @@ export async function POST(request: Request) {
     devToolsEnabledModel,
     contextId,
     accessToken,
-    pageContext
+    pageContext,
+    brandKitId,
+    sections
   );
 
   // Use the agent to handle the request with UI message streaming

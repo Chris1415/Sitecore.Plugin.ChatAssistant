@@ -10,19 +10,21 @@ export function getAgent(
   model: LanguageModel,
   contextId: string,
   accessToken: string,
-  pageContext: PagesContext
+  pageContext: PagesContext,
+  brandKitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Agent<any, any, any> {
   switch (agentType) {
     case AgentType.Sitecore:
-      return createSitecoreAgent(model, contextId, accessToken, pageContext);
+      return createSitecoreAgent(model, contextId, accessToken, pageContext, brandKitId, sections);
     case AgentType.Products:
-      return createSitecoreAgent(model, contextId, accessToken, pageContext);
+      return createSitecoreAgent(model, contextId, accessToken, pageContext, brandKitId, sections);
     case AgentType.News:
-      return createNewsAgent(model, contextId, accessToken, pageContext);
+      return createNewsAgent(model, contextId, accessToken, pageContext, brandKitId, sections);
     case AgentType.Events:
-      return createSitecoreAgent(model, contextId, accessToken, pageContext);
+      return createSitecoreAgent(model, contextId, accessToken, pageContext, brandKitId, sections);
     case AgentType.Allmighty:
-      return createAllmightyAgent(model, contextId, accessToken, pageContext);
+      return createAllmightyAgent(model, contextId, accessToken, pageContext, brandKitId, sections);
   }
 }

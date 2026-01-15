@@ -1,84 +1,8 @@
+import { getAccessToken } from "@/lib/oauth-login";
 import { Tool, tool } from "ai";
 import z from "zod";
-import { createXMCClient } from "../base/sitecoreClient";
 
-export function getPageScreenshot(
-  accessToken: string,
-  contextId: string
-): Tool {
-  return tool({
-    description: "Get the screenshot of a page in Sitecore.",
-    inputSchema: z.object({
-      pageId: z
-        .string()
-        .describe(
-          "The unique identifier (GUID) of the page to get the screenshot of."
-        ),
-      language: z
-        .string()
-        .describe("The language of the page to get the screenshot of."),
-      version: z
-        .number()
-        .describe("The version of the page to get the screenshot of."),
-    }),
-    outputSchema: z.object({
-      screenshotData: z.any().describe("The screenshot data of the page."),
-    }),
-    execute: async ({ pageId, language, version }) => {
-      const xmcClient = await createXMCClient(accessToken);
-      const result = await xmcClient.agent.pagesGetPageScreenshot({
-        path: { pageId: pageId },
-        query: {
-          sitecoreContextId: contextId,
-          language: language,
-          version: version,
-        },
-      });
-
-      return {
-        screenshotData: result?.data || "",
-      };
-    },
-  });
-}
-
-export function getPageHtmlTool(accessToken: string, contextId: string): Tool {
-  return tool({
-    description: "Get the HTML content of a page in Sitecore.",
-    inputSchema: z.object({
-      pageId: z
-        .string()
-        .describe(
-          "The unique identifier (GUID) of the page to get the HTML content of."
-        ),
-      language: z
-        .string()
-        .describe("The language of the page to get the HTML content of."),
-      version: z
-        .number()
-        .describe("The version of the page to get the HTML content of."),
-    }),
-    outputSchema: z.object({
-      html: z.string().describe("The HTML content of the page."),
-    }),
-    execute: async ({ pageId, language, version }) => {
-      const xmcClient = await createXMCClient(accessToken);
-      const result = await xmcClient.agent.pagesGetPageHtml({
-        path: { pageId: pageId },
-        query: {
-          sitecoreContextId: contextId,
-          language: language,
-          version: version,
-        },
-      });
-      return {
-        html: result?.data?.html || "",
-      };
-    },
-  });
-}
-
-export function translatePageTool(accessToken: string): Tool {
+export function translatePageTool(): Tool {
   return tool({
     description:
       "Translate a page from one language to another in Sitecore. Creates a new version of the page in the target language using the specified translation strategy. Useful for creating multilingual content or translating existing pages to support multiple languages.",
@@ -130,6 +54,10 @@ export function translatePageTool(accessToken: string): Tool {
       translationStrategy,
     }) => {
       try {
+        const accessToken = await getAccessToken({
+          clientId: process.env.SITECORE_DEPLOY_CLIENT_ID || "",
+          clientSecret: process.env.SITECORE_DEPLOY_CLIENT_SECRET || "",
+        });
         // Build query string with optional parameters
         const url = `https://edge-platform.sitecorecloud.io/authoring/api/v1/pages/${pageId}/translate`;
 

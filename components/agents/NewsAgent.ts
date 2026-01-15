@@ -1,20 +1,29 @@
 import { ToolLoopAgent, type LanguageModel } from "ai";
-import { getLanguagesTool, getSitesTool } from "./tools/Sites";
+import { createContextMessage } from "@/lib/context-messages";
+import { createBrandKitContextMessage } from "@/lib/brand-kit-messages";
+import { PagesContext } from "@sitecore-marketplace-sdk/client";
+import { getPageAnalyticsDataTool } from "./tools/Dummy";
+import {
+  generateBrandReviewFromUrlTool,
+  generateBrandReviewFromContentTool,
+  listBrandKitsTool,
+  retrieveBrandKitTool,
+  listBrandKitSectionsTool,
+  listBrandKitSubsectionsTool,
+} from "./tools/brandmanagement_api/Brand";
+import { getPageScreenshot, getPageHtmlTool } from "./tools/agents_api/Pages";
+import { getLanguagesTool, getSitesTool } from "./tools/agents_api/Sites";
 import {
   getNewsRootPageTool,
   getNewsTemplateTool,
   createNewsPageTool,
   getNewsContentTool,
 } from "./tools/News";
+import { translatePageTool } from "./tools/pages_api/Pages";
 import {
-  getPageHtmlTool,
-  getPageScreenshot,
-  translatePageTool,
-} from "./tools/Pages";
-import { createContextMessage } from "@/lib/context-messages";
-import { PagesContext } from "@sitecore-marketplace-sdk/client";
-import { getPageAnalyticsDataTool } from "./tools/Dummy";
-import { searchForAssetsTool, getAssetDetailsTool } from "./tools/Assets";
+  getAssetDetailsTool,
+  searchForAssetsTool,
+} from "./tools/agents_api/Assets";
 
 // System prompt for News Assistant
 export const NEWS_SYSTEM_PROMPT = `You are News Assistant, a specialized AI-powered helper for content editors and marketers managing news content in Sitecore.
@@ -51,12 +60,18 @@ function createNewsTools(contextId: string, accessToken: string) {
     getNewsTemplate: getNewsTemplateTool(),
     createNewsPage: createNewsPageTool(accessToken, contextId),
     getNewsContent: getNewsContentTool(accessToken, contextId),
-    translatePage: translatePageTool(accessToken),
+    translatePage: translatePageTool(),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
     searchForAssets: searchForAssetsTool(accessToken, contextId),
     getAssetDetails: getAssetDetailsTool(accessToken, contextId),
     getPageScreenshot: getPageScreenshot(accessToken, contextId),
     getPageHtml: getPageHtmlTool(accessToken, contextId),
+    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(),
+    generateBrandReviewFromContent: generateBrandReviewFromContentTool(),
+    listBrandKits: listBrandKitsTool(),
+    retrieveBrandKit: retrieveBrandKitTool(),
+    listBrandKitSections: listBrandKitSectionsTool(),
+    listBrandKitSubsections: listBrandKitSubsectionsTool(),
   };
 }
 
@@ -65,10 +80,13 @@ export function createNewsAgent(
   model: LanguageModel,
   contextId: string,
   accessToken: string,
-  pageContext: PagesContext
+  pageContext: PagesContext,
+  brandKitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
 ) {
   const tools = createNewsTools(contextId, accessToken);
   const contextMessage = createContextMessage(pageContext, true);
+  const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 
   return new ToolLoopAgent({
     id: "news-assistant",
@@ -77,7 +95,8 @@ export function createNewsAgent(
     tools,
     prepareCall: ({ ...settings }) => ({
       ...settings,
-      instructions: settings.instructions + `\n ${contextMessage}`,
+      instructions:
+        settings.instructions + `\n ${contextMessage}${brandKitMessage}`,
     }),
     onStepFinish: async () => {},
     onFinish: async () => {},

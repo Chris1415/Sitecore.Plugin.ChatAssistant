@@ -1,6 +1,6 @@
 import { Tool, tool } from "ai";
 import z from "zod";
-import { createXMCClient } from "../base/sitecoreClient";
+import { createXMCClient } from "../../base/sitecoreClient";
 
 export function getLanguagesTool(accessToken: string, contextId: string): Tool {
   return tool({

@@ -42,6 +42,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Paperclip,
   Send,
   Plus,
@@ -54,6 +60,11 @@ import {
   Trash2,
   User,
   TrendingUp,
+  CheckCircle2,
+  AlertCircle as AlertCircleIcon,
+  XCircle,
+  ChevronDown,
+  MoreHorizontal,
 } from "lucide-react";
 import usePagesContext from "./hooks/usePagesContext";
 import {
@@ -82,6 +93,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import type { ListBrandKitsResponse } from "@/lib/services/BrandServices";
 
 const AI_MODELS = [
   // OpenAI - Top 3 models
@@ -165,7 +185,7 @@ function AutoScrollWrapper({
   useEffect(() => {
     const messageCount = messages.length;
     const prevCount = prevMessageCountRef.current;
-    
+
     // Check if a new message was added
     if (messageCount > prevCount) {
       // Clear any pending scroll timeout
@@ -210,12 +230,28 @@ function ChatHeader({
   onNewChat,
   selectedAgent,
   onAgentChange,
+  brandKits,
+  selectedBrandKit,
+  onBrandKitChange,
+  sections,
+  selectedSections,
+  onSectionsChange,
+  isLoadingBrandKits,
+  isLoadingSections,
 }: {
   selectedModel: string;
   onModelChange: (model: string) => void;
   onNewChat: () => void;
   selectedAgent: AgentType;
   onAgentChange: (agent: AgentType) => void;
+  brandKits: Array<{ id: string; name: string; logo?: string | null }>;
+  selectedBrandKit: string | null;
+  onBrandKitChange: (brandKitId: string | null) => void;
+  sections: Array<{ id: string; name: string }>;
+  selectedSections: string[];
+  onSectionsChange: (sectionIds: string[]) => void;
+  isLoadingBrandKits: boolean;
+  isLoadingSections: boolean;
 }) {
   const agentConfig = getAgentConfig(selectedAgent);
   const AgentIcon = agentConfig.icon;
@@ -244,34 +280,41 @@ function ChatHeader({
               </p>
             </div>
           </div>
-          {/* Mobile/tablet theme toggle - visible below lg */}
+          {/* Mobile/tablet theme toggle and new chat - visible below lg */}
           <div className="flex items-center gap-2 lg:hidden">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={onNewChat}
+                  size="icon"
+                  className="h-9 w-9 rounded-lg border-border bg-card shadow-sm transition-colors"
+                  style={{
+                    ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
+                    ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
+                    e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "";
+                    e.currentTarget.style.backgroundColor = "";
+                  }}
+                >
+                  <Plus className="size-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-popover text-popover-foreground border border-border">
+                Start a new Chat
+              </TooltipContent>
+            </Tooltip>
             <ThemeToggle />
           </div>
         </div>
 
-        {/* Controls row - full width on mobile/tablet, inline on desktop */}
-        <div className="grid grid-cols-3 gap-2 lg:flex lg:items-center lg:gap-3">
-          <Button
-            variant="outline"
-            onClick={onNewChat}
-            className="h-10 gap-1.5 lg:gap-2 rounded-lg border-border bg-card shadow-sm transition-colors px-2.5 lg:px-4 w-full lg:w-auto"
-            style={{
-              ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
-              ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
-              e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "";
-              e.currentTarget.style.backgroundColor = "";
-            }}
-          >
-            <Plus className="size-3.5 lg:size-4" />
-            <span className="text-xs lg:text-sm">New Chat</span>
-          </Button>
+        {/* Controls row - All controls side by side on larger viewports */}
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-3 lg:justify-between">
 
           <Select
             value={selectedAgent}
@@ -317,23 +360,185 @@ function ChatHeader({
                   <SelectGroup key={provider}>
                     <SelectLabel>{provider}</SelectLabel>
                     {models.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        <div className="flex flex-col">
-                          <span className="font-medium">{model.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {model.provider}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
+                <SelectItem key={model.id} value={model.id}>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{model.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {model.provider}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
                   </SelectGroup>
                 );
               })}
             </SelectContent>
           </Select>
 
-          {/* Desktop-only theme toggle - visible at lg and above */}
-          <div className="hidden lg:block shrink-0">
+          {/* Brand Kit Dropdown */}
+          <Select
+            value={selectedBrandKit || undefined}
+            onValueChange={(value) => {
+              onBrandKitChange(value || null);
+            }}
+            disabled={isLoadingBrandKits}
+          >
+            <SelectTrigger className="h-9 w-full lg:w-[180px] rounded-lg border-border bg-card shadow-sm text-xs lg:text-sm">
+              {selectedBrandKit ? (() => {
+                const selectedKit = brandKits.find((kit) => kit.id === selectedBrandKit);
+                if (selectedKit) {
+                  return (
+                    <span className="truncate">{selectedKit.name}</span>
+                  );
+                }
+                return (
+                  <SelectValue
+                    placeholder={
+                      isLoadingBrandKits
+                        ? "Loading..."
+                        : brandKits.length === 0
+                        ? "No brand kits"
+                        : "Brand Kit"
+                    }
+                  />
+                );
+              })() : (
+                <SelectValue
+                  placeholder={
+                    isLoadingBrandKits
+                      ? "Loading..."
+                      : brandKits.length === 0
+                      ? "No brand kits"
+                      : "Brand Kit"
+                  }
+                />
+              )}
+            </SelectTrigger>
+            <SelectContent>
+              {brandKits.length === 0 && !isLoadingBrandKits ? (
+                <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                  No brand kits available
+          </div>
+              ) : (
+                brandKits.map((brandKit) => (
+                  <SelectItem key={brandKit.id} value={brandKit.id}>
+                    <span className="truncate">{brandKit.name}</span>
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+
+          {/* Sections Multi-Select Dropdown */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="h-10 w-full lg:w-[180px] rounded-lg border-border bg-card shadow-sm text-xs lg:text-sm justify-between"
+                disabled={!selectedBrandKit || isLoadingSections}
+                style={{
+                  ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
+                  ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
+                  e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "";
+                  e.currentTarget.style.backgroundColor = "";
+                }}
+              >
+                <span className="truncate">
+                  {isLoadingSections
+                    ? "Loading..."
+                    : selectedSections.length === 0
+                    ? "Sections"
+                    : `${selectedSections.length} section${
+                        selectedSections.length !== 1 ? "s" : ""
+                      }`}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[280px] p-0" align="start">
+              <div className="p-2">
+                <div className="text-sm font-medium mb-2 px-2">
+                  Select Sections
+                </div>
+                <div className="max-h-[300px] overflow-y-auto space-y-1">
+                  {sections.length === 0 ? (
+                    <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                      {isLoadingSections
+                        ? "Loading sections..."
+                        : "No sections available"}
+                    </div>
+                  ) : (
+                    sections.map((section) => (
+                      <label
+                        key={section.id}
+                        className="flex items-center gap-2 px-2 py-1.5 rounded-sm cursor-pointer transition-colors"
+                        style={{
+                          ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "";
+                        }}
+                      >
+                        <Checkbox
+                          checked={selectedSections.includes(section.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              onSectionsChange([
+                                ...selectedSections,
+                                section.id,
+                              ]);
+                            } else {
+                              onSectionsChange(
+                                selectedSections.filter(
+                                  (id) => id !== section.id
+                                )
+                              );
+                            }
+                          }}
+                          style={
+                            selectedSections.includes(section.id)
+                              ? {
+                                  backgroundColor: agentConfig.colors.primary,
+                                  borderColor: agentConfig.colors.primary,
+                                }
+                              : undefined
+                          }
+                        />
+                        <span className="text-sm flex-1">{section.name}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* Desktop theme toggle and new chat - visible on lg and above */}
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  onClick={onNewChat}
+                  size="icon"
+                  className="relative h-9 w-9 rounded-full transition-all hover:bg-muted"
+                  aria-label="Start a new Chat"
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-popover text-popover-foreground border border-border">
+                Start a new Chat
+              </TooltipContent>
+            </Tooltip>
             <ThemeToggle />
           </div>
         </div>
@@ -352,64 +557,205 @@ function PredefinedQuestions({
   isTransitioning: boolean;
 }) {
   const themeColor = agentConfig.colors.primary;
+  const topQuestions = agentConfig.predefinedQuestions.slice(0, 4);
+  const moreQuestions = agentConfig.predefinedQuestions.slice(4);
 
   return (
     <div className="border-t border-border bg-card/50 px-3 py-3 lg:px-6 lg:py-4">
       <div className="mx-auto max-w-full">
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
-          {agentConfig.predefinedQuestions.map((item, index) => {
-            const Icon = item.icon;
-            return (
+        <div className="relative">
+          {/* Questions Grid Container with Hover Area */}
+          <div className="group relative">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
+              {topQuestions.map((item, index) => {
+                const Icon = item.icon;
+                const isLastQuestion = index === topQuestions.length - 1;
+                return (
+                  <div
+                    key={`${agentConfig.id}-${item.id}`}
+                    className="relative flex items-center transition-all duration-300 ease-in-out"
+                    style={{
+                      opacity: isTransitioning ? 0 : 1,
+                      transform: isTransitioning
+                        ? "translateY(10px) scale(0.95)"
+                        : "translateY(0) scale(1)",
+                      transitionDelay: `${index * 30}ms`,
+                    }}
+                  >
+                    <Button
+                      variant="outline"
+                      className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]"
+                      onClick={() => onSelect(item.question)}
+                      style={{
+                        ["--theme-color" as string]: themeColor,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = `${themeColor}4D`;
+                        e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "";
+                        e.currentTarget.style.backgroundColor = "";
+                      }}
+                    >
+                      <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
+                      <span className="line-clamp-1">{item.label}</span>
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="absolute right-2 lg:right-3 p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Info className="size-3.5 lg:size-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="max-w-xs text-center text-white dark:text-white"
+                      >
+                        {item.question}
+                      </TooltipContent>
+                    </Tooltip>
+                    
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: Subtle text link below grid - appears on hover or always visible but very subtle */}
+            {moreQuestions.length > 0 && (
               <div
-                key={`${agentConfig.id}-${item.id}`}
-                className="relative flex items-center transition-all duration-300 ease-in-out"
+                className="hidden lg:flex justify-end mt-2 transition-all duration-300 ease-in-out"
                 style={{
                   opacity: isTransitioning ? 0 : 1,
                   transform: isTransitioning
                     ? "translateY(10px) scale(0.95)"
                     : "translateY(0) scale(1)",
-                  transitionDelay: `${index * 30}ms`,
+                  transitionDelay: `${topQuestions.length * 30}ms`,
                 }}
               >
-                <Button
-                  variant="outline"
-                  className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]"
-                  onClick={() => onSelect(item.question)}
-                  style={{
-                    ["--theme-color" as string]: themeColor,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${themeColor}4D`;
-                    e.currentTarget.style.backgroundColor = `${themeColor}0D`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "";
-                    e.currentTarget.style.backgroundColor = "";
-                  }}
-                >
-                  <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
-                  <span className="line-clamp-1">{item.label}</span>
-                </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
                     <button
-                      type="button"
-                      className="absolute right-2 lg:right-3 p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                      onClick={(e) => e.stopPropagation()}
+                      className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors duration-200 flex items-center gap-1 group-hover:text-muted-foreground/70"
+                      style={{
+                        ["--theme-color" as string]: themeColor,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = themeColor;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "";
+                      }}
                     >
-                      <Info className="size-3.5 lg:size-4" />
+                      <span>View {moreQuestions.length} more questions</span>
+                      <ChevronDown className="size-3 opacity-50 group-hover:opacity-70 transition-opacity" />
                     </button>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="top"
-                    className="max-w-xs text-center text-white dark:text-white"
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="w-80 max-h-[400px] overflow-y-auto"
+                    style={{
+                      ["--theme-color" as string]: themeColor,
+                    }}
                   >
-                    {item.question}
-                  </TooltipContent>
-                </Tooltip>
+                    {moreQuestions.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <DropdownMenuItem
+                          key={`${agentConfig.id}-more-${item.id}`}
+                          className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
+                          onClick={() => onSelect(item.question)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "";
+                          }}
+                        >
+                          <Icon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm mb-1">{item.label}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-2">
+                              {item.question}
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            );
-          })}
+            )}
+
+            {/* Mobile: Very subtle text link */}
+            {moreQuestions.length > 0 && (
+              <div
+                className="lg:hidden mt-1.5 flex justify-end transition-all duration-300 ease-in-out"
+                style={{
+                  opacity: isTransitioning ? 0 : 1,
+                  transform: isTransitioning
+                    ? "translateY(10px) scale(0.95)"
+                    : "translateY(0) scale(1)",
+                  transitionDelay: `${topQuestions.length * 30}ms`,
+                }}
+              >
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="text-[10px] text-muted-foreground/50 hover:text-muted-foreground/80 transition-colors duration-200 flex items-center gap-1"
+                      style={{
+                        ["--theme-color" as string]: themeColor,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = themeColor;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "";
+                      }}
+                    >
+                      <span>{moreQuestions.length} more</span>
+                      <ChevronDown className="size-3 opacity-50" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    className="w-[calc(100vw-2rem)] max-w-sm max-h-[400px] overflow-y-auto"
+                    style={{
+                      ["--theme-color" as string]: themeColor,
+                    }}
+                  >
+                    {moreQuestions.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <DropdownMenuItem
+                          key={`${agentConfig.id}-more-${item.id}`}
+                          className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
+                          onClick={() => onSelect(item.question)}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = "";
+                          }}
+                        >
+                          <Icon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm mb-1">{item.label}</div>
+                            <div className="text-xs text-muted-foreground line-clamp-2">
+                              {item.question}
+                            </div>
+                          </div>
+                        </DropdownMenuItem>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -495,7 +841,8 @@ function ChatInput({
         onSubmit({ text: message.text, files: message.files });
       } catch (error) {
         toast.error("Error", {
-          description: error instanceof Error ? error.message : "An error occurred",
+          description:
+            error instanceof Error ? error.message : "An error occurred",
         });
       }
     }
@@ -635,6 +982,18 @@ export function ChatInterface() {
   const { resourceAccess } = useAppContext();
   const { getAccessTokenSilently } = useAuth();
 
+  // Brand kit state
+  const [brandKits, setBrandKits] = useState<
+    Array<{ id: string; name: string; logo?: string | null }>
+  >([]);
+  const [selectedBrandKit, setSelectedBrandKit] = useState<string | null>(null);
+  const [sections, setSections] = useState<Array<{ id: string; name: string }>>(
+    []
+  );
+  const [selectedSections, setSelectedSections] = useState<string[]>([]);
+  const [isLoadingBrandKits, setIsLoadingBrandKits] = useState(false);
+  const [isLoadingSections, setIsLoadingSections] = useState(false);
+
   // Get the current agent configuration
   const currentAgentConfig = getAgentConfig(displayAgent);
 
@@ -683,6 +1042,71 @@ export function ChatInterface() {
     currentAgentRef.current = selectedAgent;
     userManuallySelectedAgentRef.current = userManuallySelectedAgent;
   }, [selectedAgent, userManuallySelectedAgent]);
+
+  // Load brand kits on app start (server-side)
+  useEffect(() => {
+    const loadBrandKits = async () => {
+      setIsLoadingBrandKits(true);
+      try {
+        const response = await fetch("/api/brand-kits");
+        if (!response.ok) {
+          throw new Error(`Failed to load brand kits: ${response.statusText}`);
+        }
+        const data: ListBrandKitsResponse = await response.json();
+        const kitsArray = Array.isArray(data.data) ? data.data : [];
+        const loadedKits = kitsArray.map((kit) => ({
+          id: kit.id,
+          name: kit.name || kit.brandName || kit.id,
+          logo: kit.logo || null,
+        }));
+        console.log("Loaded brand kits with logos:", loadedKits.map(k => ({ name: k.name, hasLogo: !!k.logo, logo: k.logo })));
+        setBrandKits(loadedKits);
+      } catch (error) {
+        console.error("Failed to load brand kits:", error);
+      } finally {
+        setIsLoadingBrandKits(false);
+      }
+    };
+
+    loadBrandKits();
+  }, []);
+
+  // Load sections when brand kit is selected (server-side)
+  useEffect(() => {
+    if (!selectedBrandKit) {
+      setSections([]);
+      setSelectedSections([]);
+      return;
+    }
+
+    const loadSections = async () => {
+      setIsLoadingSections(true);
+      try {
+        const response = await fetch(
+          `/api/brand-kits/sections?brandkitId=${encodeURIComponent(selectedBrandKit)}`
+        );
+        if (!response.ok) {
+          throw new Error(`Failed to load sections: ${response.statusText}`);
+        }
+        const sectionsArray = await response.json();
+        const sectionsList = Array.isArray(sectionsArray)
+          ? sectionsArray.map((section: { id: string; name?: string }) => ({
+              id: section.id,
+              name: section.name || section.id,
+            }))
+          : [];
+        setSections(sectionsList);
+        // Initially select all sections
+        setSelectedSections(sectionsList.map((s) => s.id));
+      } catch (error) {
+        console.error("Failed to load sections:", error);
+      } finally {
+        setIsLoadingSections(false);
+      }
+    };
+
+    loadSections();
+  }, [selectedBrandKit]);
 
   const { messages, status, sendMessage, setMessages, stop } = useChat({
     transport: new DefaultChatTransport({
@@ -773,38 +1197,52 @@ export function ChatInterface() {
   const handleQuestionSelect = async (question: string) => {
     const accessToken = await getAccessTokenSilently();
     sendMessage(
-      { text: question,  },
+      { text: question },
       {
         body: {
           agentType: selectedAgent,
           pageContext: pagesContext,
+          brandKitId: selectedBrandKit,
+          sections:
+            selectedSections.length > 0
+              ? selectedSections.map((id) => ({ sectionId: id }))
+              : undefined,
         },
         headers: { Authorization: `Bearer ${accessToken}` },
       }
     );
   };
 
-  const handleMessageSubmit = async (message: { text: string; files: FileUIPart[] }) => {
+  const handleMessageSubmit = async (message: {
+    text: string;
+    files: FileUIPart[];
+  }) => {
     try {
-      const accessToken = await getAccessTokenSilently();
+    const accessToken = await getAccessTokenSilently();
       if ((message.text.trim() || message.files.length > 0) && !isStreaming) {
-        sendMessage(
-          { 
+      sendMessage(
+          {
             text: message.text,
             files: message.files,
           },
-          {
-            body: {
-              agentType: selectedAgent,
+        {
+          body: {
+            agentType: selectedAgent,
               pageContext: pagesContext,
-            },
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
-        );
+              brandKitId: selectedBrandKit,
+              sections:
+                selectedSections.length > 0
+                  ? selectedSections.map((id) => ({ sectionId: id }))
+                  : undefined,
+          },
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
       }
     } catch (error) {
       toast.error("Error", {
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An error occurred",
       });
     }
   };
@@ -829,23 +1267,35 @@ export function ChatInterface() {
         </div>
       )}
       <PromptInputProvider>
-        <div className={`flex h-screen flex-col bg-linear-to-br from-background via-background to-muted/20 ${errorMessage ? 'pt-[73px]' : ''}`}>
+        <div
+          className={`flex h-screen flex-col bg-linear-to-br from-background via-background to-muted/20 ${
+            errorMessage ? "pt-[73px]" : ""
+          }`}
+        >
           <ChatHeader
             selectedModel={selectedModel}
             onModelChange={setSelectedModel}
             onNewChat={handleNewChat}
             selectedAgent={selectedAgent}
             onAgentChange={handleAgentChange}
+            brandKits={brandKits}
+            selectedBrandKit={selectedBrandKit}
+            onBrandKitChange={setSelectedBrandKit}
+            sections={sections}
+            selectedSections={selectedSections}
+            onSectionsChange={setSelectedSections}
+            isLoadingBrandKits={isLoadingBrandKits}
+            isLoadingSections={isLoadingSections}
           />
 
           <Conversation className="flex-1">
             <AutoScrollWrapper messages={messages} status={status}>
-              <ConversationContent>
+            <ConversationContent>
               {(() => {
                 // Show empty state if no visible messages
-                if (messages.length === 0) {
+                  if (messages.length === 0) {
                   return (
-                    <ConversationEmptyState className="flex items-center justify-center p-3 pb-4 lg:p-4 lg:pb-8">
+                    <ConversationEmptyState className="flex items-center justify-center p-1 pb-4 lg:p-4 lg:pb-8">
                       <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
                         <div className="relative flex size-12 lg:size-16 items-center justify-center">
                           <div
@@ -908,12 +1358,13 @@ export function ChatInterface() {
                           </p>
                         </div>
                         <div className="grid w-full grid-cols-1 lg:grid-cols-2 gap-2.5 lg:gap-4">
-                          {currentAgentConfig.teaserCards.map((card, index) => {
+                            {currentAgentConfig.teaserCards.map(
+                              (card, index) => {
                             const CardIcon = card.icon;
                             return (
                               <div
                                 key={`${displayAgent}-teaser-${index}`}
-                                className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-4 lg:p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md"
+                                className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-2.5 lg:p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md"
                                 style={{
                                   opacity: isTransitioning ? 0 : 1,
                                   transform: isTransitioning
@@ -939,7 +1390,8 @@ export function ChatInterface() {
                                   <CardIcon
                                     className="size-5 lg:size-6 transition-all duration-300 ease-in-out"
                                     style={{
-                                      color: currentAgentConfig.colors.primary,
+                                          color:
+                                            currentAgentConfig.colors.primary,
                                     }}
                                   />
                                 </div>
@@ -953,7 +1405,8 @@ export function ChatInterface() {
                                 </div>
                               </div>
                             );
-                          })}
+                              }
+                            )}
                         </div>
                       </div>
                     </ConversationEmptyState>
@@ -963,7 +1416,7 @@ export function ChatInterface() {
                 // Render visible messages
                 return (
                   <>
-                    {messages.map((message, index) => {
+                      {messages.map((message, index) => {
                       const { role, parts, metadata } = message;
                       // Get agent info from metadata or use current agent for assistant messages
                       const agentType =
@@ -1006,23 +1459,146 @@ export function ChatInterface() {
                           (name, index, self) => self.indexOf(name) === index
                         ); // Remove duplicates
 
-                      // Find the index of the analytics tool result part
-                      const analyticsToolIndex = parts.findIndex(
-                        (part) =>
-                          typeof part.type === "string" &&
-                          part.type.startsWith("tool-") &&
-                          part.type.includes("getContentAnalyticsData")
-                      );
-                      const hasAnalyticsTool = analyticsToolIndex !== -1;
+                        // Find the index of the analytics tool result part
+                        const analyticsToolIndex = parts.findIndex(
+                          (part) =>
+                            typeof part.type === "string" &&
+                            part.type.startsWith("tool-") &&
+                            part.type.includes("getContentAnalyticsData")
+                        );
+                        const hasAnalyticsTool = analyticsToolIndex !== -1;
 
                       return (
-                        <div key={index} className="relative group/message">
-                          <Message from={role} className="relative">
-                            {/* User message header */}
-                            {role === "user" && (
-                              <div className="mb-1.5 flex flex-col items-end gap-1.5 px-1">
-                                <div className="flex items-center justify-end gap-2">
-                                  {/* Delete button */}
+                          <div key={index} className="relative group/message">
+                            <Message from={role} className="relative">
+                              {/* User message header */}
+                              {role === "user" && (
+                                <div className="mb-1.5 flex flex-col items-end gap-1.5 px-1">
+                                  <div className="flex items-center justify-end gap-2">
+                                    {/* Delete button */}
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleDeleteMessage(message.id)
+                                          }
+                                          className="opacity-0 group-hover/message:opacity-100 transition-all duration-200 p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                                          aria-label="Delete message"
+                                        >
+                                          <Trash2 className="size-3" />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-popover text-popover-foreground border border-border">
+                                        <p className="text-sm">
+                                          Delete message
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                    {/* "You" label and icon */}
+                                    <span className="text-xs font-medium text-muted-foreground">
+                                      You
+                                    </span>
+                                    <div className="flex size-5 items-center justify-center rounded-md bg-muted/50">
+                                      <User className="size-3 text-muted-foreground" />
+                                    </div>
+                                  </div>
+                                  {/* File attachments indicator */}
+                                  {(() => {
+                                    const fileParts = parts.filter(
+                                      (p) => p.type === "file"
+                                    );
+                                    if (fileParts.length > 0) {
+                                      return (
+                                        <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 border border-border/50">
+                                          <Paperclip className="size-3 text-muted-foreground" />
+                                          <span className="text-xs text-muted-foreground">
+                                            {fileParts.length === 1
+                                              ? (() => {
+                                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                  const filePart =
+                                                    fileParts[0] as any;
+                                                  return (
+                                                    filePart.filename ||
+                                                    "1 file"
+                                                  );
+                                                })()
+                                              : `${fileParts.length} files`}
+                                          </span>
+                                        </div>
+                                      );
+                                    }
+                                    return null;
+                                  })()}
+                                </div>
+                              )}
+                              {/* Assistant message header */}
+                          {role === "assistant" && agentConfig && (
+                            <div
+                              className="mb-1.5 flex items-center gap-2 px-1"
+                              style={{
+                                color: agentConfig.colors.primary,
+                              }}
+                            >
+                              <div
+                                className="flex size-5 items-center justify-center rounded-md"
+                                style={{
+                                  backgroundColor: `${agentConfig.colors.primary}1A`,
+                                }}
+                              >
+                                {(() => {
+                                  const Icon = agentConfig.icon;
+                                  return (
+                                    <Icon
+                                      className="size-3"
+                                      style={{
+                                        color: agentConfig.colors.primary,
+                                      }}
+                                    />
+                                  );
+                                })()}
+                              </div>
+                              <span className="text-xs font-medium">
+                                {agentConfig.name} Assistant
+                              </span>
+                              {toolNames.length > 0 && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/50 hover:bg-muted dark:hover:bg-muted/50 transition-colors cursor-help group">
+                                      <Wrench className="size-3 text-foreground/70 group-hover:text-foreground transition-colors" />
+                                      <span className="text-xs font-medium text-foreground">
+                                        Tools Used ({toolNames.length})
+                                      </span>
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent
+                                    side="top"
+                                    className="max-w-xs bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg p-3"
+                                  >
+                                    <div className="space-y-2">
+                                      <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
+                                        <Wrench className="size-3.5 text-foreground" />
+                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                          Tools Used ({toolNames.length})
+                                        </p>
+                                      </div>
+                                      <ul className="list-disc list-inside space-y-1">
+                                        {toolNames.map(
+                                          (toolName, toolIndex) => (
+                                            <li
+                                              key={toolIndex}
+                                              className="text-sm font-medium text-gray-800 dark:text-gray-200"
+                                            >
+                                              {toolName}
+                                            </li>
+                                          )
+                                        )}
+                                      </ul>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                                  {/* Delete button in assistant header */}
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <button
@@ -1040,348 +1616,561 @@ export function ChatInterface() {
                                       <p className="text-sm">Delete message</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                  {/* "You" label and icon */}
-                                  <span className="text-xs font-medium text-muted-foreground">
-                                    You
-                                  </span>
-                                  <div className="flex size-5 items-center justify-center rounded-md bg-muted/50">
-                                    <User className="size-3 text-muted-foreground" />
-                                  </div>
-                                </div>
-                                {/* File attachments indicator */}
-                                {(() => {
-                                  const fileParts = parts.filter((p) => p.type === "file");
-                                  if (fileParts.length > 0) {
-                                    return (
-                                      <div className="flex items-center gap-1.5 rounded-md bg-muted/50 px-2 py-1 border border-border/50">
-                                        <Paperclip className="size-3 text-muted-foreground" />
-                                        <span className="text-xs text-muted-foreground">
-                                          {fileParts.length === 1
-                                            ? (() => {
-                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                const filePart = fileParts[0] as any;
-                                                return filePart.filename || "1 file";
-                                              })()
-                                            : `${fileParts.length} files`}
-                                        </span>
-                                      </div>
-                                    );
+                            </div>
+                          )}
+                          <MessageContent
+                            className={
+                              role === "assistant" && agentConfig
+                                ? "transition-colors duration-300"
+                                : ""
+                            }
+                            style={
+                              role === "assistant" && agentConfig
+                                ? {
+                                    backgroundColor: `${agentConfig.colors.primary}08`,
+                                    borderLeft: `3px solid ${agentConfig.colors.primary}`,
+                                    paddingLeft: "12px",
+                                    paddingRight: "12px",
+                                    paddingTop: "10px",
+                                    paddingBottom: "10px",
+                                    borderRadius: "8px",
                                   }
-                                  return null;
-                                })()}
-                              </div>
-                            )}
-                            {/* Assistant message header */}
-                            {role === "assistant" && agentConfig && (
-                              <div
-                                className="mb-1.5 flex items-center gap-2 px-1"
-                                style={{
-                                  color: agentConfig.colors.primary,
-                                }}
-                              >
-                                <div
-                                  className="flex size-5 items-center justify-center rounded-md"
-                                  style={{
-                                    backgroundColor: `${agentConfig.colors.primary}1A`,
-                                  }}
-                                >
-                                  {(() => {
-                                    const Icon = agentConfig.icon;
-                                    return (
-                                      <Icon
-                                        className="size-3"
-                                        style={{
-                                          color: agentConfig.colors.primary,
-                                        }}
-                                      />
-                                    );
-                                  })()}
-                                </div>
-                                <span className="text-xs font-medium">
-                                  {agentConfig.name} Assistant
-                                </span>
-                                {toolNames.length > 0 && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/50 hover:bg-muted dark:hover:bg-muted/50 transition-colors cursor-help group">
-                                        <Wrench className="size-3 text-foreground/70 group-hover:text-foreground transition-colors" />
-                                        <span className="text-xs font-medium text-foreground">
-                                          Tools Used ({toolNames.length})
-                                        </span>
-                                      </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent
-                                      side="top"
-                                      className="max-w-xs bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg p-3"
-                                    >
-                                      <div className="space-y-2">
-                                        <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
-                                          <Wrench className="size-3.5 text-foreground" />
-                                          <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                            Tools Used ({toolNames.length})
-                                          </p>
-                                        </div>
-                                        <ul className="list-disc list-inside space-y-1">
-                                          {toolNames.map(
-                                            (toolName, toolIndex) => (
-                                              <li
-                                                key={toolIndex}
-                                                className="text-sm font-medium text-gray-800 dark:text-gray-200"
-                                              >
-                                                {toolName}
-                                              </li>
-                                            )
-                                          )}
-                                        </ul>
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                )}
-                                {/* Delete button in assistant header */}
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleDeleteMessage(message.id)
-                                      }
-                                      className="opacity-0 group-hover/message:opacity-100 transition-all duration-200 p-1 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                                      aria-label="Delete message"
-                                    >
-                                      <Trash2 className="size-3" />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="bg-popover text-popover-foreground border border-border">
-                                    <p className="text-sm">Delete message</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            )}
-                            <MessageContent
-                              className={
-                                role === "assistant" && agentConfig
-                                  ? "transition-colors duration-300"
-                                  : ""
-                              }
-                              style={
-                                role === "assistant" && agentConfig
-                                  ? {
-                                      backgroundColor: `${agentConfig.colors.primary}08`,
-                                      borderLeft: `3px solid ${agentConfig.colors.primary}`,
-                                      paddingLeft: "12px",
-                                      paddingRight: "12px",
-                                      paddingTop: "10px",
-                                      paddingBottom: "10px",
-                                      borderRadius: "8px",
-                                    }
-                                  : undefined
-                              }
-                            >
-                              {parts.map((part, i) => {
-                                switch (part.type) {
-                                  case "text":
-                                    // Skip text parts that come BEFORE the analytics tool result
-                                    // This prevents showing raw data, but allows AI response text after the chart
-                                    if (hasAnalyticsTool && i < analyticsToolIndex) {
-                                      return null;
-                                    }
-                                    // Also skip text parts that look like JSON data (raw tool output)
-                                    if (hasAnalyticsTool && part.text) {
-                                      try {
-                                        const parsed = JSON.parse(part.text);
-                                        if (parsed && typeof parsed === "object" && "data" in parsed && Array.isArray(parsed.data)) {
-                                          return null;
-                                        }
-                                      } catch {
-                                        // Not JSON, allow it to render
-                                      }
-                                    }
-                                    return (
-                                      <MessageResponse key={`${role}-${i}`}>
-                                        {part.text}
-                                      </MessageResponse>
-                                    );
-                                  case "file":
-                                    // File parts are handled above for user messages
-                                    // For assistant messages, show file info
-                                    if (role === "assistant") {
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                      const filePart = part as any;
-                                      return (
-                                        <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-2">
-                                          <Paperclip className="size-4 text-muted-foreground" />
-                                          <span className="text-sm text-muted-foreground">
-                                            {filePart.filename || "Attachment"}
-                                          </span>
-                                        </div>
-                                      );
-                                    }
-                                    return null;
-                                  default:
-                                    // Check if this is a tool result for analytics data
-                                    if (
-                                      typeof part.type === "string" &&
-                                      part.type.startsWith("tool-") &&
-                                      part.type.includes("getContentAnalyticsData")
-                                    ) {
-                                      // Check if it's a ToolUIPart with output
-                                      const toolPart = part as ToolUIPart;
+                                : undefined
+                            }
+                          >
+                            {parts.map((part, i) => {
+                              switch (part.type) {
+                                case "text":
+                                      // Skip text parts that come BEFORE the analytics tool result
+                                      // This prevents showing raw data, but allows AI response text after the chart
                                       if (
-                                        toolPart.output &&
-                                        typeof toolPart.output === "object" &&
-                                        "data" in toolPart.output
+                                        hasAnalyticsTool &&
+                                        i < analyticsToolIndex
                                       ) {
+                                    return null;
+                                  }
+                                      // Also skip text parts that look like JSON data (raw tool output)
+                                      if (hasAnalyticsTool && part.text) {
+                                        try {
+                                          const parsed = JSON.parse(part.text);
+                                          if (
+                                            parsed &&
+                                            typeof parsed === "object" &&
+                                            "data" in parsed &&
+                                            Array.isArray(parsed.data)
+                                          ) {
+                                            return null;
+                                          }
+                                        } catch {
+                                          // Not JSON, allow it to render
+                                        }
+                                      }
+                                  return (
+                                    <MessageResponse key={`${role}-${i}`}>
+                                      {part.text}
+                                    </MessageResponse>
+                                      );
+                                    case "file":
+                                      // File parts are handled above for user messages
+                                      // For assistant messages, show file info
+                                      if (role === "assistant") {
                                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        const analyticsData = (toolPart.output as any).data;
+                                        const filePart = part as any;
+                                        return (
+                                          <div
+                                            key={`${role}-${i}`}
+                                            className="my-2 flex items-center gap-2 rounded-lg border border-border bg-muted/50 p-2"
+                                          >
+                                            <Paperclip className="size-4 text-muted-foreground" />
+                                            <span className="text-sm text-muted-foreground">
+                                              {filePart.filename ||
+                                                "Attachment"}
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+                                      return null;
+                                    default:
+                                      // Check if this is a tool result for analytics data
+                                      if (
+                                        typeof part.type === "string" &&
+                                        part.type.startsWith("tool-") &&
+                                        part.type.includes(
+                                          "getContentAnalyticsData"
+                                        )
+                                      ) {
+                                        // Check if it's a ToolUIPart with output
+                                        const toolPart = part as ToolUIPart;
                                         if (
-                                          Array.isArray(analyticsData) &&
-                                          analyticsData.length > 0
+                                          toolPart.output &&
+                                          typeof toolPart.output === "object" &&
+                                          "data" in toolPart.output
                                         ) {
-                                          // Calculate total visits, sessions and date range
-                                          const totalVisits = analyticsData.reduce(
-                                            (sum: number, item: { "Number Visits": number }) =>
-                                              sum + item["Number Visits"],
-                                            0
-                                          );
-                                          const totalVisitors = analyticsData.reduce(
-                                            (sum: number, item: { "Number Visitors": number }) =>
-                                              sum + (item["Number Visitors"] || 0),
-                                            0
-                                          );
-                                          const firstDate = new Date(analyticsData[0].Day);
-                                          const lastDate = new Date(
-                                            analyticsData[analyticsData.length - 1].Day
-                                          );
-                                          const dateRange = `${firstDate.toLocaleDateString("en-US", {
-                                            month: "short",
-                                            day: "numeric",
-                                          })} - ${lastDate.toLocaleDateString("en-US", {
-                                            month: "short",
-                                            day: "numeric",
-                                            year: "numeric",
-                                          })}`;
+                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                          const analyticsData = (
+                                            toolPart.output as any
+                                          ).data;
+                                          if (
+                                            Array.isArray(analyticsData) &&
+                                            analyticsData.length > 0
+                                          ) {
+                                            // Calculate total visits, sessions and date range
+                                            const totalVisits =
+                                              analyticsData.reduce(
+                                                (
+                                                  sum: number,
+                                                  item: {
+                                                    "Number Visits": number;
+                                                  }
+                                                ) =>
+                                                  sum + item["Number Visits"],
+                                                0
+                                              );
+                                            const totalVisitors =
+                                              analyticsData.reduce(
+                                                (
+                                                  sum: number,
+                                                  item: {
+                                                    "Number Visitors": number;
+                                                  }
+                                                ) =>
+                                                  sum +
+                                                  (item["Number Visitors"] ||
+                                                    0),
+                                                0
+                                              );
+                                            const firstDate = new Date(
+                                              analyticsData[0].Day
+                                            );
+                                            const lastDate = new Date(
+                                              analyticsData[
+                                                analyticsData.length - 1
+                                              ].Day
+                                            );
+                                            const dateRange = `${firstDate.toLocaleDateString(
+                                              "en-US",
+                                              {
+                                                month: "short",
+                                                day: "numeric",
+                                              }
+                                            )} - ${lastDate.toLocaleDateString(
+                                              "en-US",
+                                              {
+                                                month: "short",
+                                                day: "numeric",
+                                                year: "numeric",
+                                              }
+                                            )}`;
 
-                                          // Chart configuration with high contrast colors
-                                          const chartConfig = {
-                                            visits: {
-                                              label: "Number Visits",
-                                              color: "hsl(221, 83%, 53%)", // Blue
-                                            },
-                                            visitors: {
-                                              label: "Number Visitors",
-                                              color: "hsl(0, 72%, 51%)", // Red/Orange
-                                            },
-                                          } satisfies ChartConfig;
+                                            // Chart configuration with high contrast colors
+                                            const chartConfig = {
+                                              visits: {
+                                                label: "Number Visits",
+                                                color: "hsl(221, 83%, 53%)", // Blue
+                                              },
+                                              visitors: {
+                                                label: "Number Visitors",
+                                                color: "hsl(0, 72%, 51%)", // Red/Orange
+                                              },
+                                            } satisfies ChartConfig;
 
-                                          return (
-                                            <Card
-                                              key={`${role}-${i}`}
-                                              className="my-4 w-full max-w-full"
-                                            >
-                                              <CardHeader>
-                                                <CardTitle>Content Analytics</CardTitle>
-                                                <CardDescription>{dateRange}</CardDescription>
-                                              </CardHeader>
-                                              <CardContent className="w-full">
-                                                <ChartContainer config={chartConfig} className="w-full">
-                                                  <LineChart
-                                                    accessibilityLayer
-                                                    data={analyticsData}
-                                                    margin={{
-                                                      left: 12,
-                                                      right: 12,
-                                                    }}
-                                                    aria-label={`Line chart showing daily visits from ${dateRange}`}
+                                            return (
+                                              <Card
+                                                key={`${role}-${i}`}
+                                                className="my-4 w-full max-w-full"
+                                              >
+                                                <CardHeader>
+                                                  <CardTitle>
+                                                    Content Analytics
+                                                  </CardTitle>
+                                                  <CardDescription>
+                                                    {dateRange}
+                                                  </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="w-full">
+                                                  <ChartContainer
+                                                    config={chartConfig}
+                                                    className="w-full"
                                                   >
-                                                    <CartesianGrid vertical={false} />
-                                                    <XAxis
-                                                      dataKey="Day"
-                                                      tickLine={false}
-                                                      axisLine={false}
-                                                      tickMargin={8}
-                                                      tickFormatter={(value) => {
-                                                        const date = new Date(value);
-                                                        return date.toLocaleDateString("en-US", {
-                                                          month: "short",
-                                                          day: "numeric",
-                                                        });
+                                                    <LineChart
+                                                      accessibilityLayer
+                                                      data={analyticsData}
+                                                      margin={{
+                                                        left: 12,
+                                                        right: 12,
                                                       }}
-                                                    />
-                                                    <ChartTooltip
-                                                      cursor={false}
-                                                      content={<ChartTooltipContent />}
-                                                    />
-                                                    <Line
-                                                      dataKey="Number Visits"
-                                                      type="monotone"
-                                                      stroke="var(--color-visits)"
-                                                      strokeWidth={2}
-                                                      dot={false}
-                                                    />
-                                                    <Line
-                                                      dataKey="Number Visitors"
-                                                      type="monotone"
-                                                      stroke="var(--color-visitors)"
-                                                      strokeWidth={2}
-                                                      dot={false}
-                                                    />
-                                                  </LineChart>
-                                                </ChartContainer>
-                                              </CardContent>
-                                              <CardFooter>
-                                                <div className="flex w-full items-start gap-2 text-sm">
-                                                  <div className="grid gap-2">
-                                                    <div className="flex items-center gap-2 leading-none font-medium">
-                                                      Total: {totalVisits.toLocaleString()} visits, {totalVisitors.toLocaleString()} visitors{" "}
-                                                      <TrendingUp className="h-4 w-4" />
-                                                    </div>
-                                                    <div className="text-muted-foreground flex items-center gap-2 leading-none">
-                                                      Showing daily visits and visitors for the last 30 days
+                                                      aria-label={`Line chart showing daily visits from ${dateRange}`}
+                                                    >
+                                                      <CartesianGrid
+                                                        vertical={false}
+                                                      />
+                                                      <XAxis
+                                                        dataKey="Day"
+                                                        tickLine={false}
+                                                        axisLine={false}
+                                                        tickMargin={8}
+                                                        tickFormatter={(
+                                                          value
+                                                        ) => {
+                                                          const date = new Date(
+                                                            value
+                                                          );
+                                                          return date.toLocaleDateString(
+                                                            "en-US",
+                                                            {
+                                                              month: "short",
+                                                              day: "numeric",
+                                                            }
+                                                          );
+                                                        }}
+                                                      />
+                                                      <ChartTooltip
+                                                        cursor={false}
+                                                        content={
+                                                          <ChartTooltipContent />
+                                                        }
+                                                      />
+                                                      <Line
+                                                        dataKey="Number Visits"
+                                                        type="monotone"
+                                                        stroke="var(--color-visits)"
+                                                        strokeWidth={2}
+                                                        dot={false}
+                                                      />
+                                                      <Line
+                                                        dataKey="Number Visitors"
+                                                        type="monotone"
+                                                        stroke="var(--color-visitors)"
+                                                        strokeWidth={2}
+                                                        dot={false}
+                                                      />
+                                                    </LineChart>
+                                                  </ChartContainer>
+                                                </CardContent>
+                                                <CardFooter>
+                                                  <div className="flex w-full items-start gap-2 text-sm">
+                                                    <div className="grid gap-2">
+                                                      <div className="flex items-center gap-2 leading-none font-medium">
+                                                        Total:{" "}
+                                                        {totalVisits.toLocaleString()}{" "}
+                                                        visits,{" "}
+                                                        {totalVisitors.toLocaleString()}{" "}
+                                                        visitors{" "}
+                                                        <TrendingUp className="h-4 w-4" />
+                                                      </div>
+                                                      <div className="text-muted-foreground flex items-center gap-2 leading-none">
+                                                        Showing daily visits and
+                                                        visitors for the last 30
+                                                        days
+                                                      </div>
                                                     </div>
                                                   </div>
-                                                </div>
-                                              </CardFooter>
-                                            </Card>
-                                          );
+                                                </CardFooter>
+                                              </Card>
+                                            );
+                                          }
                                         }
                                       }
-                                    }
-                                    return null;
-                                }
-                              })}
-                            </MessageContent>
-                          </Message>
-                        </div>
+                                      // Check if this is a tool result for brand review
+                                      if (
+                                        typeof part.type === "string" &&
+                                        part.type.startsWith("tool-") &&
+                                        part.type.includes(
+                                          "generateBrandReview"
+                                        )
+                                      ) {
+                                        const toolPart = part as ToolUIPart;
+                                        if (
+                                          toolPart.output &&
+                                          typeof toolPart.output === "object" &&
+                                          "data" in toolPart.output &&
+                                          "success" in toolPart.output &&
+                                          toolPart.output.success === true
+                                        ) {
+                                          
+                                          const brandReviewData = (
+                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            toolPart.output as any
+                                          ).data;
+                                          if (
+                                            Array.isArray(brandReviewData) &&
+                                            brandReviewData.length > 0
+                                          ) {
+                                            // Helper function to get score color and icon
+                                            const getScoreDisplay = (
+                                              score: number
+                                            ) => {
+                                              if (score >= 4) {
+                                                return {
+                                                  color: "success",
+                                                  icon: CheckCircle2,
+                                                  label: "Excellent",
+                                                };
+                                              } else if (score === 3) {
+                                                return {
+                                                  color: "warning",
+                                                  icon: AlertCircleIcon,
+                                                  label: "Good",
+                                                };
+                                              } else {
+                                                return {
+                                                  color: "danger",
+                                                  icon: XCircle,
+                                                  label: "Needs Improvement",
+                                                };
+                                              }
+                                            };
+
+                                            return (
+                                              <Card
+                                                key={`${role}-${i}`}
+                                                className="my-4 w-full max-w-full"
+                                              >
+                                                <CardHeader>
+                                                  <CardTitle>
+                                                    Brand Review Results
+                                                  </CardTitle>
+                                                  <CardDescription>
+                                                    Compliance analysis across{" "}
+                                                    {brandReviewData.length}{" "}
+                                                    section
+                                                    {brandReviewData.length !==
+                                                    1
+                                                      ? "s"
+                                                      : ""}
+                                                  </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="w-full space-y-4">
+                                                  {brandReviewData.map(
+                                                    (
+                                                      section: {
+                                                        sectionId: string;
+                                                        sectionName?: string;
+                                                        score: number;
+                                                        reason: string;
+                                                        suggestion: string;
+                                                        fields?: Array<{
+                                                          fieldId: string;
+                                                          fieldName?: string;
+                                                          score: number;
+                                                          reason: string;
+                                                          suggestion: string;
+                                                        }>;
+                                                      },
+                                                      sectionIndex: number
+                                                    ) => {
+                                                      const scoreDisplay =
+                                                        getScoreDisplay(
+                                                          section.score
+                                                        );
+                                                      const ScoreIcon =
+                                                        scoreDisplay.icon;
+
+                                                      return (
+                                                        <Card
+                                                          key={
+                                                            section.sectionId
+                                                          }
+                                                          className={`border-l-4 ${
+                                                            scoreDisplay.color ===
+                                                            "success"
+                                                              ? "border-l-green-500 dark:border-l-green-400"
+                                                              : scoreDisplay.color ===
+                                                                "warning"
+                                                              ? "border-l-yellow-500 dark:border-l-yellow-400"
+                                                              : "border-l-red-500 dark:border-l-red-400"
+                                                          }`}
+                                                        >
+                                                          <CardHeader className="pb-3">
+                                                            <div className="flex items-start justify-between gap-4">
+                                                              <div className="flex-1">
+                                                                <CardTitle className="text-base">
+                                                                  {section.sectionName
+                                                                    ? section.sectionName
+                                                                    : `Section ${
+                                                                        sectionIndex +
+                                                                        1
+                                                                      }`}
+                                                                </CardTitle>
+                                                                <CardDescription className="mt-1 text-xs font-mono">
+                                                                  {
+                                                                    section.sectionId
+                                                                  }
+                                                                </CardDescription>
+                                                              </div>
+                                                              <div className="flex items-center gap-2">
+                                                                <Badge
+                                                                  colorScheme={
+                                                                    scoreDisplay.color ===
+                                                                    "success"
+                                                                      ? "success"
+                                                                      : scoreDisplay.color ===
+                                                                        "warning"
+                                                                      ? "warning"
+                                                                      : "danger"
+                                                                  }
+                                                                  size="lg"
+                                                                >
+                                                                  <ScoreIcon className="size-3" />
+                                                                  Score:{" "}
+                                                                  {
+                                                                    section.score
+                                                                  }
+                                                                  /5
+                                                                </Badge>
+                                                              </div>
+                                                            </div>
+                                                          </CardHeader>
+                                                          <CardContent className="space-y-3">
+                                                            <Alert
+                                                              variant={
+                                                                scoreDisplay.color ===
+                                                                "success"
+                                                                  ? "success"
+                                                                  : scoreDisplay.color ===
+                                                                    "warning"
+                                                                  ? "warning"
+                                                                  : "danger"
+                                                              }
+                                                            >
+                                                              <AlertTitle>
+                                                                Assessment
+                                                              </AlertTitle>
+                                                              <AlertDescription>
+                                                                {section.reason}
+                                                              </AlertDescription>
+                                                            </Alert>
+                                                            <div className="rounded-lg border border-border bg-muted/30 p-3">
+                                                              <div className="text-sm font-medium text-foreground mb-1">
+                                                                Recommendation:
+                                                              </div>
+                                                              <div className="text-sm text-muted-foreground">
+                                                                {
+                                                                  section.suggestion
+                                                                }
+                                                              </div>
+                                                            </div>
+                                                            {section.fields &&
+                                                              section.fields
+                                                                .length > 0 && (
+                                                                <div className="space-y-2 pt-2">
+                                                                  <div className="text-sm font-medium text-foreground">
+                                                                    Field
+                                                                    Details:
+                                                                  </div>
+                                                                  {section.fields.map(
+                                                                    (field) => {
+                                                                      const fieldScoreDisplay =
+                                                                        getScoreDisplay(
+                                                                          field.score
+                                                                        );
+                                                                      const FieldIcon =
+                                                                        fieldScoreDisplay.icon;
+                                                                      return (
+                                                                        <div
+                                                                          key={
+                                                                            field.fieldId
+                                                                          }
+                                                                          className="rounded-lg border border-border bg-background p-3 space-y-2"
+                                                                        >
+                                                                          <div className="flex items-center justify-between gap-2">
+                                                                            <div className="flex-1 min-w-0">
+                                                                              <div className="text-sm font-medium text-foreground truncate">
+                                                                                {field.fieldName ||
+                                                                                  field.fieldId}
+                                                                              </div>
+                                                                              {field.fieldName && (
+                                                                                <div className="text-xs font-mono text-muted-foreground truncate mt-0.5">
+                                                                                  {
+                                                                                    field.fieldId
+                                                                                  }
+                                                                                </div>
+                                                                              )}
+                                                                            </div>
+                                                                            <Badge
+                                                                              colorScheme={
+                                                                                fieldScoreDisplay.color ===
+                                                                                "success"
+                                                                                  ? "success"
+                                                                                  : fieldScoreDisplay.color ===
+                                                                                    "warning"
+                                                                                  ? "warning"
+                                                                                  : "danger"
+                                                                              }
+                                                                              size="sm"
+                                                                            >
+                                                                              <FieldIcon className="size-2.5" />
+                                                                              {
+                                                                                field.score
+                                                                              }
+                                                                              /5
+                                                                            </Badge>
+                                                                          </div>
+                                                                          <div className="text-xs text-muted-foreground">
+                                                                            <div className="font-medium mb-1">
+                                                                              {
+                                                                                field.reason
+                                                                              }
+                                                                            </div>
+                                                                            <div className="italic">
+                                                                              {
+                                                                                field.suggestion
+                                                                              }
+                                                                            </div>
+                                                                          </div>
+                                                                        </div>
+                                                                      );
+                                                                    }
+                                                                  )}
+                                                                </div>
+                                                              )}
+                                                          </CardContent>
+                                                        </Card>
+                                                      );
+                                                    }
+                                                  )}
+                                                </CardContent>
+                                              </Card>
+                                            );
+                                          }
+                                        }
+                                      }
+                                      return null;
+                              }
+                            })}
+                          </MessageContent>
+                        </Message>
+                          </div>
                       );
                     })}
-                    {isThinking ||
-                      (isStreaming && (
-                        <div className="px-4 py-3">
-                          <Message from="assistant">
-                            <MessageContent>
-                              <div className="flex items-center gap-3 px-1">
-                                <div className="flex size-6 items-center justify-center rounded-md bg-primary/10 dark:bg-primary/20">
-                                  <Brain className="size-3.5 text-primary animate-pulse" />
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-sm font-medium text-muted-foreground">
-                                    Thinking
-                                  </span>
-                                  <div className="flex gap-1">
-                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.3s]" />
-                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.15s]" />
-                                    <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" />
+                      {isThinking ||
+                        (isStreaming && (
+                          <div className="px-4 py-3">
+                            <Message from="assistant">
+                              <MessageContent>
+                                <div className="flex items-center gap-3 px-1">
+                                  <div className="flex size-6 items-center justify-center rounded-md bg-primary/10 dark:bg-primary/20">
+                                    <Brain className="size-3.5 text-primary animate-pulse" />
+                                  </div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium text-muted-foreground">
+                                      Thinking
+                        </span>
+                                    <div className="flex gap-1">
+                                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.3s]" />
+                                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.15s]" />
+                                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" />
+                      </div>
                                   </div>
                                 </div>
-                              </div>
-                            </MessageContent>
-                          </Message>
-                        </div>
-                      ))}
+                              </MessageContent>
+                            </Message>
+                          </div>
+                        ))}
                   </>
                 );
               })()}
-              </ConversationContent>
+            </ConversationContent>
             </AutoScrollWrapper>
             <ConversationScrollButton />
           </Conversation>
