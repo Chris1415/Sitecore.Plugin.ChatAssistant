@@ -284,26 +284,26 @@ function ChatHeader({
           <div className="flex items-center gap-2 lg:hidden">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={onNewChat}
+          <Button
+            variant="outline"
+            onClick={onNewChat}
                   size="icon"
                   className="h-9 w-9 rounded-lg border-border bg-card shadow-sm transition-colors"
-                  style={{
-                    ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
-                    ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
-                    e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "";
-                    e.currentTarget.style.backgroundColor = "";
-                  }}
-                >
+            style={{
+              ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
+              ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
+              e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "";
+              e.currentTarget.style.backgroundColor = "";
+            }}
+          >
                   <Plus className="size-4" />
-                </Button>
+          </Button>
               </TooltipTrigger>
               <TooltipContent className="bg-popover text-popover-foreground border border-border">
                 Start a new Chat
@@ -487,7 +487,7 @@ function ChatHeader({
                           e.currentTarget.style.backgroundColor = "";
                         }}
                       >
-                        <Checkbox
+            <Checkbox
                           checked={selectedSections.includes(section.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -566,63 +566,63 @@ function PredefinedQuestions({
         <div className="relative">
           {/* Questions Grid Container with Hover Area */}
           <div className="group relative">
-            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
+        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
               {topQuestions.map((item, index) => {
-                const Icon = item.icon;
+            const Icon = item.icon;
                 const isLastQuestion = index === topQuestions.length - 1;
-                return (
-                  <div
-                    key={`${agentConfig.id}-${item.id}`}
-                    className="relative flex items-center transition-all duration-300 ease-in-out"
-                    style={{
-                      opacity: isTransitioning ? 0 : 1,
-                      transform: isTransitioning
-                        ? "translateY(10px) scale(0.95)"
-                        : "translateY(0) scale(1)",
-                      transitionDelay: `${index * 30}ms`,
-                    }}
-                  >
-                    <Button
-                      variant="outline"
-                      className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]"
-                      onClick={() => onSelect(item.question)}
-                      style={{
-                        ["--theme-color" as string]: themeColor,
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = `${themeColor}4D`;
-                        e.currentTarget.style.backgroundColor = `${themeColor}0D`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "";
-                        e.currentTarget.style.backgroundColor = "";
-                      }}
+            return (
+              <div
+                key={`${agentConfig.id}-${item.id}`}
+                className="relative flex items-center transition-all duration-300 ease-in-out"
+                style={{
+                  opacity: isTransitioning ? 0 : 1,
+                  transform: isTransitioning
+                    ? "translateY(10px) scale(0.95)"
+                    : "translateY(0) scale(1)",
+                  transitionDelay: `${index * 30}ms`,
+                }}
+              >
+                <Button
+                  variant="outline"
+                  className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]"
+                  onClick={() => onSelect(item.question)}
+                  style={{
+                    ["--theme-color" as string]: themeColor,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = `${themeColor}4D`;
+                    e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "";
+                    e.currentTarget.style.backgroundColor = "";
+                  }}
+                >
+                  <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
+                  <span className="line-clamp-1">{item.label}</span>
+                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="absolute right-2 lg:right-3 p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
-                      <span className="line-clamp-1">{item.label}</span>
-                    </Button>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="absolute right-2 lg:right-3 p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Info className="size-3.5 lg:size-4" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="top"
-                        className="max-w-xs text-center text-white dark:text-white"
-                      >
-                        {item.question}
-                      </TooltipContent>
-                    </Tooltip>
+                      <Info className="size-3.5 lg:size-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    side="top"
+                    className="max-w-xs text-center text-white dark:text-white"
+                  >
+                    {item.question}
+                  </TooltipContent>
+                </Tooltip>
                     
-                  </div>
-                );
-              })}
-            </div>
+              </div>
+            );
+          })}
+        </div>
 
             {/* Desktop: Subtle text link below grid - appears on hover or always visible but very subtle */}
             {moreQuestions.length > 0 && (
@@ -1664,7 +1664,7 @@ export function ChatInterface() {
                                         } catch {
                                           // Not JSON, allow it to render
                                         }
-                                      }
+                                  }
                                   return (
                                     <MessageResponse key={`${role}-${i}`}>
                                       {part.text}

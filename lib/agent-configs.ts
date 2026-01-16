@@ -128,9 +128,9 @@ export const AGENT_CONFIGS: AgentConfig[] = [
       },
       {
         id: 8,
-        label: "Page HTML Analysis",
+        label: "SEO/GEO Check",
         question:
-          "Analyze the HTML structure and content of the current page. Use getPageHtml to retrieve the rendered HTML, then analyze it for structure, semantic markup, accessibility, and content organization. Provide insights on how the HTML could be improved.",
+          "Perform a comprehensive SEO and GEO (Geographic) check on the current page. Use getPageHtml to retrieve the rendered HTML, then analyze it for SEO best practices including meta tags, headings structure, semantic markup, accessibility, and geographic targeting. Provide insights on how SEO and GEO optimization could be improved.",
         icon: FileText,
       },
     ],
