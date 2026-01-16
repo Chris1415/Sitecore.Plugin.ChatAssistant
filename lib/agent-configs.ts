@@ -81,38 +81,38 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "Summarize Page",
-        question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
-        icon: FileText,
-      },
-      {
-        id: 2,
         label: "Page Context",
         question:
           "Please provide me with the current page context. I'd like to understand the page structure, template information, fields, and any relevant metadata about the page I'm currently viewing or working on.",
         icon: FileText,
       },
       {
-        id: 3,
+        id: 2,
         label: "Sites & Languages",
         question:
           "Get all available sites and languages configured in this Sitecore instance. Show me the site names, IDs, language codes, display names, and their configuration details.",
         icon: Globe,
       },
       {
-        id: 4,
+        id: 3,
         label: "Get Analytics",
         question:
           "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
         icon: TrendingUp,
       },
       {
-        id: 5,
+        id: 4,
         label: "Brand Validation",
         question:
           "Execute a brand analysis for the current page content. First, use getPageHtml to retrieve the HTML content of the current page. Then, use generateBrandReviewFromContent with the retrieved HTML content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
         icon: ShieldCheck,
+      },
+      {
+        id: 5,
+        label: "Summarize Page",
+        question:
+          "Summarize the current page content. Use getPageHtml to retrieve the HTML content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+        icon: FileText,
       },
       {
         id: 6,
@@ -185,38 +185,38 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "Summarize Page",
-        question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
-        icon: FileText,
-      },
-      {
-        id: 2,
         label: "Get Analytics",
         question:
           "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
         icon: TrendingUp,
       },
       {
-        id: 3,
+        id: 2,
         label: "Catalog Overview",
         question:
           "Give me an overview of my product catalog including categories, total products, and any items that need attention.",
         icon: Package,
       },
       {
-        id: 4,
+        id: 3,
         label: "Top Products",
         question:
           "What are my top-performing products? Include insights on views, engagement, and any trends you notice.",
         icon: TrendingUp,
       },
       {
-        id: 5,
+        id: 4,
         label: "Brand Validation",
         question:
           "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
         icon: ShieldCheck,
+      },
+      {
+        id: 5,
+        label: "Summarize Page",
+        question:
+          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+        icon: FileText,
       },
       {
         id: 6,
@@ -289,38 +289,38 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "Summarize Page",
-        question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
-        icon: FileText,
-      },
-      {
-        id: 2,
         label: "News Count",
         question:
           "How many news articles are currently in the system? Please provide a count of all news items, including published and draft articles.",
         icon: FileText,
       },
       {
-        id: 3,
+        id: 2,
         label: "Get Analytics",
         question:
           "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
         icon: TrendingUp,
       },
       {
-        id: 4,
+        id: 3,
         label: "Brand Validation",
         question:
           "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
         icon: ShieldCheck,
       },
       {
-        id: 5,
+        id: 4,
         label: "Create News Page",
         question:
           "Help me create a new news page. I'll provide the details like title, content, and other required fields. Guide me through the process.",
         icon: Newspaper,
+      },
+      {
+        id: 5,
+        label: "Summarize Page",
+        question:
+          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+        icon: FileText,
       },
       {
         id: 6,
@@ -393,38 +393,38 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "Summarize Page",
-        question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
-        icon: FileText,
-      },
-      {
-        id: 2,
         label: "Get Analytics",
         question:
           "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
         icon: TrendingUp,
       },
       {
-        id: 3,
+        id: 2,
         label: "Upcoming Events",
         question:
           "What events are coming up in the next 30 days? Include registration counts and any that need promotion.",
         icon: Calendar,
       },
       {
-        id: 4,
+        id: 3,
         label: "Event Performance",
         question:
           "How did my recent events perform? Show me attendance rates, engagement metrics, and feedback highlights.",
         icon: TrendingUp,
       },
       {
-        id: 5,
+        id: 4,
         label: "Brand Validation",
         question:
           "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
         icon: ShieldCheck,
+      },
+      {
+        id: 5,
+        label: "Summarize Page",
+        question:
+          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+        icon: FileText,
       },
       {
         id: 6,
@@ -497,38 +497,38 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "Summarize Page",
-        question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
-        icon: FileText,
-      },
-      {
-        id: 2,
         label: "Get Analytics",
         question:
           "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
         icon: TrendingUp,
       },
       {
-        id: 3,
+        id: 2,
         label: "Site Overview",
         question:
           "Give me a comprehensive overview of my Sitecore site including content structure, recent changes, upcoming events, and product highlights.",
         icon: Zap,
       },
       {
-        id: 4,
+        id: 3,
         label: "Content Health",
         question:
           "Analyze the health of my entire content ecosystem - identify outdated pages, missing metadata, broken links, and optimization opportunities.",
         icon: TrendingUp,
       },
       {
-        id: 5,
+        id: 4,
         label: "Brand Validation",
         question:
           "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
         icon: ShieldCheck,
+      },
+      {
+        id: 5,
+        label: "Summarize Page",
+        question:
+          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+        icon: FileText,
       },
       {
         id: 6,
