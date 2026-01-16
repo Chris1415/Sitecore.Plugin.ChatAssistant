@@ -130,7 +130,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 8,
         label: "SEO/GEO Check",
         question:
-          "Perform a comprehensive SEO and GEO (Geographic) check on the current page. Use getPageHtml to retrieve the rendered HTML, then analyze it for SEO best practices including meta tags, headings structure, semantic markup, accessibility, and geographic targeting. Provide insights on how SEO and GEO optimization could be improved.",
+          "Perform a basic SEO (Search Engine Optimization) and AEO (AI Engine Optimization, also known as GEO - Generative Engine Optimization) check on the current website. Use getPageHtml to retrieve the rendered HTML, then analyze it for both SEO and AEO optimization. Present the results in a simple table with three columns: (1) Topic - a clear, concise name of the issue or area being checked, (2) How to Fix - specific, actionable steps to resolve or improve the issue, (3) Severity - assign a severity level using this scale: Critical (must fix immediately), High (should fix soon), Medium (recommended to fix), Low (nice to have). Output each issue as a single row in the table, sorted by severity (Critical first, then High, Medium, Low). Do not group or cluster the issues - just list them as individual rows. For SEO, check meta tags, headings structure, semantic markup, and accessibility. For AEO, assess content structure for AI engines, clarity for generative AI, presence of structured data (JSON-LD, Schema.org), and optimization for AI-powered search results. After the table, provide an Overall summary (2-3 sentences) evaluating the overall performance of the page, highlighting key strengths and the most critical areas that need attention.",
         icon: FileText,
       },
     ],

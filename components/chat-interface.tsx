@@ -95,6 +95,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import Image from "next/image";
 import {
   Popover,
   PopoverContent,
@@ -276,7 +277,7 @@ function ChatHeader({
                 {agentConfig.name} Assistant
               </h1>
               <p className="text-[10px] lg:text-xs text-muted-foreground">
-                Powered by AI
+                Powered by AI & Christian Hahn
               </p>
             </div>
           </div>
@@ -2129,6 +2130,74 @@ export function ChatInterface() {
                                                       );
                                                     }
                                                   )}
+                                                </CardContent>
+                                              </Card>
+                                            );
+                                          }
+                                        }
+                                      }
+                                      // Check if this is a tool result for page screenshot
+                                      if (
+                                        typeof part.type === "string" &&
+                                        part.type.startsWith("tool-") &&
+                                        part.type.includes("getPageScreenshot")
+                                      ) {
+                                        const toolPart = part as ToolUIPart;
+                                        if (
+                                          toolPart.output &&
+                                          typeof toolPart.output === "object" &&
+                                          "screenshotData" in toolPart.output
+                                        ) {
+                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                          const screenshotOutput = toolPart.output as any;
+                                          let imageData = screenshotOutput.screenshotData;
+
+                                          // Handle different formats of screenshot data
+                                          if (typeof imageData === "string") {
+                                            // If it's a raw base64 string, prepend the data URL prefix
+                                            if (!imageData.startsWith("data:image")) {
+                                              imageData = `data:image/png;base64,${imageData}`;
+                                            }
+                                          } else if (
+                                            typeof imageData === "object" &&
+                                            imageData !== null &&
+                                            "screenshot_base64" in imageData
+                                          ) {
+                                            // If it's an object with screenshot_base64 property
+                                            const base64Data = imageData.screenshot_base64;
+                                            if (typeof base64Data === "string") {
+                                              if (!base64Data.startsWith("data:image")) {
+                                                imageData = `data:image/png;base64,${base64Data}`;
+                                              } else {
+                                                imageData = base64Data;
+                                              }
+                                            }
+                                          }
+
+                                          if (imageData && typeof imageData === "string") {
+                                            return (
+                                              <Card
+                                                key={`${role}-${i}`}
+                                                className="my-4 w-full max-w-full"
+                                              >
+                                                <CardHeader>
+                                                  <CardTitle>Page Screenshot</CardTitle>
+                                                  <CardDescription>
+                                                    Visual representation of the page content.
+                                                  </CardDescription>
+                                                </CardHeader>
+                                                <CardContent className="w-full">
+                                                  <div className="relative w-full h-auto max-h-[600px] overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center">
+                                                    <img
+                                                      src={imageData}
+                                                      alt="Page Screenshot"
+                                                      className="max-w-full h-auto object-contain"
+                                                      onError={(e) => {
+                                                        console.error("Error loading screenshot image:", e);
+                                                        e.currentTarget.style.display = "none";
+                                                      }}
+                                                    />
+                                                  </div>
                                                 </CardContent>
                                               </Card>
                                             );

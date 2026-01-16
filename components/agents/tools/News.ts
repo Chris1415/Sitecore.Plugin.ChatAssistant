@@ -274,6 +274,8 @@ export function createNewsPageTool(
                 KeyTakeaway3: keyTakeaway3,
                 KeyTakeaway4: keyTakeaway4,
                 KeyTakeaway5: keyTakeaway5,
+                Author: "{B37C1F67-D2D3-4035-9511-5CF820F315D6}",
+                HeroImage: "{BB193D88-96A7-46C9-9703-64603742D2EE}",
               },
             ],
           },
