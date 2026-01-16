@@ -585,7 +585,9 @@ function PredefinedQuestions({
               >
                 <Button
                   variant="outline"
-                  className="h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 pr-8 lg:pr-10 text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]"
+                  className={`h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 ${
+                    item.expensive ? "pr-12 lg:pr-14" : "pr-8 lg:pr-10"
+                  } text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]`}
                   onClick={() => onSelect(item.question)}
                   style={{
                     ["--theme-color" as string]: themeColor,
@@ -600,13 +602,25 @@ function PredefinedQuestions({
                   }}
                 >
                   <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
-                  <span className="line-clamp-1">{item.label}</span>
+                  <span className="line-clamp-1 flex-1 min-w-0">{item.label}</span>
+                  {item.expensive && (
+                    <Badge
+                      variant="default"
+                      colorScheme="warning"
+                      size="sm"
+                      className="shrink-0 mr-1"
+                    >
+                      Expensive
+                    </Badge>
+                  )}
                 </Button>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       type="button"
-                      className="absolute right-2 lg:right-3 p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors"
+                      className={`absolute p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors ${
+                        item.expensive ? "right-1 lg:right-2" : "right-2 lg:right-3"
+                      }`}
                       onClick={(e) => e.stopPropagation()}
                     >
                       <Info className="size-3.5 lg:size-4" />
@@ -678,7 +692,18 @@ function PredefinedQuestions({
                         >
                           <Icon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm mb-1">{item.label}</div>
+                            <div className="font-medium text-sm mb-1 flex items-center gap-2">
+                              {item.label}
+                              {item.expensive && (
+                                <Badge
+                                  variant="default"
+                                  colorScheme="warning"
+                                  size="sm"
+                                >
+                                  Expensive
+                                </Badge>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground line-clamp-2">
                               {item.question}
                             </div>
@@ -744,7 +769,18 @@ function PredefinedQuestions({
                         >
                           <Icon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm mb-1">{item.label}</div>
+                            <div className="font-medium text-sm mb-1 flex items-center gap-2">
+                              {item.label}
+                              {item.expensive && (
+                                <Badge
+                                  variant="default"
+                                  colorScheme="warning"
+                                  size="sm"
+                                >
+                                  Expensive
+                                </Badge>
+                              )}
+                            </div>
                             <div className="text-xs text-muted-foreground line-clamp-2">
                               {item.question}
                             </div>

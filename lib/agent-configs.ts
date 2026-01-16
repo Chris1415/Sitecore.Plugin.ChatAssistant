@@ -42,6 +42,7 @@ export interface PredefinedQuestion {
   label: string;
   question: string;
   icon: LucideIcon;
+  expensive?: boolean; // Mark questions that use expensive operations like getPageHtml
 }
 
 export interface TeaserCard {
@@ -83,56 +84,58 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Page Context",
         question:
-          "Please provide me with the current page context. I'd like to understand the page structure, template information, fields, and any relevant metadata about the page I'm currently viewing or working on.",
+          "Get current page context: structure, template, fields, metadata.",
         icon: FileText,
       },
       {
         id: 2,
         label: "Sites & Languages",
         question:
-          "Get all available sites and languages configured in this Sitecore instance. Show me the site names, IDs, language codes, display names, and their configuration details.",
+          "List all sites and languages: names, IDs, language codes, display names, config details.",
         icon: Globe,
       },
       {
         id: 3,
         label: "Get Analytics",
         question:
-          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
         icon: TrendingUp,
       },
       {
         id: 4,
-        label: "Brand Validation",
+        label: "Translate Page",
         question:
-          "Execute a brand analysis for the current page content. First, use getPageHtml to retrieve the HTML content of the current page. Then, use generateBrandReviewFromContent with the retrieved HTML content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
-        icon: ShieldCheck,
+          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew).",
+        icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Summarize the current page content. Use getPageHtml to retrieve the HTML content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+          "Use getPageHtml, then summarize in 3-5 sentences: purpose, key topics, overall message.",
         icon: FileText,
+        expensive: true,
       },
       {
         id: 6,
-        label: "Translate Page",
+        label: "Brand Validation",
         question:
-          "Translate the current page to another language. Use the translatePage tool to create a new language version. First, check available languages using getLanguages, then translate the page to the target language. Specify the source language, target language, and translation strategy (AddVersion or CreateNew).",
-        icon: Globe,
+          "Use getPageHtml, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+        icon: ShieldCheck,
+        expensive: true,
       },
       {
         id: 7,
         label: "Find Assets",
         question:
-          "Help me find and retrieve details about assets in my Sitecore media library. Use searchForAssets to search for assets by name or keywords, then use getAssetDetails to get comprehensive information about specific assets including dimensions, file size, and URLs.",
+          "Search media library: searchForAssets by keywords, then getAssetDetails for dimensions, size, URLs.",
         icon: Image,
       },
       {
         id: 8,
         label: "Page Screenshot",
         question:
-          "Get a visual screenshot of the current page. Use the getPageScreenshot tool to capture how the page appears visually. This is useful for reviewing the rendered appearance, checking layouts, or documenting the page design.",
+          "Capture visual screenshot using getPageScreenshot to review rendered appearance and layout.",
         icon: Image,
       },
       {
@@ -141,6 +144,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         question:
           "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
         icon: FileText,
+        expensive: true,
       },
     ],
     teaserCards: [
@@ -187,64 +191,65 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Get Analytics",
         question:
-          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
         icon: TrendingUp,
       },
       {
         id: 2,
         label: "Catalog Overview",
         question:
-          "Give me an overview of my product catalog including categories, total products, and any items that need attention.",
+          "Overview of product catalog: categories, total products, items needing attention.",
         icon: Package,
       },
       {
         id: 3,
         label: "Top Products",
         question:
-          "What are my top-performing products? Include insights on views, engagement, and any trends you notice.",
+          "List top-performing products with views, engagement metrics, and trends.",
         icon: TrendingUp,
       },
       {
         id: 4,
-        label: "Brand Validation",
+        label: "Translate Product Page",
         question:
-          "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
-        icon: ShieldCheck,
+          "Check languages (getLanguages), then translatePage to create language versions for international access.",
+        icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
         icon: FileText,
       },
       {
         id: 6,
         label: "Find Product Assets",
         question:
-          "Search for product-related assets in the media library. Use searchForAssets to find images, documents, or media files related to products, then retrieve detailed information using getAssetDetails. Help me locate high-quality product images, specifications, or marketing materials.",
+          "Search media library: searchForAssets for product images/docs, then getAssetDetails for details.",
         icon: Image,
       },
       {
         id: 7,
-        label: "Translate Product Page",
+        label: "Brand Validation",
         question:
-          "Translate this product page to support multiple languages. First check available languages with getLanguages, then use translatePage to create language versions. This helps make products accessible to international audiences.",
-        icon: Globe,
+          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+        icon: ShieldCheck,
       },
       {
         id: 8,
         label: "Product Page Screenshot",
         question:
-          "Capture a visual screenshot of this product page. Use getPageScreenshot to see how the product page renders visually. Useful for reviewing product presentation, layout, and visual consistency across different views.",
+          "Capture screenshot using getPageScreenshot to review product presentation and layout.",
         icon: Image,
       },
       {
         id: 9,
         label: "Product Content Analysis",
         question:
-          "Analyze the HTML structure and content of this product page. Use getPageHtml to retrieve the rendered HTML, then examine the semantic structure, product information organization, and content quality. Provide recommendations for improvement.",
+          "Use getPageHtml to analyze HTML structure, semantic markup, product info organization. Provide improvement recommendations.",
         icon: FileText,
+        expensive: true,
       },
     ],
     teaserCards: [
@@ -291,71 +296,65 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "News Count",
         question:
-          "How many news articles are currently in the system? Please provide a count of all news items, including published and draft articles.",
+          "Count all news articles in system (published and draft).",
         icon: FileText,
       },
       {
         id: 2,
         label: "Get Analytics",
         question:
-          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
         icon: TrendingUp,
       },
       {
         id: 3,
-        label: "Brand Validation",
+        label: "Create News Page",
         question:
-          "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
-        icon: ShieldCheck,
+          "Guide creation of new news page. I'll provide title, content, and required fields.",
+        icon: Newspaper,
       },
       {
         id: 4,
-        label: "Create News Page",
+        label: "Translate News Article",
         question:
-          "Help me create a new news page. I'll provide the details like title, content, and other required fields. Guide me through the process.",
-        icon: Newspaper,
+          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew).",
+        icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
         icon: FileText,
       },
       {
         id: 6,
-        label: "Translate News Article",
+        label: "Brand Validation",
         question:
-          "Translate this news article to another language to reach a broader audience. First check available languages with getLanguages, then use translatePage to create a translated version. Specify the source and target languages, and choose whether to add a version or create a new page.",
-        icon: Globe,
+          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+        icon: ShieldCheck,
       },
       {
         id: 7,
         label: "Find News Images",
         question:
-          "Search for images and assets that could be used with this news article. Use searchForAssets to find relevant images, photos, or graphics from the media library, then retrieve their details with getAssetDetails. Help me find appropriate visuals to accompany the article.",
+          "Search media library: searchForAssets for article images/graphics, then getAssetDetails for details.",
         icon: Image,
       },
       {
         id: 8,
         label: "News Article Screenshot",
         question:
-          "Capture a visual screenshot of how this news article appears when published. Use getPageScreenshot to see the rendered article layout, typography, and visual presentation. Useful for reviewing how the article looks to readers.",
+          "Capture screenshot using getPageScreenshot to review article layout, typography, and presentation.",
         icon: Image,
       },
       {
         id: 9,
-        label: "News HTML Structure",
-        question:
-          "Analyze the HTML structure and markup of this news article. Use getPageHtml to retrieve the rendered HTML, then examine the semantic structure, heading hierarchy, content organization, and accessibility. Provide insights on how the article structure could be optimized.",
-        icon: FileText,
-      },
-      {
-        id: 10,
         label: "SEO/GEO Check",
         question:
           "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
         icon: FileText,
+        expensive: true,
       },
     ],
     teaserCards: [
@@ -402,64 +401,65 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Get Analytics",
         question:
-          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
         icon: TrendingUp,
       },
       {
         id: 2,
         label: "Upcoming Events",
         question:
-          "What events are coming up in the next 30 days? Include registration counts and any that need promotion.",
+          "List events in next 30 days with registration counts and promotion needs.",
         icon: Calendar,
       },
       {
         id: 3,
         label: "Event Performance",
         question:
-          "How did my recent events perform? Show me attendance rates, engagement metrics, and feedback highlights.",
+          "Show recent event performance: attendance rates, engagement metrics, feedback highlights.",
         icon: TrendingUp,
       },
       {
         id: 4,
-        label: "Brand Validation",
+        label: "Translate Event Page",
         question:
-          "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
-        icon: ShieldCheck,
+          "Check languages (getLanguages), then translatePage for international attendees.",
+        icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
         icon: FileText,
       },
       {
         id: 6,
-        label: "Translate Event Page",
+        label: "Brand Validation",
         question:
-          "Translate this event page to support multiple languages for international attendees. First check available languages with getLanguages, then use translatePage to create language versions. This helps make event information accessible to a global audience.",
-        icon: Globe,
+          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+        icon: ShieldCheck,
       },
       {
         id: 7,
         label: "Find Event Assets",
         question:
-          "Search for event-related images and media assets. Use searchForAssets to find event photos, speaker images, venue pictures, or promotional graphics, then get detailed information with getAssetDetails. Help me locate visual assets for event promotion.",
+          "Search media library: searchForAssets for event photos/speaker images/promotional graphics, then getAssetDetails.",
         icon: Image,
       },
       {
         id: 8,
         label: "Event Page Screenshot",
         question:
-          "Capture a visual screenshot of how this event page appears. Use getPageScreenshot to review the visual presentation, layout, and design of the event page. Useful for ensuring the event information is displayed attractively.",
+          "Capture screenshot using getPageScreenshot to review visual presentation and layout.",
         icon: Image,
       },
       {
         id: 9,
         label: "Event HTML Analysis",
         question:
-          "Analyze the HTML structure and content organization of this event page. Use getPageHtml to retrieve the rendered HTML, then examine the semantic markup, content structure, and accessibility. Provide recommendations for improving the event page structure.",
+          "Use getPageHtml to analyze semantic markup, content structure, accessibility. Provide structure improvement recommendations.",
         icon: FileText,
+        expensive: true,
       },
     ],
     teaserCards: [
@@ -506,64 +506,65 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Get Analytics",
         question:
-          "Show me the analytics data for the current page. Please provide a brief summary highlighting key insights, trends, and notable patterns. Focus on the overall story the data tells rather than listing individual data points.",
+          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
         icon: TrendingUp,
       },
       {
         id: 2,
         label: "Site Overview",
         question:
-          "Give me a comprehensive overview of my Sitecore site including content structure, recent changes, upcoming events, and product highlights.",
+          "Comprehensive site overview: content structure, recent changes, upcoming events, product highlights.",
         icon: Zap,
       },
       {
         id: 3,
         label: "Content Health",
         question:
-          "Analyze the health of my entire content ecosystem - identify outdated pages, missing metadata, broken links, and optimization opportunities.",
+          "Analyze content ecosystem health: outdated pages, missing metadata, broken links, optimization opportunities.",
         icon: TrendingUp,
       },
       {
         id: 4,
-        label: "Brand Validation",
+        label: "Translate Content",
         question:
-          "Execute a brand analysis for the current page content. First, use getContentItemContent to retrieve the content of the current page. Then, use generateBrandReviewFromContent with the retrieved content to analyze it against brand guidelines. At the end, provide only a 1-2 sentence summary of the overall brand compliance status, not a detailed overview.",
-        icon: ShieldCheck,
+          "Check languages (getLanguages), then translatePage for multilingual delivery across products, news, events.",
+        icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Summarize the current page content. Use getContentItemContent to retrieve the content of the current page, then provide a short paragraph (3-5 sentences) summarizing what the page is about, its main purpose, key topics covered, and overall message. Focus on giving a clear, concise overview that helps understand the page's content at a glance.",
+          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
         icon: FileText,
       },
       {
         id: 6,
-        label: "Translate Content",
+        label: "Brand Validation",
         question:
-          "Translate the current page to multiple languages to expand global reach. Use getLanguages to see available languages, then use translatePage to create translations. This enables multilingual content delivery across products, news, and events.",
-        icon: Globe,
+          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+        icon: ShieldCheck,
       },
       {
         id: 7,
         label: "Search Media Library",
         question:
-          "Search across the entire media library to find assets for any content type. Use searchForAssets with keywords to locate images, documents, or media files, then getAssetDetails for comprehensive information. Help me discover and organize assets across all content domains.",
+          "Search media library: searchForAssets by keywords, then getAssetDetails for comprehensive asset info across all content types.",
         icon: Image,
       },
       {
         id: 8,
         label: "Visual Page Review",
         question:
-          "Capture screenshots of pages across different content types to review visual consistency. Use getPageScreenshot to see how products, news articles, and event pages render visually. Compare layouts and ensure consistent design patterns.",
+          "Capture screenshots using getPageScreenshot across content types (products/news/events) to compare layouts and ensure design consistency.",
         icon: Image,
       },
       {
         id: 9,
         label: "Content Structure Analysis",
         question:
-          "Analyze HTML structure across different content types to ensure consistency and quality. Use getPageHtml to retrieve rendered HTML from products, news, and events, then compare structures, semantic markup, and content organization. Provide unified recommendations.",
+          "Use getPageHtml across content types (products/news/events) to compare structures, semantic markup, organization. Provide unified recommendations.",
         icon: FileText,
+        expensive: true,
       },
     ],
     teaserCards: [
@@ -610,28 +611,28 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Which agent should I use?",
         question:
-          "I have a question but I'm not sure which agent would be best suited to help me. Can you analyze my needs and recommend the most appropriate specialized agent?",
+          "Analyze my needs and recommend the most appropriate specialized agent.",
         icon: GitBranch,
       },
       {
         id: 2,
         label: "Route my query",
         question:
-          "Please analyze my query and recommend which specialized agent would be best to handle it. Explain why that agent is the right choice.",
+          "Analyze query and recommend best specialized agent. Explain why it's the right choice.",
         icon: Search,
       },
       {
         id: 3,
         label: "List available agents",
         question:
-          "Show me all available specialized agents in the system and what each one specializes in.",
+          "List all available specialized agents and their specializations.",
         icon: MessageCircle,
       },
       {
         id: 4,
         label: "Agent comparison",
         question:
-          "I need help with a specific task. Can you compare the available agents and tell me which one would be most suitable for my needs?",
+          "Compare available agents and recommend the most suitable for my task.",
         icon: BarChart3,
       },
     ],
