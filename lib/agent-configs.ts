@@ -139,7 +139,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 9,
         label: "SEO/GEO Check",
         question:
-          "Perform a basic SEO (Search Engine Optimization) and AEO (AI Engine Optimization, also known as GEO - Generative Engine Optimization) check on the current website. Use getPageHtml to retrieve the rendered HTML, then analyze it for both SEO and AEO optimization. Present the results in a simple table with three columns: (1) Topic - a clear, concise name of the issue or area being checked, (2) How to Fix - specific, actionable steps to resolve or improve the issue, (3) Severity - assign a severity level using this scale: Critical (must fix immediately), High (should fix soon), Medium (recommended to fix), Low (nice to have). Output each issue as a single row in the table, sorted by severity (Critical first, then High, Medium, Low). Do not group or cluster the issues - just list them as individual rows. For SEO, check meta tags, headings structure, semantic markup, and accessibility. For AEO, assess content structure for AI engines, clarity for generative AI, presence of structured data (JSON-LD, Schema.org), and optimization for AI-powered search results. After the table, provide an Overall summary (2-3 sentences) evaluating the overall performance of the page, highlighting key strengths and the most critical areas that need attention.",
+          "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
         icon: FileText,
       },
     ],
@@ -348,6 +348,13 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         label: "News HTML Structure",
         question:
           "Analyze the HTML structure and markup of this news article. Use getPageHtml to retrieve the rendered HTML, then examine the semantic structure, heading hierarchy, content organization, and accessibility. Provide insights on how the article structure could be optimized.",
+        icon: FileText,
+      },
+      {
+        id: 10,
+        label: "SEO/GEO Check",
+        question:
+          "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
         icon: FileText,
       },
     ],

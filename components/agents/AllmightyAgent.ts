@@ -77,7 +77,6 @@ export function createAllmightyAgent(
 ) {
   const tools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
   const contextMessage = createContextMessage(pageContext, true);
-  const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 
   return new ToolLoopAgent({
     id: "allmighty-assistant",
@@ -86,7 +85,7 @@ export function createAllmightyAgent(
     tools: tools,
     prepareCall: ({ ...settings }) => ({
       ...settings,
-      instructions: settings.instructions + `\n ${contextMessage}${brandKitMessage}`,
+      instructions: settings.instructions + `\n ${contextMessage}`,
     }),
     onStepFinish: async (stepResult) => {
       console.log("[AllmightyAgent] Step finished:", {

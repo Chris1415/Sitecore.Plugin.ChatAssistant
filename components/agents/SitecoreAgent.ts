@@ -75,7 +75,6 @@ export function createSitecoreAgent(
 ) {
   const tools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
   const contextMessage = createContextMessage(pageContext, true);
-  const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 
   return new ToolLoopAgent({
     id: "sitecore-assistant",
@@ -85,7 +84,7 @@ export function createSitecoreAgent(
     prepareCall: ({ ...settings }) => ({
       ...settings,
       instructions:
-        settings.instructions + `\n ${contextMessage}${brandKitMessage}`,
+        settings.instructions + `\n ${contextMessage}`,
     }),
     onStepFinish: async () => {},
     onFinish: async () => {},

@@ -71,8 +71,14 @@ function createNewsTools(
     getAssetDetails: getAssetDetailsTool(accessToken, contextId),
     getPageScreenshot: getPageScreenshot(accessToken, contextId),
     getPageHtml: getPageHtmlTool(accessToken, contextId),
-    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(brandKitId, sections),
-    generateBrandReviewFromContent: generateBrandReviewFromContentTool(brandKitId, sections),
+    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(
+      brandKitId,
+      sections
+    ),
+    generateBrandReviewFromContent: generateBrandReviewFromContentTool(
+      brandKitId,
+      sections
+    ),
     listBrandKits: listBrandKitsTool(),
     retrieveBrandKit: retrieveBrandKitTool(),
     listBrandKitSections: listBrandKitSectionsTool(),
@@ -91,7 +97,6 @@ export function createNewsAgent(
 ) {
   const tools = createNewsTools(contextId, accessToken, brandKitId, sections);
   const contextMessage = createContextMessage(pageContext, true);
-  const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 
   return new ToolLoopAgent({
     id: "news-assistant",
@@ -100,8 +105,7 @@ export function createNewsAgent(
     tools,
     prepareCall: ({ ...settings }) => ({
       ...settings,
-      instructions:
-        settings.instructions + `\n ${contextMessage}${brandKitMessage}`,
+      instructions: settings.instructions + `\n ${contextMessage}`,
     }),
     onStepFinish: async () => {},
     onFinish: async () => {},
