@@ -9,13 +9,11 @@ export async function GET() {
       return NextResponse.json(result.data);
     }
     
-    console.error("[brand-kits API] Error:", result.error);
     return NextResponse.json(
       { error: result.error || "Failed to load brand kits" },
       { status: 500 }
     );
   } catch (error) {
-    console.error("[brand-kits API] Exception:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load brand kits" },
       { status: 500 }

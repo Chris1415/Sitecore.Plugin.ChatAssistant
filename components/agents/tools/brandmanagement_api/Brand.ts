@@ -25,8 +25,14 @@ const DEFAULT_BRANDKIT_ID = "d584f742-23f5-4b68-a193-0493f9ecd135";
  * Tag object within a brand kit
  */
 const BrandKitTagSchema = z.object({
-  category: z.string().describe("The category of the tag (e.g., 'audience', 'region', 'product')."),
-  values: z.array(z.string()).describe("Array of tag values for this category (e.g., ['EU', 'US'])."),
+  category: z
+    .string()
+    .describe(
+      "The category of the tag (e.g., 'audience', 'region', 'product')."
+    ),
+  values: z
+    .array(z.string())
+    .describe("Array of tag values for this category (e.g., ['EU', 'US'])."),
 });
 
 /**
@@ -37,11 +43,38 @@ const BrandKitSectionSchema = z.object({
   id: z.string().describe("The unique identifier (GUID) of the section."),
   name: z.string().describe("The display name of the section."),
   order: z.number().optional().describe("The display order of the section."),
-  createdOn: z.string().datetime().optional().describe("ISO 8601 timestamp indicating when the section was created."),
-  createdBy: z.string().optional().describe("The username or identifier of the user who created the section."),
-  updatedOn: z.string().datetime().optional().describe("ISO 8601 timestamp indicating when the section was last updated."),
-  updatedBy: z.string().optional().describe("The username or identifier of the user who last updated the section."),
-  deletedAt: z.string().datetime().nullable().optional().describe("ISO 8601 timestamp indicating when the section was deleted (null if not deleted)."),
+  createdOn: z
+    .string()
+    .datetime()
+    .optional()
+    .describe("ISO 8601 timestamp indicating when the section was created."),
+  createdBy: z
+    .string()
+    .optional()
+    .describe(
+      "The username or identifier of the user who created the section."
+    ),
+  updatedOn: z
+    .string()
+    .datetime()
+    .optional()
+    .describe(
+      "ISO 8601 timestamp indicating when the section was last updated."
+    ),
+  updatedBy: z
+    .string()
+    .optional()
+    .describe(
+      "The username or identifier of the user who last updated the section."
+    ),
+  deletedAt: z
+    .string()
+    .datetime()
+    .nullable()
+    .optional()
+    .describe(
+      "ISO 8601 timestamp indicating when the section was deleted (null if not deleted)."
+    ),
 });
 
 /**
@@ -50,43 +83,151 @@ const BrandKitSectionSchema = z.object({
 const BrandKitFieldSchema = z.object({
   id: z.string().describe("The unique identifier (GUID) of the field."),
   name: z.string().describe("The display name of the field."),
-  type: z.string().optional().describe("The type of the field (e.g., 'text', 'image', 'url')."),
+  type: z
+    .string()
+    .optional()
+    .describe("The type of the field (e.g., 'text', 'image', 'url')."),
   order: z.number().optional().describe("The display order of the field."),
-  value: z.string().optional().describe("The current value/content of the field."),
-  intent: z.string().optional().describe("The intent or purpose of this field."),
-  references: z.record(z.any()).optional().describe("Additional reference data associated with the field."),
-  deletable: z.boolean().optional().describe("Whether the field can be deleted."),
-  verified: z.boolean().optional().describe("Whether the field content has been verified."),
-  createdOn: z.string().datetime().optional().describe("ISO 8601 timestamp indicating when the field was created."),
-  createdBy: z.string().optional().describe("The username or identifier of the user who created the field."),
-  updatedOn: z.string().datetime().optional().describe("ISO 8601 timestamp indicating when the field was last updated."),
-  updatedBy: z.string().optional().describe("The username or identifier of the user who last updated the field."),
-  aiEditable: z.boolean().optional().describe("Whether the field can be edited by AI."),
+  value: z
+    .string()
+    .optional()
+    .describe("The current value/content of the field."),
+  intent: z
+    .string()
+    .optional()
+    .describe("The intent or purpose of this field."),
+  references: z
+    .record(z.any())
+    .optional()
+    .describe("Additional reference data associated with the field."),
+  deletable: z
+    .boolean()
+    .optional()
+    .describe("Whether the field can be deleted."),
+  verified: z
+    .boolean()
+    .optional()
+    .describe("Whether the field content has been verified."),
+  createdOn: z
+    .string()
+    .datetime()
+    .optional()
+    .describe("ISO 8601 timestamp indicating when the field was created."),
+  createdBy: z
+    .string()
+    .optional()
+    .describe("The username or identifier of the user who created the field."),
+  updatedOn: z
+    .string()
+    .datetime()
+    .optional()
+    .describe("ISO 8601 timestamp indicating when the field was last updated."),
+  updatedBy: z
+    .string()
+    .optional()
+    .describe(
+      "The username or identifier of the user who last updated the field."
+    ),
+  aiEditable: z
+    .boolean()
+    .optional()
+    .describe("Whether the field can be edited by AI."),
 });
 
 /**
  * Brand Kit response schema matching the API structure
  */
 const BrandKitSchema = z.object({
-  organizationId: z.string().describe("The unique identifier of the organization that owns this brand kit."),
+  organizationId: z
+    .string()
+    .describe(
+      "The unique identifier of the organization that owns this brand kit."
+    ),
   id: z.string().describe("The unique identifier (GUID) of the brand kit."),
-  description: z.string().nullable().describe("A detailed description of the brand kit and its purpose. Can be null."),
+  description: z
+    .string()
+    .nullable()
+    .describe(
+      "A detailed description of the brand kit and its purpose. Can be null."
+    ),
   name: z.string().describe("The display name of the brand kit."),
-  brandName: z.string().describe("The name of the brand associated with this brand kit."),
-  companyName: z.string().nullable().optional().describe("The name of the company that owns the brand."),
-  logo: z.string().url().nullable().optional().describe("URL to the brand kit's logo image."),
-  status: z.string().describe("The current status of the brand kit (e.g., 'Draft', 'Published', 'Archived')."),
-  parentId: z.string().nullable().optional().describe("The unique identifier of the parent brand kit if this is a child brand kit."),
-  parentType: z.string().nullable().optional().describe("The type of the parent object (e.g., 'brandkit')."),
-  industry: z.string().nullable().optional().describe("The industry sector this brand kit is associated with (e.g., 'retail', 'technology')."),
-  createdOn: z.string().describe("Timestamp indicating when the brand kit was created (ISO 8601 format, but accepts various datetime formats)."),
-  createdBy: z.string().describe("The username or identifier of the user who created the brand kit."),
-  updatedOn: z.string().describe("Timestamp indicating when the brand kit was last updated (ISO 8601 format, but accepts various datetime formats)."),
-  updatedBy: z.string().describe("The username or identifier of the user who last updated the brand kit."),
-  tags: z.array(BrandKitTagSchema).optional().describe("Array of tag objects that categorize or label the brand kit."),
-  references: z.array(z.any()).optional().describe("Array of reference objects associated with the brand kit."),
-  deletedAt: z.string().nullable().optional().describe("Timestamp indicating when the brand kit was deleted (null if not deleted)."),
-  locked: z.boolean().optional().describe("Indicates whether the brand kit is locked (boolean value)."),
+  brandName: z
+    .string()
+    .describe("The name of the brand associated with this brand kit."),
+  companyName: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("The name of the company that owns the brand."),
+  logo: z
+    .string()
+    .url()
+    .nullable()
+    .optional()
+    .describe("URL to the brand kit's logo image."),
+  status: z
+    .string()
+    .describe(
+      "The current status of the brand kit (e.g., 'Draft', 'Published', 'Archived')."
+    ),
+  parentId: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "The unique identifier of the parent brand kit if this is a child brand kit."
+    ),
+  parentType: z
+    .string()
+    .nullable()
+    .optional()
+    .describe("The type of the parent object (e.g., 'brandkit')."),
+  industry: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "The industry sector this brand kit is associated with (e.g., 'retail', 'technology')."
+    ),
+  createdOn: z
+    .string()
+    .describe(
+      "Timestamp indicating when the brand kit was created (ISO 8601 format, but accepts various datetime formats)."
+    ),
+  createdBy: z
+    .string()
+    .describe(
+      "The username or identifier of the user who created the brand kit."
+    ),
+  updatedOn: z
+    .string()
+    .describe(
+      "Timestamp indicating when the brand kit was last updated (ISO 8601 format, but accepts various datetime formats)."
+    ),
+  updatedBy: z
+    .string()
+    .describe(
+      "The username or identifier of the user who last updated the brand kit."
+    ),
+  tags: z
+    .array(BrandKitTagSchema)
+    .optional()
+    .describe("Array of tag objects that categorize or label the brand kit."),
+  references: z
+    .array(z.any())
+    .optional()
+    .describe("Array of reference objects associated with the brand kit."),
+  deletedAt: z
+    .string()
+    .nullable()
+    .optional()
+    .describe(
+      "Timestamp indicating when the brand kit was deleted (null if not deleted)."
+    ),
+  locked: z
+    .boolean()
+    .optional()
+    .describe("Indicates whether the brand kit is locked (boolean value)."),
 });
 
 /**
@@ -136,7 +277,11 @@ async function fetchFieldNames(
   const fieldNameMap = new Map<string, string>();
 
   try {
-    const result = await getBrandKitSubsections(sectionId, organizationId, brandkitId);
+    const result = await getBrandKitSubsections(
+      sectionId,
+      organizationId,
+      brandkitId
+    );
     if (result.success && result.data) {
       const fieldsArray = Array.isArray(result.data) ? result.data : [];
       fieldsArray.forEach(
@@ -261,7 +406,12 @@ async function executeBrandReview(
       content?: string;
     };
   }
-): Promise<{ success: boolean; brandKitId: string; data: unknown; error?: string }> {
+): Promise<{
+  success: boolean;
+  brandKitId: string;
+  data: unknown;
+  error?: string;
+}> {
   try {
     const response = await fetch(
       "https://ai-skills-api-euw.sitecorecloud.io/api/skills/v1/brandreview/generate",
@@ -304,7 +454,11 @@ async function executeBrandReview(
               sectionName: sectionNameMap.get(section.sectionId) || undefined,
             };
 
-            if (section.fields && Array.isArray(section.fields) && section.fields.length > 0) {
+            if (
+              section.fields &&
+              Array.isArray(section.fields) &&
+              section.fields.length > 0
+            ) {
               const fieldNameMap = await fetchFieldNames(
                 section.sectionId,
                 DEFAULT_ORGANIZATION_ID,
@@ -347,7 +501,10 @@ async function executeBrandReview(
       success: false,
       brandKitId: requestBody.brandkitId,
       data: null,
-      error: error instanceof Error ? error.message : "Failed to generate brand review",
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to generate brand review",
     };
   }
 }
@@ -355,7 +512,10 @@ async function executeBrandReview(
 /**
  * Generate a brand review from a URL
  */
-export function generateBrandReviewFromUrlTool(): Tool {
+export function generateBrandReviewFromUrlTool(
+  defaultBrandKitId?: string | null,
+  defaultSections?: Array<{ sectionId: string }> | null
+): Tool {
   return tool({
     description:
       "Generate a brand review from a URL using Sitecore AI Skills API. Analyzes the content at the provided URL against brand guidelines. Useful for validating website content against brand guidelines or getting brand compliance insights for web pages.",
@@ -364,7 +524,7 @@ export function generateBrandReviewFromUrlTool(): Tool {
         .string()
         .optional()
         .describe(
-          "The unique identifier (GUID) of the brand kit to use for the review. Format: GUID string (e.g., '729af2a0-6492-4d29-9729-a6a195059c59'). IMPORTANT: A brand kit must be selected from the dropdown menu in the chat interface. Do not use a default value - the user must explicitly select a brand kit."
+          "The unique identifier (GUID) of the brand kit to use for the review. Format: GUID string (e.g., '729af2a0-6492-4d29-9729-a6a195059c59'). If not provided, the brand kit selected in the UI will be used."
         ),
       sections: z
         .array(
@@ -394,18 +554,23 @@ export function generateBrandReviewFromUrlTool(): Tool {
     }),
     outputSchema: BrandReviewOutputSchema,
     execute: async ({
-      brandkitId,
-      sections,
+      brandkitId: providedBrandkitId,
+      sections: providedSections,
       businessName: _businessName, // eslint-disable-line @typescript-eslint/no-unused-vars
       businessUrl,
     }) => {
+      // Use provided brandKitId or fall back to default from UI selection
+      const brandkitId = providedBrandkitId || defaultBrandKitId || null;
+      const sections = providedSections || defaultSections || null;
+
       // Validate that a brand kit is selected (not using default)
       if (!brandkitId || brandkitId === DEFAULT_BRANDKIT_ID) {
         return {
           success: false,
           brandKitId: "",
           data: null,
-          error: "Please select a brand kit from the dropdown menu before generating a brand review. A brand kit selection is required to proceed.",
+          error:
+            "Please select a brand kit from the dropdown menu before generating a brand review. A brand kit selection is required to proceed.",
         };
       }
 
@@ -418,7 +583,9 @@ export function generateBrandReviewFromUrlTool(): Tool {
       const resolvedBusinessUrl =
         businessUrl.startsWith("http://") || businessUrl.startsWith("https://")
           ? businessUrl
-          : `${baseUrl}${businessUrl.startsWith("/") ? businessUrl : `/${businessUrl}`}`;
+          : `${baseUrl}${
+              businessUrl.startsWith("/") ? businessUrl : `/${businessUrl}`
+            }`;
 
       const requestBody: {
         brandkitId: string;
@@ -449,7 +616,10 @@ export function generateBrandReviewFromUrlTool(): Tool {
 /**
  * Generate a brand review from content
  */
-export function generateBrandReviewFromContentTool(): Tool {
+export function generateBrandReviewFromContentTool(
+  defaultBrandKitId?: string | null,
+  defaultSections?: Array<{ sectionId: string }> | null
+): Tool {
   return tool({
     description:
       "Generate a brand review from content using Sitecore AI Skills API. Analyzes the provided content (HTML, text, etc.) against brand guidelines. Useful for validating content against brand guidelines or getting brand compliance insights before publishing.",
@@ -458,7 +628,7 @@ export function generateBrandReviewFromContentTool(): Tool {
         .string()
         .optional()
         .describe(
-          "The unique identifier (GUID) of the brand kit to use for the review. Format: GUID string (e.g., '729af2a0-6492-4d29-9729-a6a195059c59'). IMPORTANT: A brand kit must be selected from the dropdown menu in the chat interface. Do not use a default value - the user must explicitly select a brand kit."
+          "The unique identifier (GUID) of the brand kit to use for the review. Format: GUID string (e.g., '729af2a0-6492-4d29-9729-a6a195059c59'). If not provided, the brand kit selected in the UI will be used."
         ),
       sections: z
         .array(
@@ -488,18 +658,25 @@ export function generateBrandReviewFromContentTool(): Tool {
     }),
     outputSchema: BrandReviewOutputSchema,
     execute: async ({
-      brandkitId,
-      sections,
+      brandkitId: providedBrandkitId,
+      sections: providedSections,
       businessName: _businessName, // eslint-disable-line @typescript-eslint/no-unused-vars
       content,
     }) => {
+      // Use provided brandKitId or fall back to default from UI selection
+      const brandkitId = providedBrandkitId || defaultBrandKitId || null;
+      const sections = providedSections || defaultSections || null;
+
+      console.error("brandkitId", brandkitId);
+
       // Validate that a brand kit is selected (not using default)
       if (!brandkitId) {
         return {
           success: false,
           brandKitId: "",
           data: null,
-          error: "Please select a brand kit from the dropdown menu before generating a brand review. A brand kit selection is required to proceed.",
+          error:
+            "Please select a brand kit from the dropdown menu before generating a brand review. A brand kit selection is required to proceed.",
         };
       }
 
@@ -553,12 +730,20 @@ export function listBrandKitsTool(): Tool {
         ),
       data: z
         .object({
-          totalCount: z.string().describe("Total number of brand kits matching the query."),
-          pageSize: z.string().describe("Number of items per page in the response."),
-          pageNumber: z.string().describe("Current page number in the paginated results."),
+          totalCount: z
+            .string()
+            .describe("Total number of brand kits matching the query."),
+          pageSize: z
+            .string()
+            .describe("Number of items per page in the response."),
+          pageNumber: z
+            .string()
+            .describe("Current page number in the paginated results."),
           data: z
             .array(BrandKitSchema)
-            .describe("Array of brand kit objects. Each brand kit contains comprehensive information including ID, name, description, organization ID, status, tags, timestamps, and other metadata."),
+            .describe(
+              "Array of brand kit objects. Each brand kit contains comprehensive information including ID, name, description, organization ID, status, tags, timestamps, and other metadata."
+            ),
         })
         .nullable()
         .describe(
@@ -575,9 +760,9 @@ export function listBrandKitsTool(): Tool {
     execute: async () => {
       try {
         const token = await getAccessToken({
-        clientId: process.env.SITECORE_AI_CLIENT_ID || "",
-        clientSecret: process.env.SITECORE_AI_CLIENT_SECRET || "",
-      });
+          clientId: process.env.SITECORE_AI_CLIENT_ID || "",
+          clientSecret: process.env.SITECORE_AI_CLIENT_SECRET || "",
+        });
 
         const response = await fetch(
           `${BRAND_API_BASE_URL}/v1/organizations/${DEFAULT_ORGANIZATION_ID}/brandkits?includeDeleted=false`,
@@ -609,7 +794,10 @@ export function listBrandKitsTool(): Tool {
         return {
           success: false,
           data: null,
-          error: error instanceof Error ? error.message : "Failed to list brand kits",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to list brand kits",
         };
       }
     },

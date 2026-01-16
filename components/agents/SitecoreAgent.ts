@@ -18,6 +18,7 @@ import {
 import { getPageScreenshot, getPageHtmlTool } from "./tools/agents_api/Pages";
 import { getLanguagesTool, getSitesTool } from "./tools/agents_api/Sites";
 import { translatePageTool } from "./tools/pages_api/Pages";
+import { getItemContentTool } from "./tools/agents_api/Content";
 
 // Default system prompt for Sitecore Assistant
 export const DEFAULT_SYSTEM_PROMPT = `You are Sitecore Assistant, an AI-powered helper for content editors and marketers using Sitecore.
@@ -36,7 +37,12 @@ When responding to page context updates:
 Always be helpful, concise, and focused on the user's content management needs.`;
 
 // Create tools factory that accepts context and access token
-function createSitecoreTools(contextId: string, accessToken: string) {
+function createSitecoreTools(
+  contextId: string,
+  accessToken: string,
+  brandKitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
+) {
   return {
     // Tool to get all available languages
     getLanguages: getLanguagesTool(accessToken, contextId),
@@ -48,12 +54,13 @@ function createSitecoreTools(contextId: string, accessToken: string) {
     getAssetDetails: getAssetDetailsTool(accessToken, contextId),
     getPageScreenshot: getPageScreenshot(accessToken, contextId),
     getPageHtml: getPageHtmlTool(accessToken, contextId),
-    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(),
-    generateBrandReviewFromContent: generateBrandReviewFromContentTool(),
+    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(brandKitId, sections),
+    generateBrandReviewFromContent: generateBrandReviewFromContentTool(brandKitId, sections),
     listBrandKits: listBrandKitsTool(),
     retrieveBrandKit: retrieveBrandKitTool(),
     listBrandKitSections: listBrandKitSectionsTool(),
     listBrandKitSubsections: listBrandKitSubsectionsTool(),
+    getContentItemContent: getItemContentTool(accessToken, contextId),
   };
 }
 
@@ -66,7 +73,7 @@ export function createSitecoreAgent(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null
 ) {
-  const tools = createSitecoreTools(contextId, accessToken);
+  const tools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
   const contextMessage = createContextMessage(pageContext, true);
   const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 

@@ -75,7 +75,7 @@ export function createAllmightyAgent(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null
 ) {
-  const tools = createSitecoreTools(contextId, accessToken);
+  const tools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
   const contextMessage = createContextMessage(pageContext, true);
   const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 

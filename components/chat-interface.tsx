@@ -841,9 +841,15 @@ function ChatInput({
       try {
         onSubmit({ text: message.text, files: message.files });
       } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : typeof error === "string"
+            ? error
+            : JSON.stringify(error, null, 2);
         toast.error("Error", {
-          description:
-            error instanceof Error ? error.message : "An error occurred",
+          description: errorMessage,
+          duration: 10000, // Show for 10 seconds to allow reading
         });
       }
     }
@@ -1132,12 +1138,33 @@ export function ChatInterface() {
         );
       }
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       console.error("[ChatInterface] Error:", error);
-      const message = error.message || "An error occurred";
-      setErrorMessage(message);
-      // Auto-hide after 10 seconds
-      setTimeout(() => setErrorMessage(null), 10000);
+      let errorMessage = "An error occurred";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Include stack trace if available and message is short
+        if (error.stack && error.message.length < 100) {
+          errorMessage = `${error.message}\n\n${error.stack}`;
+        }
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error && typeof error === "object") {
+        // Try to extract error message from response-like objects
+        const errorObj = error as Record<string, unknown>;
+        if ("message" in errorObj && typeof errorObj.message === "string") {
+          errorMessage = errorObj.message;
+        } else if ("error" in errorObj && typeof errorObj.error === "string") {
+          errorMessage = errorObj.error;
+        } else {
+          errorMessage = JSON.stringify(error, null, 2);
+        }
+      }
+      
+      setErrorMessage(errorMessage);
+      // Auto-hide after 15 seconds to allow reading full error
+      setTimeout(() => setErrorMessage(null), 15000);
     },
   });
 
@@ -1241,9 +1268,30 @@ export function ChatInterface() {
       );
       }
     } catch (error) {
+      let errorMessage = "An error occurred";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        // Include stack trace if available and message is short
+        if (error.stack && error.message.length < 100) {
+          errorMessage = `${error.message}\n\n${error.stack}`;
+        }
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      } else if (error && typeof error === "object") {
+        // Try to extract error message from response-like objects
+        if ("message" in error && typeof error.message === "string") {
+          errorMessage = error.message;
+        } else if ("error" in error && typeof error.error === "string") {
+          errorMessage = error.error;
+        } else {
+          errorMessage = JSON.stringify(error, null, 2);
+        }
+      }
+      
       toast.error("Error", {
-        description:
-          error instanceof Error ? error.message : "An error occurred",
+        description: errorMessage,
+        duration: 10000, // Show for 10 seconds to allow reading
       });
     }
   };
@@ -1252,14 +1300,14 @@ export function ChatInterface() {
     <>
       {errorMessage && (
         <div className="fixed top-0 left-0 right-0 z-50 w-screen bg-red-600 dark:bg-red-700 text-white shadow-lg">
-          <div className="flex items-center justify-between px-6 py-4 max-w-full">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <AlertCircle className="size-5 shrink-0" />
-              <p className="text-base font-semibold truncate">{errorMessage}</p>
+          <div className="flex items-start justify-between px-6 py-4 max-w-full gap-4">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <AlertCircle className="size-5 shrink-0 mt-0.5" />
+              <p className="text-base font-semibold wrap-break-word whitespace-pre-wrap">{errorMessage}</p>
             </div>
             <button
               onClick={() => setErrorMessage(null)}
-              className="ml-4 shrink-0 hover:bg-red-700 dark:hover:bg-red-800 rounded p-1 transition-colors"
+              className="shrink-0 hover:bg-red-700 dark:hover:bg-red-800 rounded p-1 transition-colors"
               aria-label="Close error"
             >
               <X className="size-5" />

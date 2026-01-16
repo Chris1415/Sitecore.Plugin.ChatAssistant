@@ -17,13 +17,13 @@ import {
   getNewsRootPageTool,
   getNewsTemplateTool,
   createNewsPageTool,
-  getNewsContentTool,
 } from "./tools/News";
-import { translatePageTool } from "./tools/pages_api/Pages";
 import {
   getAssetDetailsTool,
   searchForAssetsTool,
 } from "./tools/agents_api/Assets";
+import { translatePageTool } from "./tools/pages_api/Pages";
+import { getItemContentTool } from "./tools/agents_api/Content";
 
 // System prompt for News Assistant
 export const NEWS_SYSTEM_PROMPT = `You are News Assistant, a specialized AI-powered helper for content editors and marketers managing news content in Sitecore.
@@ -50,7 +50,12 @@ When creating news pages:
 Always be helpful, concise, and focused on news content management needs.`;
 
 // Create tools factory that accepts context and access token
-function createNewsTools(contextId: string, accessToken: string) {
+function createNewsTools(
+  contextId: string,
+  accessToken: string,
+  brandKitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
+) {
   return {
     // Site tools
     getLanguages: getLanguagesTool(accessToken, contextId),
@@ -59,15 +64,15 @@ function createNewsTools(contextId: string, accessToken: string) {
     getNewsRootPage: getNewsRootPageTool(),
     getNewsTemplate: getNewsTemplateTool(),
     createNewsPage: createNewsPageTool(accessToken, contextId),
-    getNewsContent: getNewsContentTool(accessToken, contextId),
+    getContentItemContent: getItemContentTool(accessToken, contextId),
     translatePage: translatePageTool(),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
     searchForAssets: searchForAssetsTool(accessToken, contextId),
     getAssetDetails: getAssetDetailsTool(accessToken, contextId),
     getPageScreenshot: getPageScreenshot(accessToken, contextId),
     getPageHtml: getPageHtmlTool(accessToken, contextId),
-    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(),
-    generateBrandReviewFromContent: generateBrandReviewFromContentTool(),
+    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(brandKitId, sections),
+    generateBrandReviewFromContent: generateBrandReviewFromContentTool(brandKitId, sections),
     listBrandKits: listBrandKitsTool(),
     retrieveBrandKit: retrieveBrandKitTool(),
     listBrandKitSections: listBrandKitSectionsTool(),
@@ -84,7 +89,7 @@ export function createNewsAgent(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null
 ) {
-  const tools = createNewsTools(contextId, accessToken);
+  const tools = createNewsTools(contextId, accessToken, brandKitId, sections);
   const contextMessage = createContextMessage(pageContext, true);
   const brandKitMessage = createBrandKitContextMessage(brandKitId, sections);
 

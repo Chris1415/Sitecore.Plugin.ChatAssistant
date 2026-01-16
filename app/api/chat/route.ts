@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const agent = getAgent(
+  const agent = await getAgent(
     agentType,
     finalModel,
     contextId,
