@@ -77,3 +77,20 @@ export function getPageHtmlTool(accessToken: string, contextId: string): Tool {
     },
   });
 }
+
+// Combined export of all page tools
+export const pageTools = {
+  getPageScreenshot,
+  getPageHtmlTool,
+};
+
+// Helper function to create all page tools initialized
+export function createAllPageTools(
+  accessToken: string,
+  contextId: string
+) {
+  return {
+    getPageScreenshot: getPageScreenshot(accessToken, contextId),
+    getPageHtml: getPageHtmlTool(accessToken, contextId),
+  };
+}

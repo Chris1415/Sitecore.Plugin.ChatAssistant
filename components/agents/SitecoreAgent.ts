@@ -3,22 +3,13 @@ import { getPageAnalyticsDataTool } from "./tools/Dummy";
 import { createContextMessage } from "@/lib/context-messages";
 import { createBrandKitContextMessage } from "@/lib/brand-kit-messages";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
-import {
-  searchForAssetsTool,
-  getAssetDetailsTool,
-} from "./tools/agents_api/Assets";
-import {
-  generateBrandReviewFromUrlTool,
-  generateBrandReviewFromContentTool,
-  listBrandKitsTool,
-  retrieveBrandKitTool,
-  listBrandKitSectionsTool,
-  listBrandKitSubsectionsTool,
-} from "./tools/brandmanagement_api/Brand";
-import { getPageScreenshot, getPageHtmlTool } from "./tools/agents_api/Pages";
-import { getLanguagesTool, getSitesTool } from "./tools/agents_api/Sites";
-import { translatePageTool } from "./tools/pages_api/Pages";
-import { getItemContentTool } from "./tools/agents_api/Content";
+import { createAllAssetTools } from "./tools/agents_api/Assets";
+import { createAllBrandTools } from "./tools/brandmanagement_api/Brand";
+import { createAllPageTools } from "./tools/agents_api/Pages";
+import { createAllSiteTools } from "./tools/agents_api/Sites";
+import { createAllTranslationTools } from "./tools/pages_api/Pages";
+import { createAllContentTools } from "./tools/agents_api/Content";
+import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
 
 // Default system prompt for Sitecore Assistant
 export const DEFAULT_SYSTEM_PROMPT = `You are Sitecore Assistant, an AI-powered helper for content editors and marketers using Sitecore.
@@ -44,23 +35,14 @@ function createSitecoreTools(
   sections?: Array<{ sectionId: string }> | null
 ) {
   return {
-    // Tool to get all available languages
-    getLanguages: getLanguagesTool(accessToken, contextId),
-    // Tool to get all available sites
-    getSites: getSitesTool(accessToken, contextId),
-    translatePage: translatePageTool(),
+    ...createAllSiteTools(accessToken, contextId),
+    ...createAllTranslationTools(),
+    ...createAllAssetTools(accessToken, contextId),
+    ...createAllPageTools(accessToken, contextId),
+    ...createAllBrandTools(brandKitId, sections),
+    ...createAllContentTools(accessToken, contextId),
+    ...createAllPagesContextTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
-    searchForAssets: searchForAssetsTool(accessToken, contextId),
-    getAssetDetails: getAssetDetailsTool(accessToken, contextId),
-    getPageScreenshot: getPageScreenshot(accessToken, contextId),
-    getPageHtml: getPageHtmlTool(accessToken, contextId),
-    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(brandKitId, sections),
-    generateBrandReviewFromContent: generateBrandReviewFromContentTool(brandKitId, sections),
-    listBrandKits: listBrandKitsTool(),
-    retrieveBrandKit: retrieveBrandKitTool(),
-    listBrandKitSections: listBrandKitSectionsTool(),
-    listBrandKitSubsections: listBrandKitSubsectionsTool(),
-    getContentItemContent: getItemContentTool(accessToken, contextId),
   };
 }
 

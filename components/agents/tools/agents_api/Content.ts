@@ -63,3 +63,18 @@ export function getItemContentTool(
     },
   });
 }
+
+// Combined export of all content tools
+export const contentTools = {
+  getItemContentTool,
+};
+
+// Helper function to create all content tools initialized
+export function createAllContentTools(
+  accessToken: string,
+  contextId: string
+) {
+  return {
+    getContentItemContent: getItemContentTool(accessToken, contextId),
+  };
+}

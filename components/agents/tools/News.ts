@@ -242,3 +242,22 @@ export function createNewsPageTool(
     },
   });
 }
+
+// Combined export of all news tools
+export const newsTools = {
+  getNewsRootPageTool,
+  getNewsTemplateTool,
+  createNewsPageTool,
+};
+
+// Helper function to create all news tools initialized
+export function createAllNewsTools(
+  accessToken: string,
+  contextId: string
+) {
+  return {
+    getNewsRootPage: getNewsRootPageTool(),
+    getNewsTemplate: getNewsTemplateTool(),
+    createNewsPage: createNewsPageTool(accessToken, contextId),
+  };
+}

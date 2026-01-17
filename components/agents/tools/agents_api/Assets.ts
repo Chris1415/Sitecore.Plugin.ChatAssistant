@@ -89,3 +89,20 @@ export function getAssetDetailsTool(
     },
   }) as Tool;
 }
+
+// Combined export of all asset tools
+export const assetTools = {
+  searchForAssetsTool,
+  getAssetDetailsTool,
+};
+
+// Helper function to create all asset tools initialized
+export function createAllAssetTools(
+  accessToken: string,
+  contextId: string
+) {
+  return {
+    searchForAssets: searchForAssetsTool(accessToken, contextId),
+    getAssetDetails: getAssetDetailsTool(accessToken, contextId),
+  };
+}

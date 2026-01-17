@@ -1224,7 +1224,7 @@ export function ChatInterface() {
     );
   }, [messages.length, setMessages]); // Trigger when new messages are added
 
-  const { pagesContext } = usePagesContext({
+  const { pagesContext, refreshPagesContext, navigatePagesContext } = usePagesContext({
     onContextChange: async (context) => {
       if (!context) return;
 
@@ -1243,6 +1243,60 @@ export function ChatInterface() {
       }
     },
   });
+
+  // Check for refreshPages and navigatePages tool calls in the last assistant message
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage || lastMessage.role !== "assistant") return;
+
+    // Check for refreshPages tool
+    const refreshPart = lastMessage.parts?.find(
+      (part) =>
+        typeof part.type === "string" &&
+        (part.type.includes("refreshPages") ||
+          (part as { toolName?: string }).toolName === "refreshPages")
+    );
+
+    if (refreshPart) {
+      refreshPagesContext();
+      return;
+    }
+
+    // Check for navigatePages tool
+    const navigatePart = lastMessage.parts?.find(
+      (part) =>
+        typeof part.type === "string" &&
+        (part.type.includes("navigatePages") ||
+          (part as { toolName?: string }).toolName === "navigatePages")
+    );
+
+    if (navigatePart) {
+      const toolPart = navigatePart as ToolUIPart;
+      const output = toolPart.output as {
+        language?: string | null;
+        version?: number | null;
+        itemId?: string | null;
+      } | undefined;
+
+      if (output) {
+        const itemId = output.itemId;
+        const language = output.language;
+        const itemVersion = output.version;
+
+        // Only call if we have itemId and language
+        // Version is optional - if null/undefined, skip it (use default/latest)
+        if (itemId && language) {
+          // If version is explicitly provided and not null, use it
+          // Otherwise, use 0 as default (which typically means latest/current version)
+          navigatePagesContext({
+            itemId,
+            language,
+            itemVersion: itemVersion !== null && itemVersion !== undefined ? itemVersion : 0,
+          });
+        }
+      }
+    }
+  }, [messages, refreshPagesContext, navigatePagesContext]);
 
   const isStreaming = status === "streaming" || status === "submitted";
   const isThinking = status === "submitted";

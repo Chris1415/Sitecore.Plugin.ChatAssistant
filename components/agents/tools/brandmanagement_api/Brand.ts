@@ -916,3 +916,28 @@ export function listBrandKitSubsectionsTool(): Tool {
     },
   }) as Tool;
 }
+
+// Combined export of all brand management tools
+export const brandManagementTools = {
+  generateBrandReviewFromUrlTool,
+  generateBrandReviewFromContentTool,
+  listBrandKitsTool,
+  retrieveBrandKitTool,
+  listBrandKitSectionsTool,
+  listBrandKitSubsectionsTool,
+};
+
+// Helper function to create all brand management tools initialized
+export function createAllBrandTools(
+  brandKitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
+) {
+  return {
+    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(brandKitId, sections),
+    generateBrandReviewFromContent: generateBrandReviewFromContentTool(brandKitId, sections),
+    listBrandKits: listBrandKitsTool(),
+    retrieveBrandKit: retrieveBrandKitTool(),
+    listBrandKitSections: listBrandKitSectionsTool(),
+    listBrandKitSubsections: listBrandKitSubsectionsTool(),
+  };
+}

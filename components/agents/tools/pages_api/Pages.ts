@@ -101,3 +101,15 @@ export function translatePageTool(): Tool {
     },
   });
 }
+
+// Combined export of all translation tools
+export const translationTools = {
+  translatePageTool,
+};
+
+// Helper function to create all translation tools initialized
+export function createAllTranslationTools() {
+  return {
+    translatePage: translatePageTool(),
+  };
+}

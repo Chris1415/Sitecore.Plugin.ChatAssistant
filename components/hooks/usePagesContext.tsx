@@ -31,13 +31,13 @@ export default function usePagesContext(options?: UsePagesContextOptions) {
 
     const handleUpdate = (data: PagesContext | null) => {
       const dataJson = JSON.stringify(data);
-      
+
       // Skip if same as previous (deduplication)
       if (previousContextRef.current === dataJson) {
         console.log("[PagesContext] Skipped duplicate update");
         return;
       }
-      
+
       // Skip if currently processing
       if (isProcessingRef.current) {
         console.log("[PagesContext] Skipped - already processing");
@@ -46,7 +46,7 @@ export default function usePagesContext(options?: UsePagesContextOptions) {
 
       const isInitial = isInitialRef.current;
       isInitialRef.current = false;
-      
+
       previousContextRef.current = dataJson;
       setPagesContext(data);
       setLoading(false);
@@ -54,7 +54,11 @@ export default function usePagesContext(options?: UsePagesContextOptions) {
       // Call callback if available (for both initial and updates)
       if (onContextChangeRef.current && data) {
         isProcessingRef.current = true;
-        console.log(`[PagesContext] Triggering callback (${isInitial ? 'initial' : 'update'})`);
+        console.log(
+          `[PagesContext] Triggering callback (${
+            isInitial ? "initial" : "update"
+          })`
+        );
         onContextChangeRef.current(data, isInitial);
         // Reset processing flag after a short delay to allow for async operations
         setTimeout(() => {
@@ -87,5 +91,27 @@ export default function usePagesContext(options?: UsePagesContextOptions) {
       });
   }, [client]);
 
-  return { pagesContext, isLoading: loading, error };
+  function refreshPagesContext() {
+    client?.mutate("pages.reloadCanvas");
+  }
+
+  function navigatePagesContext({
+    itemId,
+    language,
+    itemVersion,
+  }: {
+    itemId: string;
+    language: string;
+    itemVersion: number;
+  }) {
+    client?.mutate("pages.context", {
+      params: {
+        itemId,
+        language,
+        itemVersion,
+      },
+    });
+  }
+
+  return { pagesContext, isLoading: loading, error, refreshPagesContext, navigatePagesContext };
 }

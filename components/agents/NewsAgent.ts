@@ -1,29 +1,15 @@
 import { ToolLoopAgent, type LanguageModel } from "ai";
 import { createContextMessage } from "@/lib/context-messages";
-import { createBrandKitContextMessage } from "@/lib/brand-kit-messages";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
 import { getPageAnalyticsDataTool } from "./tools/Dummy";
-import {
-  generateBrandReviewFromUrlTool,
-  generateBrandReviewFromContentTool,
-  listBrandKitsTool,
-  retrieveBrandKitTool,
-  listBrandKitSectionsTool,
-  listBrandKitSubsectionsTool,
-} from "./tools/brandmanagement_api/Brand";
-import { getPageScreenshot, getPageHtmlTool } from "./tools/agents_api/Pages";
-import { getLanguagesTool, getSitesTool } from "./tools/agents_api/Sites";
-import {
-  getNewsRootPageTool,
-  getNewsTemplateTool,
-  createNewsPageTool,
-} from "./tools/News";
-import {
-  getAssetDetailsTool,
-  searchForAssetsTool,
-} from "./tools/agents_api/Assets";
-import { translatePageTool } from "./tools/pages_api/Pages";
-import { getItemContentTool } from "./tools/agents_api/Content";
+import { createAllBrandTools } from "./tools/brandmanagement_api/Brand";
+import { createAllPageTools } from "./tools/agents_api/Pages";
+import { createAllSiteTools } from "./tools/agents_api/Sites";
+import { createAllNewsTools } from "./tools/News";
+import { createAllAssetTools } from "./tools/agents_api/Assets";
+import { createAllTranslationTools } from "./tools/pages_api/Pages";
+import { createAllContentTools } from "./tools/agents_api/Content";
+import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
 
 // System prompt for News Assistant
 export const NEWS_SYSTEM_PROMPT = `You are News Assistant, a specialized AI-powered helper for content editors and marketers managing news content in Sitecore.
@@ -57,32 +43,15 @@ function createNewsTools(
   sections?: Array<{ sectionId: string }> | null
 ) {
   return {
-    // Site tools
-    getLanguages: getLanguagesTool(accessToken, contextId),
-    getSites: getSitesTool(accessToken, contextId),
-    // News-specific tools
-    getNewsRootPage: getNewsRootPageTool(),
-    getNewsTemplate: getNewsTemplateTool(),
-    createNewsPage: createNewsPageTool(accessToken, contextId),
-    getContentItemContent: getItemContentTool(accessToken, contextId),
-    translatePage: translatePageTool(),
+    ...createAllSiteTools(accessToken, contextId),
+    ...createAllNewsTools(accessToken, contextId),
+    ...createAllContentTools(accessToken, contextId),
+    ...createAllTranslationTools(),
+    ...createAllAssetTools(accessToken, contextId),
+    ...createAllPageTools(accessToken, contextId),
+    ...createAllBrandTools(brandKitId, sections),
+    ...createAllPagesContextTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
-    searchForAssets: searchForAssetsTool(accessToken, contextId),
-    getAssetDetails: getAssetDetailsTool(accessToken, contextId),
-    getPageScreenshot: getPageScreenshot(accessToken, contextId),
-    getPageHtml: getPageHtmlTool(accessToken, contextId),
-    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(
-      brandKitId,
-      sections
-    ),
-    generateBrandReviewFromContent: generateBrandReviewFromContentTool(
-      brandKitId,
-      sections
-    ),
-    listBrandKits: listBrandKitsTool(),
-    retrieveBrandKit: retrieveBrandKitTool(),
-    listBrandKitSections: listBrandKitSectionsTool(),
-    listBrandKitSubsections: listBrandKitSubsectionsTool(),
   };
 }
 
