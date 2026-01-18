@@ -1,6 +1,5 @@
 import {
   Sparkles,
-  BookOpen,
   Layers,
   MessageCircle,
   ShoppingBag,
@@ -17,16 +16,9 @@ import {
   Globe,
   ShieldCheck,
   Image,
-  Link,
-  Settings,
   BarChart3,
-  Edit,
-  Copy,
-  Clock,
   GitBranch,
-  Network,
   CheckCircle2,
-  ClipboardList,
   Languages,
   type LucideIcon,
 } from "lucide-react";
