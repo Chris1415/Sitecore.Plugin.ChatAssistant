@@ -1,15 +1,15 @@
 import { ToolLoopAgent, type LanguageModel } from "ai";
 import { getPageAnalyticsDataTool } from "./tools/Dummy";
 import { createContextMessage } from "@/lib/context-messages";
-import { createBrandKitContextMessage } from "@/lib/brand-kit-messages";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
 import { createAllAssetTools } from "./tools/agents_api/Assets";
 import { createAllBrandTools } from "./tools/brandmanagement_api/Brand";
 import { createAllPageTools } from "./tools/agents_api/Pages";
 import { createAllSiteTools } from "./tools/agents_api/Sites";
-import { createAllTranslationTools } from "./tools/pages_api/Pages";
+import { createAllPagesApiTools } from "./tools/pages_api/Pages";
 import { createAllContentTools } from "./tools/agents_api/Content";
 import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
+import { createAllComponentTools } from "./tools/agents_api/Components";
 
 // Default system prompt for Sitecore Assistant
 export const DEFAULT_SYSTEM_PROMPT = `You are Sitecore Assistant, an AI-powered helper for content editors and marketers using Sitecore.
@@ -36,12 +36,13 @@ function createSitecoreTools(
 ) {
   return {
     ...createAllSiteTools(accessToken, contextId),
-    ...createAllTranslationTools(),
+    ...createAllPagesApiTools(),
     ...createAllAssetTools(accessToken, contextId),
     ...createAllPageTools(accessToken, contextId),
     ...createAllBrandTools(brandKitId, sections),
     ...createAllContentTools(accessToken, contextId),
     ...createAllPagesContextTools(accessToken, contextId),
+    ...createAllComponentTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
   };
 }
