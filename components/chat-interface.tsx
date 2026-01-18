@@ -59,12 +59,7 @@ import {
   Wrench,
   Trash2,
   User,
-  TrendingUp,
-  CheckCircle2,
-  AlertCircle as AlertCircleIcon,
-  XCircle,
   ChevronDown,
-  MoreHorizontal,
 } from "lucide-react";
 import usePagesContext from "./hooks/usePagesContext";
 import {
@@ -77,25 +72,12 @@ import {
 import { useAppContext } from "./providers/marketplace";
 import { useAuth } from "./providers/auth";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { LineChart, Line, XAxis, CartesianGrid } from "recharts";
 import type { ToolUIPart } from "ai";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import Image from "next/image";
+import { AnalyticsData } from "@/components/chat-elements/AnalyticsData";
+import { BrandReview } from "@/components/chat-elements/BrandReview";
+import { PageScreenshot } from "@/components/chat-elements/PageScreenshot";
 import {
   Popover,
   PopoverContent,
@@ -570,7 +552,6 @@ function PredefinedQuestions({
         <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
               {topQuestions.map((item, index) => {
             const Icon = item.icon;
-                const isLastQuestion = index === topQuestions.length - 1;
             return (
               <div
                 key={`${agentConfig.id}-${item.id}`}
@@ -586,7 +567,7 @@ function PredefinedQuestions({
                 <Button
                   variant="outline"
                   className={`h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 ${
-                    item.expensive ? "pr-12 lg:pr-14" : "pr-8 lg:pr-10"
+                    item.expensive || item.new ? "pr-12 lg:pr-14" : "pr-8 lg:pr-10"
                   } text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]`}
                   onClick={() => onSelect(item.question)}
                   style={{
@@ -603,23 +584,35 @@ function PredefinedQuestions({
                 >
                   <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
                   <span className="line-clamp-1 flex-1 min-w-0">{item.label}</span>
-                  {item.expensive && (
-                    <Badge
-                      variant="default"
-                      colorScheme="warning"
-                      size="sm"
-                      className="shrink-0 mr-1"
-                    >
-                      Expensive
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-1 shrink-0">
+                    {item.new && (
+                      <Badge
+                        variant="default"
+                        colorScheme="primary"
+                        size="sm"
+                        className="shrink-0"
+                      >
+                        New
+                      </Badge>
+                    )}
+                    {item.expensive && (
+                      <Badge
+                        variant="default"
+                        colorScheme="warning"
+                        size="sm"
+                        className="shrink-0"
+                      >
+                        Expensive
+                      </Badge>
+                    )}
+                  </div>
                 </Button>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       type="button"
                       className={`absolute p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors ${
-                        item.expensive ? "right-1 lg:right-2" : "right-2 lg:right-3"
+                        item.expensive || item.new ? "right-1 lg:right-2" : "right-2 lg:right-3"
                       }`}
                       onClick={(e) => e.stopPropagation()}
                     >
@@ -694,6 +687,15 @@ function PredefinedQuestions({
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm mb-1 flex items-center gap-2">
                               {item.label}
+                              {item.new && (
+                                <Badge
+                                  variant="default"
+                                  colorScheme="primary"
+                                  size="sm"
+                                >
+                                  New
+                                </Badge>
+                              )}
                               {item.expensive && (
                                 <Badge
                                   variant="default"
@@ -771,6 +773,15 @@ function PredefinedQuestions({
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-sm mb-1 flex items-center gap-2">
                               {item.label}
+                              {item.new && (
+                                <Badge
+                                  variant="default"
+                                  colorScheme="primary"
+                                  size="sm"
+                                >
+                                  New
+                                </Badge>
+                              )}
                               {item.expensive && (
                                 <Badge
                                   variant="default"
@@ -1654,9 +1665,8 @@ export function ChatInterface() {
                                           <span className="text-xs text-muted-foreground">
                                             {fileParts.length === 1
                                               ? (() => {
-                                                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                   const filePart =
-                                                    fileParts[0] as any;
+                                                    fileParts[0] as FileUIPart;
                                                   return (
                                                     filePart.filename ||
                                                     "1 file"
@@ -1830,516 +1840,139 @@ export function ChatInterface() {
                                       }
                                       return null;
                                     default:
-                                      // Check if this is a tool result for analytics data
+                                      // Handle tool parts with state-based rendering
                                       if (
                                         typeof part.type === "string" &&
-                                        part.type.startsWith("tool-") &&
-                                        part.type.includes(
-                                          "getContentAnalyticsData"
-                                        )
+                                        part.type.startsWith("tool-")
                                       ) {
-                                        // Check if it's a ToolUIPart with output
                                         const toolPart = part as ToolUIPart;
-                                        if (
-                                          toolPart.output &&
-                                          typeof toolPart.output === "object" &&
-                                          "data" in toolPart.output
-                                        ) {
-                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                          const analyticsData = (
-                                            toolPart.output as any
-                                          ).data;
-                                          if (
-                                            Array.isArray(analyticsData) &&
-                                            analyticsData.length > 0
-                                          ) {
-                                            // Calculate total visits, sessions and date range
-                                            const totalVisits =
-                                              analyticsData.reduce(
-                                                (
-                                                  sum: number,
-                                                  item: {
-                                                    "Number Visits": number;
-                                                  }
-                                                ) =>
-                                                  sum + item["Number Visits"],
-                                                0
+                                        const toolType = part.type as string;
+                                        
+                                        // Handle different tool states
+                                        switch (toolPart.state) {
+                                          case "input-available":
+                                            // Tool is being called, show loading state
+                                            if (toolType.includes("getContentAnalyticsData")) {
+                                              return (
+                                                <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                  <Brain className="size-4 animate-pulse" />
+                                                  Loading analytics data...
+                                                </div>
                                               );
-                                            const totalVisitors =
-                                              analyticsData.reduce(
-                                                (
-                                                  sum: number,
-                                                  item: {
-                                                    "Number Visitors": number;
-                                                  }
-                                                ) =>
-                                                  sum +
-                                                  (item["Number Visitors"] ||
-                                                    0),
-                                                0
+                                            }
+                                            if (toolType.includes("generateBrandReview")) {
+                                              return (
+                                                <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                  <Brain className="size-4 animate-pulse" />
+                                                  Analyzing brand compliance...
+                                                </div>
                                               );
-                                            const firstDate = new Date(
-                                              analyticsData[0].Day
-                                            );
-                                            const lastDate = new Date(
-                                              analyticsData[
-                                                analyticsData.length - 1
-                                              ].Day
-                                            );
-                                            const dateRange = `${firstDate.toLocaleDateString(
-                                              "en-US",
-                                              {
-                                                month: "short",
-                                                day: "numeric",
-                                              }
-                                            )} - ${lastDate.toLocaleDateString(
-                                              "en-US",
-                                              {
-                                                month: "short",
-                                                day: "numeric",
-                                                year: "numeric",
-                                              }
-                                            )}`;
-
-                                            // Chart configuration with high contrast colors
-                                            const chartConfig = {
-                                              visits: {
-                                                label: "Number Visits",
-                                                color: "hsl(221, 83%, 53%)", // Blue
-                                              },
-                                              visitors: {
-                                                label: "Number Visitors",
-                                                color: "hsl(0, 72%, 51%)", // Red/Orange
-                                              },
-                                            } satisfies ChartConfig;
-
+                                            }
+                                            if (toolType.includes("getPageScreenshot")) {
+                                              return (
+                                                <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                  <Brain className="size-4 animate-pulse" />
+                                                  Capturing page screenshot...
+                                                </div>
+                                              );
+                                            }
+                                            // Generic loading state for other tools
                                             return (
-                                              <Card
-                                                key={`${role}-${i}`}
-                                                className="my-4 w-full max-w-full"
-                                              >
-                                                <CardHeader>
-                                                  <CardTitle>
-                                                    Content Analytics
-                                                  </CardTitle>
-                                                  <CardDescription>
-                                                    {dateRange}
-                                                  </CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="w-full">
-                                                  <ChartContainer
-                                                    config={chartConfig}
-                                                    className="w-full"
-                                                  >
-                                                    <LineChart
-                                                      accessibilityLayer
-                                                      data={analyticsData}
-                                                      margin={{
-                                                        left: 12,
-                                                        right: 12,
-                                                      }}
-                                                      aria-label={`Line chart showing daily visits from ${dateRange}`}
-                                                    >
-                                                      <CartesianGrid
-                                                        vertical={false}
-                                                      />
-                                                      <XAxis
-                                                        dataKey="Day"
-                                                        tickLine={false}
-                                                        axisLine={false}
-                                                        tickMargin={8}
-                                                        tickFormatter={(
-                                                          value
-                                                        ) => {
-                                                          const date = new Date(
-                                                            value
-                                                          );
-                                                          return date.toLocaleDateString(
-                                                            "en-US",
-                                                            {
-                                                              month: "short",
-                                                              day: "numeric",
-                                                            }
-                                                          );
-                                                        }}
-                                                      />
-                                                      <ChartTooltip
-                                                        cursor={false}
-                                                        content={
-                                                          <ChartTooltipContent />
-                                                        }
-                                                      />
-                                                      <Line
-                                                        dataKey="Number Visits"
-                                                        type="monotone"
-                                                        stroke="var(--color-visits)"
-                                                        strokeWidth={2}
-                                                        dot={false}
-                                                      />
-                                                      <Line
-                                                        dataKey="Number Visitors"
-                                                        type="monotone"
-                                                        stroke="var(--color-visitors)"
-                                                        strokeWidth={2}
-                                                        dot={false}
-                                                      />
-                                                    </LineChart>
-                                                  </ChartContainer>
-                                                </CardContent>
-                                                <CardFooter>
-                                                  <div className="flex w-full items-start gap-2 text-sm">
-                                                    <div className="grid gap-2">
-                                                      <div className="flex items-center gap-2 leading-none font-medium">
-                                                        Total:{" "}
-                                                        {totalVisits.toLocaleString()}{" "}
-                                                        visits,{" "}
-                                                        {totalVisitors.toLocaleString()}{" "}
-                                                        visitors{" "}
-                                                        <TrendingUp className="h-4 w-4" />
-                                                      </div>
-                                                      <div className="text-muted-foreground flex items-center gap-2 leading-none">
-                                                        Showing daily visits and
-                                                        visitors for the last 30
-                                                        days
-                                                      </div>
-                                                    </div>
-                                                  </div>
-                                                </CardFooter>
-                                              </Card>
+                                              <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                <Brain className="size-4 animate-pulse" />
+                                                Processing...
+                                              </div>
                                             );
-                                          }
-                                        }
-                                      }
-                                      // Check if this is a tool result for brand review
-                                      if (
-                                        typeof part.type === "string" &&
-                                        part.type.startsWith("tool-") &&
-                                        part.type.includes(
-                                          "generateBrandReview"
-                                        )
-                                      ) {
-                                        const toolPart = part as ToolUIPart;
-                                        if (
-                                          toolPart.output &&
-                                          typeof toolPart.output === "object" &&
-                                          "data" in toolPart.output &&
-                                          "success" in toolPart.output &&
-                                          toolPart.output.success === true
-                                        ) {
                                           
-                                          const brandReviewData = (
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            toolPart.output as any
-                                          ).data;
-                                          if (
-                                            Array.isArray(brandReviewData) &&
-                                            brandReviewData.length > 0
-                                          ) {
-                                            // Helper function to get score color and icon
-                                            const getScoreDisplay = (
-                                              score: number
-                                            ) => {
-                                              if (score >= 4) {
-                                                return {
-                                                  color: "success",
-                                                  icon: CheckCircle2,
-                                                  label: "Excellent",
-                                                };
-                                              } else if (score === 3) {
-                                                return {
-                                                  color: "warning",
-                                                  icon: AlertCircleIcon,
-                                                  label: "Good",
-                                                };
-                                              } else {
-                                                return {
-                                                  color: "danger",
-                                                  icon: XCircle,
-                                                  label: "Needs Improvement",
-                                                };
-                                              }
-                                            };
-
+                                          case "output-error":
+                                            // Tool execution failed, show error
                                             return (
-                                              <Card
-                                                key={`${role}-${i}`}
-                                                className="my-4 w-full max-w-full"
-                                              >
-                                                <CardHeader>
-                                                  <CardTitle>
-                                                    Brand Review Results
-                                                  </CardTitle>
-                                                  <CardDescription>
-                                                    Compliance analysis across{" "}
-                                                    {brandReviewData.length}{" "}
-                                                    section
-                                                    {brandReviewData.length !==
-                                                    1
-                                                      ? "s"
-                                                      : ""}
-                                                  </CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="w-full space-y-4">
-                                                  {brandReviewData.map(
-                                                    (
-                                                      section: {
-                                                        sectionId: string;
-                                                        sectionName?: string;
-                                                        score: number;
-                                                        reason: string;
-                                                        suggestion: string;
-                                                        fields?: Array<{
-                                                          fieldId: string;
-                                                          fieldName?: string;
-                                                          score: number;
-                                                          reason: string;
-                                                          suggestion: string;
-                                                        }>;
-                                                      },
-                                                      sectionIndex: number
-                                                    ) => {
-                                                      const scoreDisplay =
-                                                        getScoreDisplay(
-                                                          section.score
-                                                        );
-                                                      const ScoreIcon =
-                                                        scoreDisplay.icon;
-
-                                                      return (
-                                                        <Card
-                                                          key={
-                                                            section.sectionId
-                                                          }
-                                                          className={`border-l-4 ${
-                                                            scoreDisplay.color ===
-                                                            "success"
-                                                              ? "border-l-green-500 dark:border-l-green-400"
-                                                              : scoreDisplay.color ===
-                                                                "warning"
-                                                              ? "border-l-yellow-500 dark:border-l-yellow-400"
-                                                              : "border-l-red-500 dark:border-l-red-400"
-                                                          }`}
-                                                        >
-                                                          <CardHeader className="pb-3">
-                                                            <div className="flex items-start justify-between gap-4">
-                                                              <div className="flex-1">
-                                                                <CardTitle className="text-base">
-                                                                  {section.sectionName
-                                                                    ? section.sectionName
-                                                                    : `Section ${
-                                                                        sectionIndex +
-                                                                        1
-                                                                      }`}
-                                                                </CardTitle>
-                                                                <CardDescription className="mt-1 text-xs font-mono">
-                                                                  {
-                                                                    section.sectionId
-                                                                  }
-                                                                </CardDescription>
-                                                              </div>
-                                                              <div className="flex items-center gap-2">
-                                                                <Badge
-                                                                  colorScheme={
-                                                                    scoreDisplay.color ===
-                                                                    "success"
-                                                                      ? "success"
-                                                                      : scoreDisplay.color ===
-                                                                        "warning"
-                                                                      ? "warning"
-                                                                      : "danger"
-                                                                  }
-                                                                  size="lg"
-                                                                >
-                                                                  <ScoreIcon className="size-3" />
-                                                                  Score:{" "}
-                                                                  {
-                                                                    section.score
-                                                                  }
-                                                                  /5
-                                                                </Badge>
-                                                              </div>
-                                                            </div>
-                                                          </CardHeader>
-                                                          <CardContent className="space-y-3">
-                                                            <Alert
-                                                              variant={
-                                                                scoreDisplay.color ===
-                                                                "success"
-                                                                  ? "success"
-                                                                  : scoreDisplay.color ===
-                                                                    "warning"
-                                                                  ? "warning"
-                                                                  : "danger"
-                                                              }
-                                                            >
-                                                              <AlertTitle>
-                                                                Assessment
-                                                              </AlertTitle>
-                                                              <AlertDescription>
-                                                                {section.reason}
-                                                              </AlertDescription>
-                                                            </Alert>
-                                                            <div className="rounded-lg border border-border bg-muted/30 p-3">
-                                                              <div className="text-sm font-medium text-foreground mb-1">
-                                                                Recommendation:
-                                                              </div>
-                                                              <div className="text-sm text-muted-foreground">
-                                                                {
-                                                                  section.suggestion
-                                                                }
-                                                              </div>
-                                                            </div>
-                                                            {section.fields &&
-                                                              section.fields
-                                                                .length > 0 && (
-                                                                <div className="space-y-2 pt-2">
-                                                                  <div className="text-sm font-medium text-foreground">
-                                                                    Field
-                                                                    Details:
-                                                                  </div>
-                                                                  {section.fields.map(
-                                                                    (field) => {
-                                                                      const fieldScoreDisplay =
-                                                                        getScoreDisplay(
-                                                                          field.score
-                                                                        );
-                                                                      const FieldIcon =
-                                                                        fieldScoreDisplay.icon;
-                                                                      return (
-                                                                        <div
-                                                                          key={
-                                                                            field.fieldId
-                                                                          }
-                                                                          className="rounded-lg border border-border bg-background p-3 space-y-2"
-                                                                        >
-                                                                          <div className="flex items-center justify-between gap-2">
-                                                                            <div className="flex-1 min-w-0">
-                                                                              <div className="text-sm font-medium text-foreground truncate">
-                                                                                {field.fieldName ||
-                                                                                  field.fieldId}
-                                                                              </div>
-                                                                              {field.fieldName && (
-                                                                                <div className="text-xs font-mono text-muted-foreground truncate mt-0.5">
-                                                                                  {
-                                                                                    field.fieldId
-                                                                                  }
-                                                                                </div>
-                                                                              )}
-                                                                            </div>
-                                                                            <Badge
-                                                                              colorScheme={
-                                                                                fieldScoreDisplay.color ===
-                                                                                "success"
-                                                                                  ? "success"
-                                                                                  : fieldScoreDisplay.color ===
-                                                                                    "warning"
-                                                                                  ? "warning"
-                                                                                  : "danger"
-                                                                              }
-                                                                              size="sm"
-                                                                            >
-                                                                              <FieldIcon className="size-2.5" />
-                                                                              {
-                                                                                field.score
-                                                                              }
-                                                                              /5
-                                                                            </Badge>
-                                                                          </div>
-                                                                          <div className="text-xs text-muted-foreground">
-                                                                            <div className="font-medium mb-1">
-                                                                              {
-                                                                                field.reason
-                                                                              }
-                                                                            </div>
-                                                                            <div className="italic">
-                                                                              {
-                                                                                field.suggestion
-                                                                              }
-                                                                            </div>
-                                                                          </div>
-                                                                        </div>
-                                                                      );
-                                                                    }
-                                                                  )}
-                                                                </div>
-                                                              )}
-                                                          </CardContent>
-                                                        </Card>
-                                                      );
-                                                    }
-                                                  )}
-                                                </CardContent>
-                                              </Card>
+                                              <Alert key={`${role}-${i}`} variant="danger" className="my-2">
+                                                <AlertCircle className="h-4 w-4" />
+                                                <AlertTitle>Tool Error</AlertTitle>
+                                                <AlertDescription>
+                                                  {toolPart.errorText || "An error occurred while executing the tool."}
+                                                </AlertDescription>
+                                              </Alert>
                                             );
-                                          }
-                                        }
-                                      }
-                                      // Check if this is a tool result for page screenshot
-                                      if (
-                                        typeof part.type === "string" &&
-                                        part.type.startsWith("tool-") &&
-                                        part.type.includes("getPageScreenshot")
-                                      ) {
-                                        const toolPart = part as ToolUIPart;
-                                        if (
-                                          toolPart.output &&
-                                          typeof toolPart.output === "object" &&
-                                          "screenshotData" in toolPart.output
-                                        ) {
-                                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                          const screenshotOutput = toolPart.output as any;
-                                          let imageData = screenshotOutput.screenshotData;
-
-                                          // Handle different formats of screenshot data
-                                          if (typeof imageData === "string") {
-                                            // If it's a raw base64 string, prepend the data URL prefix
-                                            if (!imageData.startsWith("data:image")) {
-                                              imageData = `data:image/png;base64,${imageData}`;
-                                            }
-                                          } else if (
-                                            typeof imageData === "object" &&
-                                            imageData !== null &&
-                                            "screenshot_base64" in imageData
-                                          ) {
-                                            // If it's an object with screenshot_base64 property
-                                            const base64Data = imageData.screenshot_base64;
-                                            if (typeof base64Data === "string") {
-                                              if (!base64Data.startsWith("data:image")) {
-                                                imageData = `data:image/png;base64,${base64Data}`;
-                                              } else {
-                                                imageData = base64Data;
+                                          
+                                          case "output-available":
+                                            // Tool execution succeeded, render output
+                                            
+                                            // Check if this is a tool result for analytics data
+                                            if (toolType.includes("getContentAnalyticsData")) {
+                                              if (
+                                                toolPart.output &&
+                                                typeof toolPart.output === "object" &&
+                                                "data" in toolPart.output
+                                              ) {
+                                                const analyticsData = (
+                                                  toolPart.output as { data?: unknown }
+                                                ).data;
+                                                if (
+                                                  Array.isArray(analyticsData) &&
+                                                  analyticsData.length > 0
+                                                ) {
+                                                  return (
+                                                    <div key={`${role}-${i}`}>
+                                                      <AnalyticsData data={analyticsData} />
+                                                    </div>
+                                                  );
+                                                }
                                               }
                                             }
-                                          }
+                                            // Check if this is a tool result for brand review
+                                            if (toolType.includes("generateBrandReview")) {
+                                              if (
+                                                toolPart.output &&
+                                                typeof toolPart.output === "object" &&
+                                                "data" in toolPart.output &&
+                                                "success" in toolPart.output &&
+                                                toolPart.output.success === true
+                                              ) {
+                                                const brandReviewData = (
+                                                  toolPart.output as { data?: unknown; success: boolean }
+                                                ).data;
+                                                if (
+                                                  Array.isArray(brandReviewData) &&
+                                                  brandReviewData.length > 0
+                                                ) {
+                                                  return (
+                                                    <div key={`${role}-${i}`}>
+                                                      <BrandReview data={brandReviewData} />
+                                                    </div>
+                                                  );
+                                                }
+                                              }
+                                            }
+                                            // Check if this is a tool result for page screenshot
+                                            if (toolType.includes("getPageScreenshot")) {
+                                              if (
+                                                toolPart.output &&
+                                                typeof toolPart.output === "object" &&
+                                                "screenshotData" in toolPart.output
+                                              ) {
+                                                const screenshotOutput = toolPart.output as {
+                                                  screenshotData?: string | { screenshot_base64?: string };
+                                                };
+                                                const screenshotData = screenshotOutput.screenshotData;
 
-                                          if (imageData && typeof imageData === "string") {
-                                            return (
-                                              <Card
-                                                key={`${role}-${i}`}
-                                                className="my-4 w-full max-w-full"
-                                              >
-                                                <CardHeader>
-                                                  <CardTitle>Page Screenshot</CardTitle>
-                                                  <CardDescription>
-                                                    Visual representation of the page content.
-                                                  </CardDescription>
-                                                </CardHeader>
-                                                <CardContent className="w-full">
-                                                  <div className="relative w-full h-auto max-h-[600px] overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center">
-                                                    <img
-                                                      src={imageData}
-                                                      alt="Page Screenshot"
-                                                      className="max-w-full h-auto object-contain"
-                                                      onError={(e) => {
-                                                        console.error("Error loading screenshot image:", e);
-                                                        e.currentTarget.style.display = "none";
-                                                      }}
-                                                    />
-                                                  </div>
-                                                </CardContent>
-                                              </Card>
-                                            );
-                                          }
+                                                if (screenshotData) {
+                                                  return (
+                                                    <div key={`${role}-${i}`}>
+                                                      <PageScreenshot screenshotData={screenshotData} />
+                                                    </div>
+                                                  );
+                                                }
+                                              }
+                                            }
+                                            
+                                            // If no specific tool handler matched, return null
+                                            return null;
+                                          
+                                          default:
+                                            // Unknown state, return null
+                                            return null;
                                         }
                                       }
                                       return null;

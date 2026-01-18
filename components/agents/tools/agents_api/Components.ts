@@ -72,7 +72,7 @@ export const componentTools = {
 };
 
 // Helper function to create all component tools initialized
-export function createAllComponentTools(
+export function createAllAgentsApiComponentsTools(
   accessToken: string,
   contextId: string
 ) {

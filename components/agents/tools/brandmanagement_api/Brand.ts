@@ -928,7 +928,7 @@ export const brandManagementTools = {
 };
 
 // Helper function to create all brand management tools initialized
-export function createAllBrandTools(
+export function createAllBrandManagementApiBrandTools(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null
 ) {

@@ -1,6 +1,7 @@
 import { getAccessToken } from "@/lib/oauth-login";
 import { Tool, tool } from "ai";
 import z from "zod";
+import { createXMCClient } from "../../base/sitecoreClient";
 
 export function translatePageTool(): Tool {
   return tool({
@@ -102,7 +103,7 @@ export function translatePageTool(): Tool {
   });
 }
 
-export function checkPagePublishedToEdgeTool(): Tool {
+export function checkPagePublishedToEdgeTool(accessToken: string, contextId: string): Tool {
   return tool({
     description:
       "Check if a page is published to Edge. Verifies whether the requested page has been published to the Edge platform for the specified language.",
@@ -128,7 +129,13 @@ export function checkPagePublishedToEdgeTool(): Tool {
         .boolean()
         .optional()
         .describe(
-          "Indicates whether the page is published to Edge. True if published, false if not published. Only present when success is true."
+          "Indicates whether the page is published to Edge. True if published (HTTP 200), false if not published (HTTP 404 or other error codes). Only present when success is true."
+        ),
+      statusCode: z
+        .number()
+        .optional()
+        .describe(
+          "HTTP status code from the API response. 200 indicates published, 404 indicates not found/not published, other codes indicate errors. Only present when success is true."
         ),
       error: z
         .string()
@@ -139,52 +146,80 @@ export function checkPagePublishedToEdgeTool(): Tool {
     }),
     execute: async ({ pageId, language }) => {
       try {
-        const accessToken = await getAccessToken({
-          clientId: process.env.SITECORE_DEPLOY_CLIENT_ID || "",
-          clientSecret: process.env.SITECORE_DEPLOY_CLIENT_SECRET || "",
+        const xmcClient = await createXMCClient(accessToken);
+        const response = await xmcClient.pages.getLivePageState({
+          path: { pageId },
+          query: { language, sitecoreContextId: contextId },
         });
 
-        // Build query string with language parameter
-        const queryParams = new URLSearchParams({
-          language: language,
-        });
+        // Extract HTTP status code from response
+        const httpResponse = (response as { response?: Response }).response;
+        const statusCode = httpResponse?.status || 0;
 
-        const url = `https://edge-platform.sitecorecloud.io/authoring/api/v1/pages/${pageId}/live?${queryParams.toString()}`;
-
-        // Make direct API call to Sitecore Edge Platform endpoint
-        const response = await fetch(url, {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.status === 404) {
-          // Page not found or not published
+        // Only handle 200 (published) and 404 (not published)
+        // According to API definition:
+        // - 200 (OK) = page is published and live
+        // - 404 (Not Found) = page not published or doesn't exist
+        if (statusCode === 200) {
           return {
             success: true,
-            isPublished: false,
+            isPublished: true,
+            statusCode: 200,
           };
         }
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("Error data:", JSON.stringify(errorData, null, 2));
-          throw new Error(
-            errorData.detail ||
-              errorData.message ||
-              `Check failed with status ${response.status}`
-          );
+        if (statusCode === 404) {
+          return {
+            success: true,
+            isPublished: false,
+            statusCode: 404,
+          };
         }
 
-        // If we get here, the page is published (status 200)
+        // For any other status code, return error
         return {
-          success: true,
-          isPublished: true,
+          success: false,
+          error: `Unexpected status code: ${statusCode}. Expected 200 (published) or 404 (not published).`,
         };
-      } catch (error) {
-        console.error("[PagesTool] Error checking page published status:", error);
+      } catch (error: unknown) {
+        // Try to extract status code from error
+        let statusCode: number | undefined;
+
+        if (error && typeof error === "object") {
+          const errorObj = error as Record<string, unknown>;
+          
+          // Check error.status (ProblemDetails structure)
+          if (typeof errorObj.status === "number") {
+            statusCode = errorObj.status;
+          }
+          
+          // Check error.response.status
+          if (!statusCode && errorObj.response && typeof errorObj.response === "object") {
+            const response = errorObj.response as Record<string, unknown>;
+            if (typeof response.status === "number") {
+              statusCode = response.status;
+            }
+          }
+        }
+
+        // Only handle 200 and 404 from errors
+        if (statusCode === 200) {
+          return {
+            success: true,
+            isPublished: true,
+            statusCode: 200,
+          };
+        }
+
+        if (statusCode === 404) {
+          return {
+            success: true,
+            isPublished: false,
+            statusCode: 404,
+          };
+        }
+
+        // For any other error, return failure
         return {
           success: false,
           error:
@@ -204,9 +239,9 @@ export const pagesApiTools = {
 };
 
 // Helper function to create all pages API tools initialized
-export function createAllPagesApiTools() {
+export function createAllPagesApiTools(accessToken: string, contextId: string) {
   return {
     translatePage: translatePageTool(),
-    checkPagePublishedToEdge: checkPagePublishedToEdgeTool(),
+    checkPagePublishedToEdge: checkPagePublishedToEdgeTool(accessToken, contextId),
   };
 }

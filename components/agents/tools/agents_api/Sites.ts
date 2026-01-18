@@ -199,7 +199,7 @@ export const siteTools = {
 };
 
 // Helper function to create all site tools initialized
-export function createAllSiteTools(
+export function createAllAgentsApiSitesTools(
   accessToken: string,
   contextId: string
 ) {

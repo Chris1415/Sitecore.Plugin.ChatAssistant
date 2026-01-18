@@ -206,7 +206,7 @@ export function searchPagesTool(
         // Note: API method name may need to be adjusted based on SDK implementation
         // Endpoint: GET /api/v1/pages/search
         // @ts-expect-error - Method name may vary based on SDK version
-        const result = await xmcClient.agent.pagesSearchPages({
+        const result = await xmcClient.agent.pagepagesSearchPages({
           query: {
             search_query: search_query,
             site_name: site_name,
@@ -243,7 +243,7 @@ export const pageTools = {
 };
 
 // Helper function to create all page tools initialized
-export function createAllPageTools(
+export function createAllAgentsApiPagesTools(
   accessToken: string,
   contextId: string
 ) {

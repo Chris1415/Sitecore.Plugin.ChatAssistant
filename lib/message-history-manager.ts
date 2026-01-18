@@ -4,7 +4,7 @@ import {
   generateText,
 } from "ai";
 
-const MESSAGE_THRESHOLD = 8; // Summarize when message count exceeds this
+const MESSAGE_THRESHOLD = 6; // Summarize when message count exceeds this
 
 // Server-side message storage: Map<sessionKey, UIMessage[]>
 // Using contextId as session key (in production, consider using a proper session ID)
@@ -132,15 +132,26 @@ export async function getMessagesToUse(
 
   // Summarize when we exceed the threshold (i.e., when we have more than MESSAGE_THRESHOLD messages)
   if (userAndAssistantMessages.length > MESSAGE_THRESHOLD) {
-    // Summarize messages up to the threshold
-    // Keep the messages after the summarized block
-    const messagesToSummarize = serverMessages.slice(
-      0,
-      userAndAssistantMessages.length - 1
-    );
-    const messagesToKeep = serverMessages.slice(
-      userAndAssistantMessages.length - 1
-    );
+    // Find indices of user/assistant messages in serverMessages
+    const userAssistantIndices: number[] = [];
+    serverMessages.forEach((msg, index) => {
+      if (msg.role === "user" || msg.role === "assistant") {
+        userAssistantIndices.push(index);
+      }
+    });
+
+    // Keep the last 2 user/assistant messages (and everything after the second-to-last one)
+    // If we have at least 2 user/assistant messages, find the index of the second-to-last one
+    const keepLastN = 2;
+    const splitIndex =
+      userAssistantIndices.length >= keepLastN
+        ? userAssistantIndices[userAssistantIndices.length - keepLastN]
+        : 0;
+
+    // Summarize all messages before the split index
+    const messagesToSummarize = serverMessages.slice(0, splitIndex);
+    // Keep all messages from the split index onwards (last 2 user/assistant messages + any system messages after)
+    const messagesToKeep = serverMessages.slice(splitIndex);
 
     // Track the IDs of messages being summarized to prevent re-adding them
     const idsToSummarize = new Set(messagesToSummarize.map((m) => m.id));

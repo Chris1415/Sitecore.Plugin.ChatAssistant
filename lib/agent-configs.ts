@@ -24,6 +24,10 @@ import {
   Copy,
   Clock,
   GitBranch,
+  Network,
+  CheckCircle2,
+  ClipboardList,
+  Languages,
   type LucideIcon,
 } from "lucide-react";
 
@@ -43,6 +47,7 @@ export interface PredefinedQuestion {
   question: string;
   icon: LucideIcon;
   expensive?: boolean; // Mark questions that use expensive operations like getPageHtml
+  new?: boolean; // Mark newly added questions
 }
 
 export interface TeaserCard {
@@ -95,18 +100,19 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         icon: Globe,
       },
       {
-        id: 3,
-        label: "Get Analytics",
-        question:
-          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
-        icon: TrendingUp,
-      },
-      {
         id: 4,
         label: "Translate Page",
         question:
           "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew). After translation, use navigatePages tool to navigate to the newly created language version using the pageId (itemId), targetLanguage, and siteName.",
         icon: Globe,
+      },
+      {
+        id: 13,
+        label: "Content Performance",
+        question:
+          "Use getContentAnalyticsData to show how this page is performing. Display key metrics: views, engagement, trends. Provide a one-line insight about performance.",
+        icon: TrendingUp,
+        new: true,
       },
       {
         id: 5,
@@ -132,19 +138,36 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         icon: Image,
       },
       {
-        id: 8,
-        label: "Page Screenshot",
-        question:
-          "Capture visual screenshot using getPageScreenshot to review rendered appearance and layout.",
-        icon: Image,
-      },
-      {
         id: 9,
         label: "SEO/GEO Check",
         question:
           "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
         icon: FileText,
         expensive: true,
+      },
+      {
+        id: 10,
+        label: "Is This Live?",
+        question:
+          "Use checkPagePublishedToEdge to check if this page is published and live. Show publishing status with language breakdown. If not published, show quick action steps.",
+        icon: CheckCircle2,
+        new: true,
+      },
+      {
+        id: 11,
+        label: "Translation Status",
+        question:
+          "Use getLanguages to see available languages, then checkPagePublishedToEdge for each language version. Show translation status for each language and identify any missing translations.",
+        icon: Languages,
+        new: true,
+      },
+      {
+        id: 12,
+        label: "Visual Preview",
+        question:
+          "Use getPageScreenshot to capture a visual preview of this page. Show the screenshot and provide a brief 2-3 sentence description of the layout, visual elements, and overall appearance.",
+        icon: Image,
+        new: true,
       },
     ],
     teaserCards: [
@@ -187,13 +210,6 @@ export const AGENT_CONFIGS: AgentConfig[] = [
       primaryDark: "#047857",
     },
     predefinedQuestions: [
-      {
-        id: 1,
-        label: "Get Analytics",
-        question:
-          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
-        icon: TrendingUp,
-      },
       {
         id: 2,
         label: "Catalog Overview",
@@ -294,31 +310,31 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     predefinedQuestions: [
       {
         id: 1,
-        label: "News Count",
+        label: "Article Statistics",
         question:
-          "Count all news articles in system (published and draft).",
+          "Get a comprehensive overview of all articles in the system. Count the total number of articles, then break down how many are published versus unpublished. Present the results clearly: total count, published count, and unpublished count.",
         icon: FileText,
       },
       {
-        id: 2,
-        label: "Get Analytics",
-        question:
-          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
-        icon: TrendingUp,
-      },
-      {
         id: 3,
-        label: "Create News Page",
+        label: "Create Page",
         question:
-          "Guide creation of new news page. I'll provide title, content, and required fields. After creation, use navigatePages tool to navigate to the newly created page using the returned itemId, language, and siteName.",
+          "Guide creation of new page. I'll provide title, content, and required fields. After creation, use navigatePages tool to navigate to the newly created page using the returned itemId, language, and siteName.",
         icon: Newspaper,
       },
       {
         id: 4,
-        label: "Translate News Article",
+        label: "Translate Article",
         question:
           "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew). After translation, use navigatePages tool to navigate to the newly created language version using the pageId (itemId), targetLanguage, and siteName.",
         icon: Globe,
+      },
+      {
+        id: 13,
+        label: "Article Performance",
+        question:
+          "Use getContentAnalyticsData to show how this article is performing. Display key metrics: views, engagement, trends. Provide a one-line insight about performance.",
+        icon: TrendingUp,
       },
       {
         id: 5,
@@ -336,16 +352,9 @@ export const AGENT_CONFIGS: AgentConfig[] = [
       },
       {
         id: 7,
-        label: "Find News Images",
+        label: "Find Images",
         question:
           "Search media library: searchForAssets for article images/graphics, then getAssetDetails for details.",
-        icon: Image,
-      },
-      {
-        id: 8,
-        label: "News Article Screenshot",
-        question:
-          "Capture screenshot using getPageScreenshot to review article layout, typography, and presentation.",
         icon: Image,
       },
       {
@@ -355,6 +364,30 @@ export const AGENT_CONFIGS: AgentConfig[] = [
           "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
         icon: FileText,
         expensive: true,
+      },
+      {
+        id: 10,
+        label: "Is This Live?",
+        question:
+          "Use checkPagePublishedToEdge to check if this article is published and live. Show publishing status with language breakdown. If not published, show quick action steps.",
+        icon: CheckCircle2,
+        new: true,
+      },
+      {
+        id: 11,
+        label: "Translation Status",
+        question:
+          "Use getLanguages to see available languages, then checkPagePublishedToEdge for each language version. Show translation status for each language and identify any missing translations.",
+        icon: Languages,
+        new: true,
+      },
+      {
+        id: 12,
+        label: "Visual Preview",
+        question:
+          "Use getPageScreenshot to capture a visual preview of this article. Show the screenshot and provide a brief 2-3 sentence description of the layout, typography, and visual presentation.",
+        icon: Image,
+        new: true,
       },
     ],
     teaserCards: [
@@ -397,13 +430,6 @@ export const AGENT_CONFIGS: AgentConfig[] = [
       primaryDark: "#0E7490",
     },
     predefinedQuestions: [
-      {
-        id: 1,
-        label: "Get Analytics",
-        question:
-          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
-        icon: TrendingUp,
-      },
       {
         id: 2,
         label: "Upcoming Events",
@@ -502,13 +528,6 @@ export const AGENT_CONFIGS: AgentConfig[] = [
       primaryDark: "#B45309",
     },
     predefinedQuestions: [
-      {
-        id: 1,
-        label: "Get Analytics",
-        question:
-          "Show analytics summary with key insights and trends. Focus on overall story, not individual data points.",
-        icon: TrendingUp,
-      },
       {
         id: 2,
         label: "Site Overview",

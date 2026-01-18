@@ -97,7 +97,7 @@ export const assetTools = {
 };
 
 // Helper function to create all asset tools initialized
-export function createAllAssetTools(
+export function createAllAgentsApiAssetsTools(
   accessToken: string,
   contextId: string
 ) {

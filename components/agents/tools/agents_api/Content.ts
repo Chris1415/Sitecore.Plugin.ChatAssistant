@@ -249,7 +249,7 @@ export const contentTools = {
 };
 
 // Helper function to create all content tools initialized
-export function createAllContentTools(
+export function createAllAgentsApiContentTools(
   accessToken: string,
   contextId: string
 ) {

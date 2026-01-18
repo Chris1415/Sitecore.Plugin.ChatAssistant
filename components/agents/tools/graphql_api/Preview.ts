@@ -92,7 +92,7 @@ export const previewTools = {
 };
 
 // Helper function to create all preview tools initialized
-export function createAllPreviewTools(accessToken: string, contextId: string) {
+export function createAllGraphqlApiPreviewTools(accessToken: string, contextId: string) {
   return {
     mapPathToId: mapPathToIdTool(accessToken, contextId),
   };
