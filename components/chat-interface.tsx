@@ -87,59 +87,165 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { ListBrandKitsResponse } from "@/lib/services/BrandServices";
 
 const AI_MODELS = [
-  // OpenAI - Top 3 models
-  { id: "openai/gpt-4o", name: "GPT-4o", provider: "OpenAI" },
-  { id: "openai/gpt-4-turbo", name: "GPT-4 Turbo", provider: "OpenAI" },
-  { id: "openai/gpt-4", name: "GPT-4", provider: "OpenAI" },
+  // OpenAI - GPT-5 models (Top 5: 1 extreme expensive, 2 very cheap, 2 moderate)
+  // Ordered: cheap to expensive, with gpt-5-mini first
+  { 
+    id: "openai/gpt-5-mini", 
+    name: "GPT-5 Mini", 
+    provider: "OpenAI", 
+    category: "cheap",
+    contextSize: "128K",
+    maxOutput: "16K",
+    inputCost: "$0.25/M",
+    outputCost: "$2.00/M",
+    cache: "Read: $0.05/M",
+    imageGen: "$0.04/image",
+    webSearch: false,
+  },
+  { 
+    id: "openai/gpt-5-nano", 
+    name: "GPT-5 Nano", 
+    provider: "OpenAI", 
+    category: "cheap",
+    contextSize: "128K",
+    maxOutput: "16K",
+    inputCost: "$0.05/M",
+    outputCost: "$0.40/M",
+    cache: null,
+    imageGen: "$0.04/image",
+    webSearch: false,
+  },
+  { 
+    id: "openai/gpt-5", 
+    name: "GPT-5", 
+    provider: "OpenAI", 
+    category: "moderate",
+    contextSize: "128K",
+    maxOutput: "16K",
+    inputCost: "$1.25/M",
+    outputCost: "$10.00/M",
+    cache: "Read: $0.13/M",
+    imageGen: "$0.04/image",
+    webSearch: false,
+  },
+  { 
+    id: "openai/gpt-5-chat", 
+    name: "GPT-5 Chat", 
+    provider: "OpenAI", 
+    category: "moderate",
+    contextSize: "128K",
+    maxOutput: "16K",
+    inputCost: "$1.25/M",
+    outputCost: "$10.00/M",
+    cache: "Read: $0.13/M",
+    imageGen: "$0.04/image",
+    webSearch: false,
+  },
+  { 
+    id: "openai/gpt-5-pro", 
+    name: "GPT-5 Pro", 
+    provider: "OpenAI", 
+    category: "expensive",
+    contextSize: "128K",
+    maxOutput: "16K",
+    inputCost: "$15.00/M",
+    outputCost: "$120.00/M",
+    cache: "Read: $1.50/M",
+    imageGen: "$0.04/image",
+    webSearch: false,
+  },
 
-  // Anthropic - Top 3 models
+  // Anthropic - Claude 4.5 models (ordered: cheap to expensive)
   {
-    id: "anthropic/claude-3.5-sonnet",
-    name: "Claude 3.5 Sonnet",
+    id: "anthropic/claude-haiku-4.5",
+    name: "Claude Haiku 4.5",
     provider: "Anthropic",
+    category: "cheap",
+    contextSize: "200K",
+    maxOutput: "4096",
+    inputCost: "$1.00/M",
+    outputCost: "$5.00/M",
+    cache: null,
+    imageGen: null,
+    webSearch: false,
   },
   {
-    id: "anthropic/claude-3-opus",
-    name: "Claude 3 Opus",
+    id: "anthropic/claude-sonnet-4.5",
+    name: "Claude Sonnet 4.5",
     provider: "Anthropic",
+    category: "moderate",
+    contextSize: "200K",
+    maxOutput: "8192",
+    inputCost: "$3.00/M",
+    outputCost: "$15.00/M",
+    cache: null,
+    imageGen: null,
+    webSearch: false,
   },
   {
-    id: "anthropic/claude-3-sonnet",
-    name: "Claude 3 Sonnet",
+    id: "anthropic/claude-opus-4.5",
+    name: "Claude Opus 4.5",
     provider: "Anthropic",
+    category: "expensive",
+    contextSize: "200K",
+    maxOutput: "4096",
+    inputCost: "$5.00/M",
+    outputCost: "$25.00/M",
+    cache: null,
+    imageGen: null,
+    webSearch: false,
   },
 
-  // Google - Top models
+  // Google - Gemini models (ordered: cheap to expensive)
   {
-    id: "google/gemini-2.5-flash-image-preview",
-    name: "Gemini 2.5 Flash Image Preview",
+    id: "google/gemini-3-flash",
+    name: "Gemini 3 Flash",
     provider: "Google",
+    category: "cheap",
+    contextSize: "1000K",
+    maxOutput: "65K",
+    inputCost: "$0.50/M",
+    outputCost: "$3.00/M",
+    cache: "Read: $0.05/M",
+    imageGen: null,
+    webSearch: "$14.00/K + input costs",
   },
   {
-    id: "google/gemini-2.0-flash-exp",
-    name: "Gemini 2.0 Flash (Exp)",
+    id: "google/gemini-2.5-pro",
+    name: "Gemini 2.5 Pro",
     provider: "Google",
+    category: "moderate",
+    contextSize: "1049K",
+    maxOutput: "66K",
+    inputCost: "$1.25/M",
+    outputCost: "$10.00/M",
+    cache: "Read: $0.13/M",
+    imageGen: null,
+    webSearch: "$35.00/K + input costs",
   },
-  { id: "google/gemini-1.5-pro", name: "Gemini 1.5 Pro", provider: "Google" },
   {
-    id: "google/gemini-1.5-flash",
-    name: "Gemini 1.5 Flash",
+    id: "google/gemini-3-pro-preview",
+    name: "Gemini 3 Pro Preview",
     provider: "Google",
-  },
-
-  // Meta - Top 2 models (only 2 available)
-  { id: "meta-llama/llama-3.1-405b", name: "Llama 3.1 405B", provider: "Meta" },
-  { id: "meta-llama/llama-3.1-70b", name: "Llama 3.1 70B", provider: "Meta" },
-
-  // Mistral AI - Top 1 model
-  {
-    id: "mistralai/mistral-large",
-    name: "Mistral Large",
-    provider: "Mistral AI",
+    category: "moderate",
+    contextSize: "1000K",
+    maxOutput: "64K",
+    inputCost: "$2.00/M",
+    outputCost: "$12.00/M",
+    cache: "Read: $0.20/M",
+    imageGen: null,
+    webSearch: "$14.00/K + input costs",
   },
 ];
 
-// Group models by provider
+// Category order for sorting (cheap < moderate < expensive)
+const CATEGORY_ORDER: Record<string, number> = {
+  cheap: 1,
+  moderate: 2,
+  expensive: 3,
+};
+
+// Group models by provider and sort within each group from cheap to expensive
 const groupedModels = AI_MODELS.reduce((acc, model) => {
   if (!acc[model.provider]) {
     acc[model.provider] = [];
@@ -147,6 +253,20 @@ const groupedModels = AI_MODELS.reduce((acc, model) => {
   acc[model.provider].push(model);
   return acc;
 }, {} as Record<string, typeof AI_MODELS>);
+
+// Sort models within each provider group from cheap to expensive
+// Special handling: gpt-5-mini should be first in OpenAI group
+Object.keys(groupedModels).forEach((provider) => {
+  groupedModels[provider].sort((a, b) => {
+    // Special case: gpt-5-mini should always be first in OpenAI group
+    if (provider === "OpenAI") {
+      if (a.id === "openai/gpt-5-mini") return -1;
+      if (b.id === "openai/gpt-5-mini") return 1;
+    }
+    // Otherwise sort by category order
+    return (CATEGORY_ORDER[a.category] || 999) - (CATEGORY_ORDER[b.category] || 999);
+  });
+});
 
 // Provider order (best providers first)
 const PROVIDER_ORDER = ["OpenAI", "Anthropic", "Google", "Meta", "Mistral AI"];
@@ -343,14 +463,73 @@ function ChatHeader({
                   <SelectGroup key={provider}>
                     <SelectLabel>{provider}</SelectLabel>
                     {models.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  <div className="flex flex-col">
-                    <span className="font-medium">{model.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {model.provider}
-                    </span>
-                  </div>
-                </SelectItem>
+                <Tooltip key={model.id}>
+                  <TooltipTrigger asChild>
+                    <SelectItem value={model.id}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{model.name}</span>
+                        {model.category && (
+                          <Badge
+                            colorScheme={
+                              model.category === "cheap"
+                                ? "success"
+                                : model.category === "moderate"
+                                ? "warning"
+                                : "danger"
+                            }
+                            size="sm"
+                            className="text-xs"
+                          >
+                            {model.category === "cheap"
+                              ? "Cheap"
+                              : model.category === "moderate"
+                              ? "Moderate"
+                              : "Expensive"}
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  </TooltipTrigger>
+                  <TooltipContent className="bg-popover text-popover-foreground border border-border max-w-xs">
+                    <div className="space-y-2">
+                      <div className="font-semibold text-sm">{model.name}</div>
+                      <div className="text-xs space-y-1.5">
+                        <div className="flex justify-between gap-4">
+                          <span className="text-muted-foreground">Context:</span>
+                          <span className="font-medium">{model.contextSize || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span className="text-muted-foreground">Max Output:</span>
+                          <span className="font-medium">{model.maxOutput || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span className="text-muted-foreground">Input:</span>
+                          <span className="font-medium">{model.inputCost || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between gap-4">
+                          <span className="text-muted-foreground">Output:</span>
+                          <span className="font-medium">{model.outputCost || "N/A"}</span>
+                        </div>
+                        {model.cache && (
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Cache:</span>
+                            <span className="font-medium">{model.cache}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between gap-4">
+                          <span className="text-muted-foreground">Image Gen:</span>
+                          <span className="font-medium">{model.imageGen || "No"}</span>
+                        </div>
+                        {model.webSearch && (
+                          <div className="flex justify-between gap-4">
+                            <span className="text-muted-foreground">Web Search:</span>
+                            <span className="font-medium">{model.webSearch}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
               ))}
                   </SelectGroup>
                 );
@@ -1026,7 +1205,7 @@ function ChatInput({
 }
 
 export function ChatInterface() {
-  const [selectedModel, setSelectedModel] = useState("openai/gpt-4o");
+  const [selectedModel, setSelectedModel] = useState("openai/gpt-5-mini");
   const [selectedAgent, setSelectedAgent] = useState<AgentType>(DEFAULT_AGENT);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);

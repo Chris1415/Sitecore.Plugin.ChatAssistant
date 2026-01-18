@@ -77,7 +77,10 @@ export function getItemContentTool(
           data: result?.data || null,
         };
       } catch (error) {
-        console.error("[ContentTool] Error fetching content item by path:", error);
+        console.error(
+          "[ContentTool] Error fetching content item by path:",
+          error
+        );
         return {
           success: false,
           error:
@@ -148,7 +151,10 @@ export function getContentItemByIdTool(
           data: result?.data || null,
         };
       } catch (error) {
-        console.error("[ContentTool] Error fetching content item by ID:", error);
+        console.error(
+          "[ContentTool] Error fetching content item by ID:",
+          error
+        );
         return {
           success: false,
           error:

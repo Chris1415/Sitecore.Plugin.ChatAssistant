@@ -15,7 +15,7 @@ import { getMessagesToUse } from "@/lib/message-history-manager";
 
 export const maxDuration = 30;
 
-const DEFAULT_MODEL = "openai/gpt-4o";
+const DEFAULT_MODEL = "openai/gpt-5-mini";
 
 // Check if we're in development mode
 const isDevelopment = process.env.NODE_ENV === "development";
