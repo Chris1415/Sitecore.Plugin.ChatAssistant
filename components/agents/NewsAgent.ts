@@ -7,9 +7,10 @@ import { createAllPageTools } from "./tools/agents_api/Pages";
 import { createAllSiteTools } from "./tools/agents_api/Sites";
 import { createAllNewsTools } from "./tools/News";
 import { createAllAssetTools } from "./tools/agents_api/Assets";
-import { createAllTranslationTools } from "./tools/pages_api/Pages";
+import { createAllPagesApiTools } from "./tools/pages_api/Pages";
 import { createAllContentTools } from "./tools/agents_api/Content";
 import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
+import { createAllComponentTools } from "./tools/agents_api/Components";
 
 // System prompt for News Assistant
 export const NEWS_SYSTEM_PROMPT = `You are News Assistant, a specialized AI-powered helper for content editors and marketers managing news content in Sitecore.
@@ -46,11 +47,12 @@ function createNewsTools(
     ...createAllSiteTools(accessToken, contextId),
     ...createAllNewsTools(accessToken, contextId),
     ...createAllContentTools(accessToken, contextId),
-    ...createAllTranslationTools(),
+    ...createAllPagesApiTools(),
     ...createAllAssetTools(accessToken, contextId),
     ...createAllPageTools(accessToken, contextId),
     ...createAllBrandTools(brandKitId, sections),
     ...createAllPagesContextTools(accessToken, contextId),
+    ...createAllComponentTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
   };
 }

@@ -4,7 +4,7 @@ import {
   generateText,
 } from "ai";
 
-const MESSAGE_THRESHOLD = 6; // Summarize when message count exceeds this
+const MESSAGE_THRESHOLD = 8; // Summarize when message count exceeds this
 
 // Server-side message storage: Map<sessionKey, UIMessage[]>
 // Using contextId as session key (in production, consider using a proper session ID)

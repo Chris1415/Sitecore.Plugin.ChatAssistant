@@ -102,14 +102,111 @@ export function translatePageTool(): Tool {
   });
 }
 
-// Combined export of all translation tools
-export const translationTools = {
+export function checkPagePublishedToEdgeTool(): Tool {
+  return tool({
+    description:
+      "Check if a page is published to Edge. Verifies whether the requested page has been published to the Edge platform for the specified language.",
+    inputSchema: z.object({
+      pageId: z
+        .string()
+        .describe(
+          "The unique identifier (GUID) of the page to check (e.g., '8f0b81bc-7388-46be-b109-6e73d1114470')."
+        ),
+      language: z
+        .string()
+        .describe(
+          "The page language code (e.g., 'en-US', 'en', 'de-DE'). Required parameter."
+        ),
+    }),
+    outputSchema: z.object({
+      success: z
+        .boolean()
+        .describe(
+          "Indicates whether the check was successfully executed. If false, check the error field for details."
+        ),
+      isPublished: z
+        .boolean()
+        .optional()
+        .describe(
+          "Indicates whether the page is published to Edge. True if published, false if not published. Only present when success is true."
+        ),
+      error: z
+        .string()
+        .optional()
+        .describe(
+          "Error message describing what went wrong if success is false. Common errors include page not found (404), invalid page ID, or API authentication issues."
+        ),
+    }),
+    execute: async ({ pageId, language }) => {
+      try {
+        const accessToken = await getAccessToken({
+          clientId: process.env.SITECORE_DEPLOY_CLIENT_ID || "",
+          clientSecret: process.env.SITECORE_DEPLOY_CLIENT_SECRET || "",
+        });
+
+        // Build query string with language parameter
+        const queryParams = new URLSearchParams({
+          language: language,
+        });
+
+        const url = `https://edge-platform.sitecorecloud.io/authoring/api/v1/pages/${pageId}/live?${queryParams.toString()}`;
+
+        // Make direct API call to Sitecore Edge Platform endpoint
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.status === 404) {
+          // Page not found or not published
+          return {
+            success: true,
+            isPublished: false,
+          };
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Error data:", JSON.stringify(errorData, null, 2));
+          throw new Error(
+            errorData.detail ||
+              errorData.message ||
+              `Check failed with status ${response.status}`
+          );
+        }
+
+        // If we get here, the page is published (status 200)
+        return {
+          success: true,
+          isPublished: true,
+        };
+      } catch (error) {
+        console.error("[PagesTool] Error checking page published status:", error);
+        return {
+          success: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to check if page is published to Edge",
+        };
+      }
+    },
+  });
+}
+
+// Combined export of all pages API tools
+export const pagesApiTools = {
   translatePageTool,
+  checkPagePublishedToEdgeTool,
 };
 
-// Helper function to create all translation tools initialized
-export function createAllTranslationTools() {
+// Helper function to create all pages API tools initialized
+export function createAllPagesApiTools() {
   return {
     translatePage: translatePageTool(),
+    checkPagePublishedToEdge: checkPagePublishedToEdgeTool(),
   };
 }

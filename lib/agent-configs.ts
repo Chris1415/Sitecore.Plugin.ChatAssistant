@@ -105,7 +105,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 4,
         label: "Translate Page",
         question:
-          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew).",
+          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew). After translation, use navigatePages tool to navigate to the newly created language version using the pageId (itemId), targetLanguage, and siteName.",
         icon: Globe,
       },
       {
@@ -310,14 +310,14 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 3,
         label: "Create News Page",
         question:
-          "Guide creation of new news page. I'll provide title, content, and required fields.",
+          "Guide creation of new news page. I'll provide title, content, and required fields. After creation, use navigatePages tool to navigate to the newly created page using the returned itemId, language, and siteName.",
         icon: Newspaper,
       },
       {
         id: 4,
         label: "Translate News Article",
         question:
-          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew).",
+          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew). After translation, use navigatePages tool to navigate to the newly created language version using the pageId (itemId), targetLanguage, and siteName.",
         icon: Globe,
       },
       {

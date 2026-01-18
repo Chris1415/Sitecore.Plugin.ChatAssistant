@@ -5,6 +5,7 @@ import {
   wrapLanguageModel,
   gateway,
   type LanguageModel,
+  smoothStream,
 } from "ai";
 import { AgentType } from "@/lib/agent-configs";
 import { devToolsMiddleware } from "@ai-sdk/devtools";
@@ -29,7 +30,6 @@ interface RequestBody {
   brandKitId?: string | null;
   sections?: Array<{ sectionId: string }> | null;
 }
-
 
 export async function POST(request: Request) {
   const {
@@ -82,5 +82,9 @@ export async function POST(request: Request) {
     uiMessages: messagesToUse, // Use summarized messages for agent processing
     abortSignal: request.signal,
     consumeSseStream: consumeStream,
+    experimental_transform: smoothStream({
+      delayInMs: 20, // optional: defaults to 10ms
+      chunking: "line", // optional: defaults to 'word'
+    }),
   });
 }
