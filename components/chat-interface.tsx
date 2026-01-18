@@ -90,6 +90,19 @@ const AI_MODELS = [
   // OpenAI - GPT-5 models (Top 5: 1 extreme expensive, 2 very cheap, 2 moderate)
   // Ordered: cheap to expensive, with gpt-5-mini first
   { 
+    id: "openai/gpt-4o", 
+    name: "GPT-4o", 
+    provider: "OpenAI", 
+    category: "moderate",
+    contextSize: "128K",
+    maxOutput: "16K",
+    inputCost: "$2.50/M",
+    outputCost: "$10.00/M",
+    cache: "Read: $0.25/M",
+    imageGen: null,
+    webSearch: false,
+  },
+  { 
     id: "openai/gpt-5-mini", 
     name: "GPT-5 Mini", 
     provider: "OpenAI", 
@@ -238,14 +251,7 @@ const AI_MODELS = [
   },
 ];
 
-// Category order for sorting (cheap < moderate < expensive)
-const CATEGORY_ORDER: Record<string, number> = {
-  cheap: 1,
-  moderate: 2,
-  expensive: 3,
-};
-
-// Group models by provider and sort within each group from cheap to expensive
+// Group models by provider
 const groupedModels = AI_MODELS.reduce((acc, model) => {
   if (!acc[model.provider]) {
     acc[model.provider] = [];
@@ -254,17 +260,32 @@ const groupedModels = AI_MODELS.reduce((acc, model) => {
   return acc;
 }, {} as Record<string, typeof AI_MODELS>);
 
-// Sort models within each provider group from cheap to expensive
-// Special handling: gpt-5-mini should be first in OpenAI group
+// Helper function to parse cost string and extract numeric value
+// Examples: "$2.00/M" -> 2.00, "$10.00/M" -> 10.00, "$120.00/M" -> 120.00
+function parseCost(costString: string | null | undefined): number {
+  if (!costString) return Infinity; // Put null/undefined costs at the end
+  const match = costString.match(/\$?([\d,]+\.?\d*)/);
+  if (match) {
+    return parseFloat(match[1].replace(/,/g, ''));
+  }
+  return Infinity;
+}
+
+// Sort models within each provider group by input token cost (ascending), then output token cost (ascending)
 Object.keys(groupedModels).forEach((provider) => {
   groupedModels[provider].sort((a, b) => {
-    // Special case: gpt-5-mini should always be first in OpenAI group
-    if (provider === "OpenAI") {
-      if (a.id === "openai/gpt-5-mini") return -1;
-      if (b.id === "openai/gpt-5-mini") return 1;
+    const inputCostA = parseCost(a.inputCost);
+    const inputCostB = parseCost(b.inputCost);
+    
+    // First sort by input cost
+    if (inputCostA !== inputCostB) {
+      return inputCostA - inputCostB;
     }
-    // Otherwise sort by category order
-    return (CATEGORY_ORDER[a.category] || 999) - (CATEGORY_ORDER[b.category] || 999);
+    
+    // If input costs are equal, sort by output cost
+    const outputCostA = parseCost(a.outputCost);
+    const outputCostB = parseCost(b.outputCost);
+    return outputCostA - outputCostB;
   });
 });
 
@@ -713,10 +734,12 @@ function PredefinedQuestions({
   onSelect,
   agentConfig,
   isTransitioning,
+  isStreaming,
 }: {
   onSelect: (question: string) => void;
   agentConfig: AgentConfig;
   isTransitioning: boolean;
+  isStreaming: boolean;
 }) {
   const themeColor = agentConfig.colors.primary;
   const topQuestions = agentConfig.predefinedQuestions.slice(0, 4);
@@ -749,6 +772,7 @@ function PredefinedQuestions({
                     item.expensive || item.new ? "pr-12 lg:pr-14" : "pr-8 lg:pr-10"
                   } text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]`}
                   onClick={() => onSelect(item.question)}
+                  disabled={isStreaming}
                   style={{
                     ["--theme-color" as string]: themeColor,
                   }}
@@ -940,9 +964,12 @@ function PredefinedQuestions({
                         <DropdownMenuItem
                           key={`${agentConfig.id}-more-${item.id}`}
                           className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
-                          onClick={() => onSelect(item.question)}
+                          onClick={() => !isStreaming && onSelect(item.question)}
+                          disabled={isStreaming}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                            if (!isStreaming) {
+                              e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                            }
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = "";
@@ -2198,6 +2225,7 @@ export function ChatInterface() {
             onSelect={handleQuestionSelect}
             agentConfig={currentAgentConfig}
             isTransitioning={isTransitioning}
+            isStreaming={isStreaming}
           />
           <ChatInput
             onSubmit={handleMessageSubmit}
