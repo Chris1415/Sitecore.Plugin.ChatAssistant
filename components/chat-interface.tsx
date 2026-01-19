@@ -2,7 +2,11 @@
 import type React from "react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, type FileUIPart } from "ai";
+import {
+  DefaultChatTransport,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  type FileUIPart,
+} from "ai";
 import { toast } from "sonner";
 import { AlertCircle, X } from "lucide-react";
 import {
@@ -66,6 +70,8 @@ import {
   Trash2,
   User,
   ChevronDown,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import usePagesContext from "./hooks/usePagesContext";
 import {
@@ -81,6 +87,20 @@ import { Toaster } from "@/components/ui/sonner";
 import type { ToolUIPart } from "ai";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Confirmation,
+  ConfirmationRequest,
+  ConfirmationActions,
+  ConfirmationAction,
+  ConfirmationTitle,
+} from "@/components/ai-elements/confirmation";
+import {
+  Tool,
+  ToolHeader,
+  ToolContent,
+  ToolInput,
+  ToolOutput,
+} from "@/components/ai-elements/tool";
 import { AnalyticsData } from "@/components/chat-elements/AnalyticsData";
 import { BrandReview } from "@/components/chat-elements/BrandReview";
 import { PageScreenshot } from "@/components/chat-elements/PageScreenshot";
@@ -95,10 +115,10 @@ import type { ListBrandKitsResponse } from "@/lib/services/BrandServices";
 const AI_MODELS = [
   // OpenAI - GPT-5 models (Top 5: 1 extreme expensive, 2 very cheap, 2 moderate)
   // Ordered: cheap to expensive, with gpt-5-mini first
-  { 
-    id: "openai/gpt-4o", 
-    name: "GPT-4o", 
-    provider: "OpenAI", 
+  {
+    id: "openai/gpt-4o",
+    name: "GPT-4o",
+    provider: "OpenAI",
     category: "moderate",
     contextSize: "128K",
     maxOutput: "16K",
@@ -108,10 +128,10 @@ const AI_MODELS = [
     imageGen: null,
     webSearch: false,
   },
-  { 
-    id: "openai/gpt-5-mini", 
-    name: "GPT-5 Mini", 
-    provider: "OpenAI", 
+  {
+    id: "openai/gpt-5-mini",
+    name: "GPT-5 Mini",
+    provider: "OpenAI",
     category: "cheap",
     contextSize: "400K",
     maxOutput: "16K",
@@ -121,10 +141,10 @@ const AI_MODELS = [
     imageGen: "$0.04/image",
     webSearch: false,
   },
-  { 
-    id: "openai/gpt-5-nano", 
-    name: "GPT-5 Nano", 
-    provider: "OpenAI", 
+  {
+    id: "openai/gpt-5-nano",
+    name: "GPT-5 Nano",
+    provider: "OpenAI",
     category: "cheap",
     contextSize: "400K",
     maxOutput: "16K",
@@ -134,10 +154,10 @@ const AI_MODELS = [
     imageGen: "$0.04/image",
     webSearch: false,
   },
-  { 
-    id: "openai/gpt-5", 
-    name: "GPT-5", 
-    provider: "OpenAI", 
+  {
+    id: "openai/gpt-5",
+    name: "GPT-5",
+    provider: "OpenAI",
     category: "moderate",
     contextSize: "400K",
     maxOutput: "16K",
@@ -147,10 +167,10 @@ const AI_MODELS = [
     imageGen: "$0.04/image",
     webSearch: false,
   },
-  { 
-    id: "openai/gpt-5-chat", 
-    name: "GPT-5 Chat", 
-    provider: "OpenAI", 
+  {
+    id: "openai/gpt-5-chat",
+    name: "GPT-5 Chat",
+    provider: "OpenAI",
     category: "moderate",
     contextSize: "400K",
     maxOutput: "16K",
@@ -160,10 +180,10 @@ const AI_MODELS = [
     imageGen: "$0.04/image",
     webSearch: false,
   },
-  { 
-    id: "openai/gpt-5-pro", 
-    name: "GPT-5 Pro", 
-    provider: "OpenAI", 
+  {
+    id: "openai/gpt-5-pro",
+    name: "GPT-5 Pro",
+    provider: "OpenAI",
     category: "expensive",
     contextSize: "400K",
     maxOutput: "16K",
@@ -272,7 +292,7 @@ function parseCost(costString: string | null | undefined): number {
   if (!costString) return Infinity; // Put null/undefined costs at the end
   const match = costString.match(/\$?([\d,]+\.?\d*)/);
   if (match) {
-    return parseFloat(match[1].replace(/,/g, ''));
+    return parseFloat(match[1].replace(/,/g, ""));
   }
   return Infinity;
 }
@@ -282,12 +302,12 @@ Object.keys(groupedModels).forEach((provider) => {
   groupedModels[provider].sort((a, b) => {
     const inputCostA = parseCost(a.inputCost);
     const inputCostB = parseCost(b.inputCost);
-    
+
     // First sort by input cost
     if (inputCostA !== inputCostB) {
       return inputCostA - inputCostB;
     }
-    
+
     // If input costs are equal, sort by output cost
     const outputCostA = parseCost(a.outputCost);
     const outputCostB = parseCost(b.outputCost);
@@ -414,26 +434,26 @@ function ChatHeader({
           <div className="flex items-center gap-2 lg:hidden">
             <Tooltip>
               <TooltipTrigger asChild>
-          <Button
-            variant="outline"
-            onClick={onNewChat}
+                <Button
+                  variant="outline"
+                  onClick={onNewChat}
                   size="icon"
                   className="h-9 w-9 rounded-lg border-border bg-card shadow-sm transition-colors"
-            style={{
-              ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
-              ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
-              e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = "";
-              e.currentTarget.style.backgroundColor = "";
-            }}
-          >
+                  style={{
+                    ["--hover-border" as string]: `${agentConfig.colors.primary}4D`,
+                    ["--hover-bg" as string]: `${agentConfig.colors.primary}0D`,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = `${agentConfig.colors.primary}4D`;
+                    e.currentTarget.style.backgroundColor = `${agentConfig.colors.primary}0D`;
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = "";
+                    e.currentTarget.style.backgroundColor = "";
+                  }}
+                >
                   <Plus className="size-4" />
-          </Button>
+                </Button>
               </TooltipTrigger>
               <TooltipContent className="bg-popover text-popover-foreground border border-border">
                 Start a new Chat
@@ -445,7 +465,6 @@ function ChatHeader({
 
         {/* Controls row - All controls side by side on larger viewports */}
         <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center lg:gap-3 lg:justify-between">
-
           <Select
             value={selectedAgent}
             onValueChange={(value) => onAgentChange(value as AgentType)}
@@ -490,74 +509,104 @@ function ChatHeader({
                   <SelectGroup key={provider}>
                     <SelectLabel>{provider}</SelectLabel>
                     {models.map((model) => (
-                <Tooltip key={model.id}>
-                  <TooltipTrigger asChild>
-                    <SelectItem value={model.id}>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{model.name}</span>
-                        {model.category && (
-                          <Badge
-                            colorScheme={
-                              model.category === "cheap"
-                                ? "success"
-                                : model.category === "moderate"
-                                ? "warning"
-                                : "danger"
-                            }
-                            size="sm"
-                            className="text-xs"
-                          >
-                            {model.category === "cheap"
-                              ? "Cheap"
-                              : model.category === "moderate"
-                              ? "Moderate"
-                              : "Expensive"}
-                          </Badge>
-                        )}
-                      </div>
-                    </SelectItem>
-                  </TooltipTrigger>
-                  <TooltipContent className="bg-popover text-popover-foreground border border-border max-w-xs">
-                    <div className="space-y-2">
-                      <div className="font-semibold text-sm">{model.name}</div>
-                      <div className="text-xs space-y-1.5">
-                        <div className="flex justify-between gap-4">
-                          <span className="text-muted-foreground">Context:</span>
-                          <span className="font-medium">{model.contextSize || "N/A"}</span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-muted-foreground">Max Output:</span>
-                          <span className="font-medium">{model.maxOutput || "N/A"}</span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-muted-foreground">Input:</span>
-                          <span className="font-medium">{model.inputCost || "N/A"}</span>
-                        </div>
-                        <div className="flex justify-between gap-4">
-                          <span className="text-muted-foreground">Output:</span>
-                          <span className="font-medium">{model.outputCost || "N/A"}</span>
-                        </div>
-                        {model.cache && (
-                          <div className="flex justify-between gap-4">
-                            <span className="text-muted-foreground">Cache:</span>
-                            <span className="font-medium">{model.cache}</span>
+                      <Tooltip key={model.id}>
+                        <TooltipTrigger asChild>
+                          <SelectItem value={model.id}>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{model.name}</span>
+                              {model.category && (
+                                <Badge
+                                  colorScheme={
+                                    model.category === "cheap"
+                                      ? "success"
+                                      : model.category === "moderate"
+                                      ? "warning"
+                                      : "danger"
+                                  }
+                                  size="sm"
+                                  className="text-xs"
+                                >
+                                  {model.category === "cheap"
+                                    ? "Cheap"
+                                    : model.category === "moderate"
+                                    ? "Moderate"
+                                    : "Expensive"}
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-popover text-popover-foreground border border-border max-w-xs">
+                          <div className="space-y-2">
+                            <div className="font-semibold text-sm">
+                              {model.name}
+                            </div>
+                            <div className="text-xs space-y-1.5">
+                              <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">
+                                  Context:
+                                </span>
+                                <span className="font-medium">
+                                  {model.contextSize || "N/A"}
+                                </span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">
+                                  Max Output:
+                                </span>
+                                <span className="font-medium">
+                                  {model.maxOutput || "N/A"}
+                                </span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">
+                                  Input:
+                                </span>
+                                <span className="font-medium">
+                                  {model.inputCost || "N/A"}
+                                </span>
+                              </div>
+                              <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">
+                                  Output:
+                                </span>
+                                <span className="font-medium">
+                                  {model.outputCost || "N/A"}
+                                </span>
+                              </div>
+                              {model.cache && (
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-muted-foreground">
+                                    Cache:
+                                  </span>
+                                  <span className="font-medium">
+                                    {model.cache}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="flex justify-between gap-4">
+                                <span className="text-muted-foreground">
+                                  Image Gen:
+                                </span>
+                                <span className="font-medium">
+                                  {model.imageGen || "No"}
+                                </span>
+                              </div>
+                              {model.webSearch && (
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-muted-foreground">
+                                    Web Search:
+                                  </span>
+                                  <span className="font-medium">
+                                    {model.webSearch}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        )}
-                        <div className="flex justify-between gap-4">
-                          <span className="text-muted-foreground">Image Gen:</span>
-                          <span className="font-medium">{model.imageGen || "No"}</span>
-                        </div>
-                        {model.webSearch && (
-                          <div className="flex justify-between gap-4">
-                            <span className="text-muted-foreground">Web Search:</span>
-                            <span className="font-medium">{model.webSearch}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              ))}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
                   </SelectGroup>
                 );
               })}
@@ -573,25 +622,27 @@ function ChatHeader({
             disabled={isLoadingBrandKits}
           >
             <SelectTrigger className="h-9 w-full lg:w-[180px] rounded-lg border-border bg-card shadow-sm text-xs lg:text-sm">
-              {selectedBrandKit ? (() => {
-                const selectedKit = brandKits.find((kit) => kit.id === selectedBrandKit);
-                if (selectedKit) {
-                  return (
-                    <span className="truncate">{selectedKit.name}</span>
+              {selectedBrandKit ? (
+                (() => {
+                  const selectedKit = brandKits.find(
+                    (kit) => kit.id === selectedBrandKit
                   );
-                }
-                return (
-                  <SelectValue
-                    placeholder={
-                      isLoadingBrandKits
-                        ? "Loading..."
-                        : brandKits.length === 0
-                        ? "No brand kits"
-                        : "Brand Kit"
-                    }
-                  />
-                );
-              })() : (
+                  if (selectedKit) {
+                    return <span className="truncate">{selectedKit.name}</span>;
+                  }
+                  return (
+                    <SelectValue
+                      placeholder={
+                        isLoadingBrandKits
+                          ? "Loading..."
+                          : brandKits.length === 0
+                          ? "No brand kits"
+                          : "Brand Kit"
+                      }
+                    />
+                  );
+                })()
+              ) : (
                 <SelectValue
                   placeholder={
                     isLoadingBrandKits
@@ -607,7 +658,7 @@ function ChatHeader({
               {brandKits.length === 0 && !isLoadingBrandKits ? (
                 <div className="px-2 py-4 text-sm text-muted-foreground text-center">
                   No brand kits available
-          </div>
+                </div>
               ) : (
                 brandKits.map((brandKit) => (
                   <SelectItem key={brandKit.id} value={brandKit.id}>
@@ -676,7 +727,7 @@ function ChatHeader({
                           e.currentTarget.style.backgroundColor = "";
                         }}
                       >
-            <Checkbox
+                        <Checkbox
                           checked={selectedSections.includes(section.id)}
                           onCheckedChange={(checked) => {
                             if (checked) {
@@ -757,89 +808,94 @@ function PredefinedQuestions({
         <div className="relative">
           {/* Questions Grid Container with Hover Area */}
           <div className="group relative">
-        <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-3">
               {topQuestions.map((item, index) => {
-            const Icon = item.icon;
-            return (
-              <div
-                key={`${agentConfig.id}-${item.id}`}
-                className="relative flex items-center transition-all duration-300 ease-in-out"
-                style={{
-                  opacity: isTransitioning ? 0 : 1,
-                  transform: isTransitioning
-                    ? "translateY(10px) scale(0.95)"
-                    : "translateY(0) scale(1)",
-                  transitionDelay: `${index * 30}ms`,
-                }}
-              >
-                <Button
-                  variant="outline"
-                  className={`h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 ${
-                    item.expensive || item.new ? "pr-12 lg:pr-14" : "pr-8 lg:pr-10"
-                  } text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]`}
-                  onClick={() => onSelect(item.question)}
-                  disabled={isStreaming}
-                  style={{
-                    ["--theme-color" as string]: themeColor,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = `${themeColor}4D`;
-                    e.currentTarget.style.backgroundColor = `${themeColor}0D`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = "";
-                    e.currentTarget.style.backgroundColor = "";
-                  }}
-                >
-                  <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
-                  <span className="line-clamp-1 flex-1 min-w-0">{item.label}</span>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {item.new && (
-                      <Badge
-                        variant="default"
-                        colorScheme="primary"
-                        size="sm"
-                        className="shrink-0"
-                      >
-                        New
-                      </Badge>
-                    )}
-                    {item.expensive && (
-                      <Badge
-                        variant="default"
-                        colorScheme="warning"
-                        size="sm"
-                        className="shrink-0"
-                      >
-                        Expensive
-                      </Badge>
-                    )}
-                  </div>
-                </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      className={`absolute p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors ${
-                        item.expensive || item.new ? "right-1 lg:right-2" : "right-2 lg:right-3"
-                      }`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Info className="size-3.5 lg:size-4" />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent
-                    side="top"
-                    className="max-w-xs text-center text-white dark:text-white"
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={`${agentConfig.id}-${item.id}`}
+                    className="relative flex items-center transition-all duration-300 ease-in-out"
+                    style={{
+                      opacity: isTransitioning ? 0 : 1,
+                      transform: isTransitioning
+                        ? "translateY(10px) scale(0.95)"
+                        : "translateY(0) scale(1)",
+                      transitionDelay: `${index * 30}ms`,
+                    }}
                   >
-                    {item.question}
-                  </TooltipContent>
-                </Tooltip>
-                    
-              </div>
-            );
-          })}
-        </div>
+                    <Button
+                      variant="outline"
+                      className={`h-auto w-full justify-start gap-2 lg:gap-2.5 rounded-lg lg:rounded-xl border-border bg-card px-3 lg:px-4 py-2.5 lg:py-3 ${
+                        item.expensive || item.new
+                          ? "pr-12 lg:pr-14"
+                          : "pr-8 lg:pr-10"
+                      } text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]`}
+                      onClick={() => onSelect(item.question)}
+                      disabled={isStreaming}
+                      style={{
+                        ["--theme-color" as string]: themeColor,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = `${themeColor}4D`;
+                        e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "";
+                        e.currentTarget.style.backgroundColor = "";
+                      }}
+                    >
+                      <Icon className="size-3.5 lg:size-4 shrink-0 text-muted-foreground transition-colors duration-300" />
+                      <span className="line-clamp-1 flex-1 min-w-0">
+                        {item.label}
+                      </span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        {item.new && (
+                          <Badge
+                            variant="default"
+                            colorScheme="primary"
+                            size="sm"
+                            className="shrink-0"
+                          >
+                            New
+                          </Badge>
+                        )}
+                        {item.expensive && (
+                          <Badge
+                            variant="default"
+                            colorScheme="warning"
+                            size="sm"
+                            className="shrink-0"
+                          >
+                            Expensive
+                          </Badge>
+                        )}
+                      </div>
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className={`absolute p-0.5 rounded-full text-muted-foreground/60 hover:text-muted-foreground transition-colors ${
+                            item.expensive || item.new
+                              ? "right-1 lg:right-2"
+                              : "right-2 lg:right-3"
+                          }`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Info className="size-3.5 lg:size-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="top"
+                        className="max-w-xs text-center text-white dark:text-white"
+                      >
+                        {item.question}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Desktop: Subtle text link below grid - appears on hover or always visible but very subtle */}
             {moreQuestions.length > 0 && (
@@ -970,7 +1026,9 @@ function PredefinedQuestions({
                         <DropdownMenuItem
                           key={`${agentConfig.id}-more-${item.id}`}
                           className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
-                          onClick={() => !isStreaming && onSelect(item.question)}
+                          onClick={() =>
+                            !isStreaming && onSelect(item.question)
+                          }
                           disabled={isStreaming}
                           onMouseEnter={(e) => {
                             if (!isStreaming) {
@@ -1348,7 +1406,9 @@ export function ChatInterface() {
       setIsLoadingSections(true);
       try {
         const response = await fetch(
-          `/api/brand-kits/sections?brandkitId=${encodeURIComponent(selectedBrandKit)}`
+          `/api/brand-kits/sections?brandkitId=${encodeURIComponent(
+            selectedBrandKit
+          )}`
         );
         if (!response.ok) {
           throw new Error(`Failed to load sections: ${response.statusText}`);
@@ -1373,14 +1433,56 @@ export function ChatInterface() {
     loadSections();
   }, [selectedBrandKit]);
 
-  const { messages, status, sendMessage, setMessages, stop } = useChat({
+  const { pagesContext, refreshPagesContext, navigatePagesContext } =
+    usePagesContext({
+      onContextChange: async (context) => {
+        if (!context) return;
+
+        const templateName = context.pageInfo?.template?.name;
+        const suggestedAgent = getAgentForTemplate(templateName);
+
+        if (suggestedAgent && suggestedAgent !== currentAgentRef.current) {
+          setIsTransitioning(true);
+          setTimeout(() => {
+            setSelectedAgent(suggestedAgent);
+            setDisplayAgent(suggestedAgent);
+            setTimeout(() => {
+              setIsTransitioning(false);
+            }, 50);
+          }, 200);
+        }
+      },
+    });
+
+  const {
+    messages,
+    status,
+    sendMessage,
+    setMessages,
+    stop,
+    addToolApprovalResponse,
+  } = useChat({
     transport: new DefaultChatTransport({
       api: "/api/chat",
-      body: {
+      body: () => ({
         model: selectedModel,
         contextId: resourceAccess?.[0]?.context?.preview,
+        agentType: selectedAgent,
+        pageContext: pagesContext,
+        brandKitId: selectedBrandKit,
+        sections:
+          selectedSections.length > 0
+            ? selectedSections.map((id) => ({ sectionId: id }))
+            : undefined,
+      }),
+      headers: async () => {
+        const accessToken = await getAccessTokenSilently();
+        return {
+          Authorization: `Bearer ${accessToken}`,
+        };
       },
     }),
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
     onFinish: ({ message }) => {
       // Add agent metadata to assistant messages
       if (message.role === "assistant") {
@@ -1399,7 +1501,7 @@ export function ChatInterface() {
     onError: (error: unknown) => {
       console.error("[ChatInterface] Error:", error);
       let errorMessage = "An error occurred";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
         // Include stack trace if available and message is short
@@ -1419,7 +1521,7 @@ export function ChatInterface() {
           errorMessage = JSON.stringify(error, null, 2);
         }
       }
-      
+
       setErrorMessage(errorMessage);
       // Auto-hide after 15 seconds to allow reading full error
       setTimeout(() => setErrorMessage(null), 15000);
@@ -1445,27 +1547,6 @@ export function ChatInterface() {
       })
     );
   }, [messages.length, setMessages]); // Trigger when new messages are added
-
-
-  const { pagesContext, refreshPagesContext, navigatePagesContext } = usePagesContext({
-    onContextChange: async (context) => {
-      if (!context) return;
-
-      const templateName = context.pageInfo?.template?.name;
-      const suggestedAgent = getAgentForTemplate(templateName);
-
-      if (suggestedAgent && suggestedAgent !== currentAgentRef.current) {
-        setIsTransitioning(true);
-        setTimeout(() => {
-          setSelectedAgent(suggestedAgent);
-          setDisplayAgent(suggestedAgent);
-          setTimeout(() => {
-            setIsTransitioning(false);
-          }, 50);
-        }, 200);
-      }
-    },
-  });
 
   // Check for refreshPages and navigatePages tool calls in the last assistant message
   useEffect(() => {
@@ -1495,11 +1576,13 @@ export function ChatInterface() {
 
     if (navigatePart) {
       const toolPart = navigatePart as ToolUIPart;
-      const output = toolPart.output as {
-        language?: string | null;
-        version?: number | null;
-        itemId?: string | null;
-      } | undefined;
+      const output = toolPart.output as
+        | {
+            language?: string | null;
+            version?: number | null;
+            itemId?: string | null;
+          }
+        | undefined;
 
       if (output) {
         const itemId = output.itemId;
@@ -1514,7 +1597,10 @@ export function ChatInterface() {
           navigatePagesContext({
             itemId,
             language,
-            itemVersion: itemVersion !== null && itemVersion !== undefined ? itemVersion : 0,
+            itemVersion:
+              itemVersion !== null && itemVersion !== undefined
+                ? itemVersion
+                : 0,
           });
         }
       }
@@ -1559,30 +1645,30 @@ export function ChatInterface() {
     files: FileUIPart[];
   }) => {
     try {
-    const accessToken = await getAccessTokenSilently();
+      const accessToken = await getAccessTokenSilently();
       if ((message.text.trim() || message.files.length > 0) && !isStreaming) {
-      sendMessage(
+        sendMessage(
           {
             text: message.text,
             files: message.files,
           },
-        {
-          body: {
-            agentType: selectedAgent,
+          {
+            body: {
+              agentType: selectedAgent,
               pageContext: pagesContext,
               brandKitId: selectedBrandKit,
               sections:
                 selectedSections.length > 0
                   ? selectedSections.map((id) => ({ sectionId: id }))
                   : undefined,
-          },
-          headers: { Authorization: `Bearer ${accessToken}` },
-        }
-      );
+            },
+            headers: { Authorization: `Bearer ${accessToken}` },
+          }
+        );
       }
     } catch (error) {
       let errorMessage = "An error occurred";
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
         // Include stack trace if available and message is short
@@ -1601,7 +1687,7 @@ export function ChatInterface() {
           errorMessage = JSON.stringify(error, null, 2);
         }
       }
-      
+
       toast.error("Error", {
         description: errorMessage,
         duration: 10000, // Show for 10 seconds to allow reading
@@ -1616,7 +1702,9 @@ export function ChatInterface() {
           <div className="flex items-start justify-between px-6 py-4 max-w-full gap-4">
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <AlertCircle className="size-5 shrink-0 mt-0.5" />
-              <p className="text-base font-semibold wrap-break-word whitespace-pre-wrap">{errorMessage}</p>
+              <p className="text-base font-semibold wrap-break-word whitespace-pre-wrap">
+                {errorMessage}
+              </p>
             </div>
             <button
               onClick={() => setErrorMessage(null)}
@@ -1652,174 +1740,174 @@ export function ChatInterface() {
 
           <Conversation className="flex-1 relative">
             <AutoScrollWrapper messages={messages} status={status}>
-            <ConversationContent>
-              {(() => {
-                // Show empty state if no visible messages
+              <ConversationContent>
+                {(() => {
+                  // Show empty state if no visible messages
                   if (messages.length === 0) {
-                  return (
-                    <ConversationEmptyState className="flex items-center justify-center p-1 pb-4 lg:p-4 lg:pb-8">
-                      <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
-                        <div className="relative flex size-12 lg:size-16 items-center justify-center">
-                          <div
-                            className="absolute inset-0 rounded-full blur-xl lg:blur-2xl transition-all duration-300 ease-in-out"
-                            style={{
-                              backgroundColor: `${currentAgentConfig.colors.primary}1A`,
-                              opacity: isTransitioning ? 0 : 1,
-                            }}
-                          />
-                          <div
-                            className="relative flex size-12 lg:size-16 items-center justify-center rounded-xl lg:rounded-2xl shadow-lg transition-all duration-300 ease-in-out"
-                            style={{
-                              background: `linear-gradient(135deg, ${currentAgentConfig.colors.primary} 0%, ${currentAgentConfig.colors.primaryLight} 100%)`,
-                              boxShadow: `0 10px 25px -5px ${currentAgentConfig.colors.primary}33`,
-                              opacity: isTransitioning ? 0 : 1,
-                              transform: isTransitioning
-                                ? "scale(0.95)"
-                                : "scale(1)",
-                            }}
-                          >
-                            {(() => {
-                              const Icon = currentAgentConfig.icon;
-                              return (
-                                <Icon
-                                  className="size-6 lg:size-8 text-white transition-all duration-300 ease-in-out"
-                                  style={{
-                                    opacity: isTransitioning ? 0 : 1,
-                                    transform: isTransitioning
-                                      ? "rotate(-10deg)"
-                                      : "rotate(0deg)",
-                                  }}
-                                />
-                              );
-                            })()}
-                          </div>
-                        </div>
-                        <div className="space-y-1.5 lg:space-y-2">
-                          <h2
-                            className="text-balance text-3xl lg:text-5xl font-bold tracking-tight text-foreground transition-all duration-300 ease-in-out"
-                            style={{
-                              opacity: isTransitioning ? 0 : 1,
-                              transform: isTransitioning
-                                ? "translateY(-10px)"
-                                : "translateY(0)",
-                            }}
-                          >
-                            {currentAgentConfig.headline}
-                          </h2>
-                          <p
-                            className="text-pretty text-base lg:text-lg leading-relaxed text-muted-foreground transition-all duration-300 ease-in-out"
-                            style={{
-                              opacity: isTransitioning ? 0 : 1,
-                              transform: isTransitioning
-                                ? "translateY(-10px)"
-                                : "translateY(0)",
-                              transitionDelay: "50ms",
-                            }}
-                          >
-                            {currentAgentConfig.subheadline}
-                          </p>
-                        </div>
-                        <div className="grid w-full grid-cols-1 lg:grid-cols-2 gap-2.5 lg:gap-4">
-                            {currentAgentConfig.teaserCards.map(
-                              (card, index) => {
-                            const CardIcon = card.icon;
-                            return (
-                              <div
-                                key={`${displayAgent}-teaser-${index}`}
-                                className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-2.5 lg:p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md"
-                                style={{
-                                  opacity: isTransitioning ? 0 : 1,
-                                  transform: isTransitioning
-                                    ? "translateY(20px) scale(0.95)"
-                                    : "translateY(0) scale(1)",
-                                  transitionDelay: `${index * 50}ms`,
-                                  ["--theme-color" as string]:
-                                    currentAgentConfig.colors.primary,
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.currentTarget.style.borderColor = `${currentAgentConfig.colors.primary}4D`;
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.currentTarget.style.borderColor = "";
-                                }}
-                              >
-                                <div
-                                  className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-all duration-300 ease-in-out"
-                                  style={{
-                                    backgroundColor: `${currentAgentConfig.colors.primary}1A`,
-                                  }}
-                                >
-                                  <CardIcon
-                                    className="size-5 lg:size-6 transition-all duration-300 ease-in-out"
+                    return (
+                      <ConversationEmptyState className="flex items-center justify-center p-1 pb-4 lg:p-4 lg:pb-8">
+                        <div className="flex max-w-3xl flex-col items-center gap-4 lg:gap-6 text-center px-2">
+                          <div className="relative flex size-12 lg:size-16 items-center justify-center">
+                            <div
+                              className="absolute inset-0 rounded-full blur-xl lg:blur-2xl transition-all duration-300 ease-in-out"
+                              style={{
+                                backgroundColor: `${currentAgentConfig.colors.primary}1A`,
+                                opacity: isTransitioning ? 0 : 1,
+                              }}
+                            />
+                            <div
+                              className="relative flex size-12 lg:size-16 items-center justify-center rounded-xl lg:rounded-2xl shadow-lg transition-all duration-300 ease-in-out"
+                              style={{
+                                background: `linear-gradient(135deg, ${currentAgentConfig.colors.primary} 0%, ${currentAgentConfig.colors.primaryLight} 100%)`,
+                                boxShadow: `0 10px 25px -5px ${currentAgentConfig.colors.primary}33`,
+                                opacity: isTransitioning ? 0 : 1,
+                                transform: isTransitioning
+                                  ? "scale(0.95)"
+                                  : "scale(1)",
+                              }}
+                            >
+                              {(() => {
+                                const Icon = currentAgentConfig.icon;
+                                return (
+                                  <Icon
+                                    className="size-6 lg:size-8 text-white transition-all duration-300 ease-in-out"
                                     style={{
-                                          color:
-                                            currentAgentConfig.colors.primary,
+                                      opacity: isTransitioning ? 0 : 1,
+                                      transform: isTransitioning
+                                        ? "rotate(-10deg)"
+                                        : "rotate(0deg)",
                                     }}
                                   />
-                                </div>
-                                <div className="space-y-1 text-center">
-                                  <p className="text-base lg:text-xl font-semibold text-foreground transition-colors duration-300">
-                                    {card.title}
-                                  </p>
-                                  <p className="text-xs lg:text-base text-muted-foreground leading-tight">
-                                    {card.description}
-                                  </p>
-                                </div>
-                              </div>
-                            );
+                                );
+                              })()}
+                            </div>
+                          </div>
+                          <div className="space-y-1.5 lg:space-y-2">
+                            <h2
+                              className="text-balance text-3xl lg:text-5xl font-bold tracking-tight text-foreground transition-all duration-300 ease-in-out"
+                              style={{
+                                opacity: isTransitioning ? 0 : 1,
+                                transform: isTransitioning
+                                  ? "translateY(-10px)"
+                                  : "translateY(0)",
+                              }}
+                            >
+                              {currentAgentConfig.headline}
+                            </h2>
+                            <p
+                              className="text-pretty text-base lg:text-lg leading-relaxed text-muted-foreground transition-all duration-300 ease-in-out"
+                              style={{
+                                opacity: isTransitioning ? 0 : 1,
+                                transform: isTransitioning
+                                  ? "translateY(-10px)"
+                                  : "translateY(0)",
+                                transitionDelay: "50ms",
+                              }}
+                            >
+                              {currentAgentConfig.subheadline}
+                            </p>
+                          </div>
+                          <div className="grid w-full grid-cols-1 lg:grid-cols-2 gap-2.5 lg:gap-4">
+                            {currentAgentConfig.teaserCards.map(
+                              (card, index) => {
+                                const CardIcon = card.icon;
+                                return (
+                                  <div
+                                    key={`${displayAgent}-teaser-${index}`}
+                                    className="group flex flex-col items-center gap-2.5 lg:gap-3 rounded-xl lg:rounded-2xl border border-border bg-card p-2.5 lg:p-6 shadow-sm transition-all duration-300 ease-in-out hover:shadow-md"
+                                    style={{
+                                      opacity: isTransitioning ? 0 : 1,
+                                      transform: isTransitioning
+                                        ? "translateY(20px) scale(0.95)"
+                                        : "translateY(0) scale(1)",
+                                      transitionDelay: `${index * 50}ms`,
+                                      ["--theme-color" as string]:
+                                        currentAgentConfig.colors.primary,
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.borderColor = `${currentAgentConfig.colors.primary}4D`;
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.borderColor = "";
+                                    }}
+                                  >
+                                    <div
+                                      className="flex size-10 lg:size-14 items-center justify-center rounded-xl lg:rounded-2xl transition-all duration-300 ease-in-out"
+                                      style={{
+                                        backgroundColor: `${currentAgentConfig.colors.primary}1A`,
+                                      }}
+                                    >
+                                      <CardIcon
+                                        className="size-5 lg:size-6 transition-all duration-300 ease-in-out"
+                                        style={{
+                                          color:
+                                            currentAgentConfig.colors.primary,
+                                        }}
+                                      />
+                                    </div>
+                                    <div className="space-y-1 text-center">
+                                      <p className="text-base lg:text-xl font-semibold text-foreground transition-colors duration-300">
+                                        {card.title}
+                                      </p>
+                                      <p className="text-xs lg:text-base text-muted-foreground leading-tight">
+                                        {card.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
                               }
                             )}
+                          </div>
                         </div>
-                      </div>
-                    </ConversationEmptyState>
-                  );
-                }
+                      </ConversationEmptyState>
+                    );
+                  }
 
-                // Render visible messages
-                return (
-                  <>
+                  // Render visible messages
+                  return (
+                    <>
                       {messages.map((message, index) => {
-                      const { role, parts, metadata } = message;
-                      // Get agent info from metadata or use current agent for assistant messages
-                      const agentType =
-                        (metadata as { agentType?: AgentType })?.agentType ||
-                        (role === "assistant" ? selectedAgent : undefined);
-                      const agentConfig = agentType
-                        ? getAgentConfig(agentType)
-                        : null;
+                        const { role, parts, metadata } = message;
+                        // Get agent info from metadata or use current agent for assistant messages
+                        const agentType =
+                          (metadata as { agentType?: AgentType })?.agentType ||
+                          (role === "assistant" ? selectedAgent : undefined);
+                        const agentConfig = agentType
+                          ? getAgentConfig(agentType)
+                          : null;
 
-                      // Extract tool names from tool parts
-                      const toolNames = parts
-                        .filter(
-                          (part) =>
-                            part.type &&
-                            typeof part.type === "string" &&
-                            part.type.startsWith("tool-")
-                        )
-                        .map((part) => {
-                          // Check if part has a toolName property
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          const partAny = part as any;
-                          if (partAny.toolName) {
-                            return partAny.toolName;
-                          }
-                          // Tool type format is usually "tool-{toolName}" or similar
-                          const toolType = part.type as string;
-                          // Extract tool name from type (e.g., "tool-getLanguages" -> "getLanguages")
-                          const toolName = toolType
-                            .replace(/^tool-/, "")
-                            .split("-")
-                            .map(
-                              (word) =>
-                                word.charAt(0).toUpperCase() +
-                                word.slice(1).toLowerCase()
-                            )
-                            .join(" ");
-                          return toolName;
-                        })
-                        .filter(
-                          (name, index, self) => self.indexOf(name) === index
-                        ); // Remove duplicates
+                        // Extract tool names from tool parts
+                        const toolNames = parts
+                          .filter(
+                            (part) =>
+                              part.type &&
+                              typeof part.type === "string" &&
+                              part.type.startsWith("tool-")
+                          )
+                          .map((part) => {
+                            // Check if part has a toolName property
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            const partAny = part as any;
+                            if (partAny.toolName) {
+                              return partAny.toolName;
+                            }
+                            // Tool type format is usually "tool-{toolName}" or similar
+                            const toolType = part.type as string;
+                            // Extract tool name from type (e.g., "tool-getLanguages" -> "getLanguages")
+                            const toolName = toolType
+                              .replace(/^tool-/, "")
+                              .split("-")
+                              .map(
+                                (word) =>
+                                  word.charAt(0).toUpperCase() +
+                                  word.slice(1).toLowerCase()
+                              )
+                              .join(" ");
+                            return toolName;
+                          })
+                          .filter(
+                            (name, index, self) => self.indexOf(name) === index
+                          ); // Remove duplicates
 
                         // Find the index of the analytics tool result part
                         const analyticsToolIndex = parts.findIndex(
@@ -1830,7 +1918,7 @@ export function ChatInterface() {
                         );
                         const hasAnalyticsTool = analyticsToolIndex !== -1;
 
-                      return (
+                        return (
                           <div key={index} className="relative group/message">
                             <Message from={role} className="relative">
                               {/* User message header */}
@@ -1894,71 +1982,71 @@ export function ChatInterface() {
                                 </div>
                               )}
                               {/* Assistant message header */}
-                          {role === "assistant" && agentConfig && (
-                            <div
-                              className="mb-1.5 flex items-center gap-2 px-1"
-                              style={{
-                                color: agentConfig.colors.primary,
-                              }}
-                            >
-                              <div
-                                className="flex size-5 items-center justify-center rounded-md"
-                                style={{
-                                  backgroundColor: `${agentConfig.colors.primary}1A`,
-                                }}
-                              >
-                                {(() => {
-                                  const Icon = agentConfig.icon;
-                                  return (
-                                    <Icon
-                                      className="size-3"
-                                      style={{
-                                        color: agentConfig.colors.primary,
-                                      }}
-                                    />
-                                  );
-                                })()}
-                              </div>
-                              <span className="text-xs font-medium">
-                                {agentConfig.name} Assistant
-                              </span>
-                              {toolNames.length > 0 && (
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/50 hover:bg-muted dark:hover:bg-muted/50 transition-colors cursor-help group">
-                                      <Wrench className="size-3 text-foreground/70 group-hover:text-foreground transition-colors" />
-                                      <span className="text-xs font-medium text-foreground">
-                                        Tools Used ({toolNames.length})
-                                      </span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent
-                                    side="top"
-                                    className="max-w-xs bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg p-3"
+                              {role === "assistant" && agentConfig && (
+                                <div
+                                  className="mb-1.5 flex items-center gap-2 px-1"
+                                  style={{
+                                    color: agentConfig.colors.primary,
+                                  }}
+                                >
+                                  <div
+                                    className="flex size-5 items-center justify-center rounded-md"
+                                    style={{
+                                      backgroundColor: `${agentConfig.colors.primary}1A`,
+                                    }}
                                   >
-                                    <div className="space-y-2">
-                                      <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
-                                        <Wrench className="size-3.5 text-foreground" />
-                                        <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
-                                          Tools Used ({toolNames.length})
-                                        </p>
-                                      </div>
-                                      <ul className="list-disc list-inside space-y-1">
-                                        {toolNames.map(
-                                          (toolName, toolIndex) => (
-                                            <li
-                                              key={toolIndex}
-                                              className="text-sm font-medium text-gray-800 dark:text-gray-200"
-                                            >
-                                              {toolName}
-                                            </li>
-                                          )
-                                        )}
-                                      </ul>
-                                    </div>
-                                  </TooltipContent>
-                                </Tooltip>
-                              )}
+                                    {(() => {
+                                      const Icon = agentConfig.icon;
+                                      return (
+                                        <Icon
+                                          className="size-3"
+                                          style={{
+                                            color: agentConfig.colors.primary,
+                                          }}
+                                        />
+                                      );
+                                    })()}
+                                  </div>
+                                  <span className="text-xs font-medium">
+                                    {agentConfig.name} Assistant
+                                  </span>
+                                  {toolNames.length > 0 && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-muted/50 dark:bg-muted/30 border border-border/50 hover:bg-muted dark:hover:bg-muted/50 transition-colors cursor-help group">
+                                          <Wrench className="size-3 text-foreground/70 group-hover:text-foreground transition-colors" />
+                                          <span className="text-xs font-medium text-foreground">
+                                            Tools Used ({toolNames.length})
+                                          </span>
+                                        </div>
+                                      </TooltipTrigger>
+                                      <TooltipContent
+                                        side="top"
+                                        className="max-w-xs bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 shadow-lg p-3"
+                                      >
+                                        <div className="space-y-2">
+                                          <div className="flex items-center gap-2 pb-1 border-b border-gray-200 dark:border-gray-700">
+                                            <Wrench className="size-3.5 text-foreground" />
+                                            <p className="text-sm font-bold text-gray-900 dark:text-gray-100">
+                                              Tools Used ({toolNames.length})
+                                            </p>
+                                          </div>
+                                          <ul className="list-disc list-inside space-y-1">
+                                            {toolNames.map(
+                                              (toolName, toolIndex) => (
+                                                <li
+                                                  key={toolIndex}
+                                                  className="text-sm font-medium text-gray-800 dark:text-gray-200"
+                                                >
+                                                  {toolName}
+                                                </li>
+                                              )
+                                            )}
+                                          </ul>
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
                                   {/* Delete button in assistant header */}
                                   <Tooltip>
                                     <TooltipTrigger asChild>
@@ -1977,58 +2065,64 @@ export function ChatInterface() {
                                       <p className="text-sm">Delete message</p>
                                     </TooltipContent>
                                   </Tooltip>
-                            </div>
-                          )}
-                          <MessageContent
-                            className={
-                              role === "assistant" && agentConfig
-                                ? "transition-colors duration-300"
-                                : ""
-                            }
-                            style={
-                              role === "assistant" && agentConfig
-                                ? {
-                                    backgroundColor: `${agentConfig.colors.primary}08`,
-                                    borderLeft: `3px solid ${agentConfig.colors.primary}`,
-                                    paddingLeft: "12px",
-                                    paddingRight: "12px",
-                                    paddingTop: "10px",
-                                    paddingBottom: "10px",
-                                    borderRadius: "8px",
-                                  }
-                                : undefined
-                            }
-                          >
-                            {parts.map((part, i) => {
-                              switch (part.type) {
-                                case "reasoning":
-                                  // Handle reasoning parts with ChainOfThought component
-                                  if (role === "assistant" && "text" in part && part.text) {
-                                    return (
-                                      <ChainOfThought
-                                        key={`${role}-reasoning-${i}`}
-                                        defaultOpen={true}
-                                        className="my-4"
-                                      >
-                                        <ChainOfThoughtHeader>Chain of Thought</ChainOfThoughtHeader>
-                                        <ChainOfThoughtContent>
-                                          <Streamdown className="prose prose-sm dark:prose-invert max-w-none">
-                                            {part.text}
-                                          </Streamdown>
-                                        </ChainOfThoughtContent>
-                                      </ChainOfThought>
-                                    );
-                                  }
-                                  return null;
-                                case "text":
+                                </div>
+                              )}
+                              <MessageContent
+                                className={
+                                  role === "assistant" && agentConfig
+                                    ? "transition-colors duration-300"
+                                    : ""
+                                }
+                                style={
+                                  role === "assistant" && agentConfig
+                                    ? {
+                                        backgroundColor: `${agentConfig.colors.primary}08`,
+                                        borderLeft: `3px solid ${agentConfig.colors.primary}`,
+                                        paddingLeft: "12px",
+                                        paddingRight: "12px",
+                                        paddingTop: "10px",
+                                        paddingBottom: "10px",
+                                        borderRadius: "8px",
+                                      }
+                                    : undefined
+                                }
+                              >
+                                {parts.map((part, i) => {
+                                  switch (part.type) {
+                                    case "reasoning":
+                                      // Handle reasoning parts with ChainOfThought component
+                                      if (
+                                        role === "assistant" &&
+                                        "text" in part &&
+                                        part.text
+                                      ) {
+                                        return (
+                                          <ChainOfThought
+                                            key={`${role}-reasoning-${i}`}
+                                            defaultOpen={true}
+                                            className="my-4"
+                                          >
+                                            <ChainOfThoughtHeader>
+                                              Chain of Thought
+                                            </ChainOfThoughtHeader>
+                                            <ChainOfThoughtContent>
+                                              <Streamdown className="prose prose-sm dark:prose-invert max-w-none">
+                                                {part.text}
+                                              </Streamdown>
+                                            </ChainOfThoughtContent>
+                                          </ChainOfThought>
+                                        );
+                                      }
+                                      return null;
+                                    case "text":
                                       // Skip text parts that come BEFORE the analytics tool result
                                       // This prevents showing raw data, but allows AI response text after the chart
                                       if (
                                         hasAnalyticsTool &&
                                         i < analyticsToolIndex
                                       ) {
-                                    return null;
-                                  }
+                                        return null;
+                                      }
                                       // Also skip text parts that look like JSON data (raw tool output)
                                       if (hasAnalyticsTool && part.text) {
                                         try {
@@ -2044,11 +2138,11 @@ export function ChatInterface() {
                                         } catch {
                                           // Not JSON, allow it to render
                                         }
-                                  }
-                                  return (
-                                    <MessageResponse key={`${role}-${i}`}>
-                                      {part.text}
-                                    </MessageResponse>
+                                      }
+                                      return (
+                                        <MessageResponse key={`${role}-${i}`}>
+                                          {part.text}
+                                        </MessageResponse>
                                       );
                                     case "file":
                                       // File parts are handled above for user messages
@@ -2078,30 +2172,241 @@ export function ChatInterface() {
                                       ) {
                                         const toolPart = part as ToolUIPart;
                                         const toolType = part.type as string;
-                                        
+
                                         // Handle different tool states
                                         switch (toolPart.state) {
+                                          case "approval-requested":
+                                            // Tool needs approval before execution
+                                            // Find the approval request in the current message parts
+                                            const approvalRequest = parts.find(
+                                              (p) =>
+                                                p.type ===
+                                                  "tool-approval-request" &&
+                                                (p as { toolCallId?: string })
+                                                  .toolCallId ===
+                                                  toolPart.toolCallId
+                                            ) as
+                                              | {
+                                                  approvalId?: string;
+                                                  toolCallId?: string;
+                                                }
+                                              | undefined;
+
+                                            // Also check previous messages for approval requests
+                                            const previousApprovalRequest =
+                                              messages
+                                                .slice(0, index + 1)
+                                                .reverse()
+                                                .find((msg) =>
+                                                  msg.parts?.some(
+                                                    (p) =>
+                                                      p.type ===
+                                                        "tool-approval-request" &&
+                                                      (
+                                                        p as {
+                                                          toolCallId?: string;
+                                                        }
+                                                      ).toolCallId ===
+                                                        toolPart.toolCallId
+                                                  )
+                                                )
+                                                ?.parts?.find(
+                                                  (p) =>
+                                                    p.type ===
+                                                      "tool-approval-request" &&
+                                                    (
+                                                      p as {
+                                                        toolCallId?: string;
+                                                      }
+                                                    ).toolCallId ===
+                                                      toolPart.toolCallId
+                                                ) as
+                                                | {
+                                                    approvalId?: string;
+                                                    toolCallId?: string;
+                                                  }
+                                                | undefined;
+
+                                            // Get approval ID - prioritize approval request, then check toolPart.approval
+                                            let approvalId: string | undefined;
+
+                                            if (approvalRequest?.approvalId) {
+                                              approvalId =
+                                                approvalRequest.approvalId;
+                                            } else if (
+                                              previousApprovalRequest?.approvalId
+                                            ) {
+                                              approvalId =
+                                                previousApprovalRequest.approvalId;
+                                            } else if (
+                                              toolPart.approval &&
+                                              typeof toolPart.approval ===
+                                                "object" &&
+                                              "id" in toolPart.approval
+                                            ) {
+                                              approvalId = (
+                                                toolPart.approval as {
+                                                  id: string;
+                                                }
+                                              ).id;
+                                            } else if (toolPart.toolCallId) {
+                                              // Fallback: use toolCallId if no approvalId found
+                                              approvalId = toolPart.toolCallId;
+                                            }
+
+                                            // Handler function for approval responses
+                                            const handleApproval = (
+                                              approved: boolean
+                                            ) => {
+                                              if (!approvalId) {
+                                                console.error(
+                                                  "[ChatInterface] Cannot send approval: approvalId not found",
+                                                  {
+                                                    toolCallId:
+                                                      toolPart.toolCallId,
+                                                    approvalRequest,
+                                                    previousApprovalRequest,
+                                                    toolPartApproval:
+                                                      toolPart.approval,
+                                                    allParts: parts.map(
+                                                      (p) => ({
+                                                        type: p.type,
+                                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                        toolCallId: (p as any)
+                                                          .toolCallId,
+                                                      })
+                                                    ),
+                                                  }
+                                                );
+                                                return;
+                                              }
+
+                                              try {
+                                                console.log(
+                                                  "[ChatInterface] Sending approval response:",
+                                                  {
+                                                    approvalId,
+                                                    approved,
+                                                    toolCallId:
+                                                      toolPart.toolCallId,
+                                                  }
+                                                );
+
+                                                addToolApprovalResponse({
+                                                  id: approvalId,
+                                                  approved: approved,
+                                                });
+
+                                                console.log(
+                                                  "[ChatInterface] Approval response sent successfully"
+                                                );
+                                              } catch (error) {
+                                                console.error(
+                                                  "[ChatInterface] Error sending approval response:",
+                                                  error
+                                                );
+                                                toast.error(
+                                                  "Failed to send approval response",
+                                                  {
+                                                    description:
+                                                      error instanceof Error
+                                                        ? error.message
+                                                        : "Unknown error",
+                                                  }
+                                                );
+                                              }
+                                            };
+
+                                            return (
+                                              <Tool
+                                                key={`${role}-${i}`}
+                                                defaultOpen
+                                              >
+                                                <ToolHeader
+                                                  type={toolPart.type}
+                                                  state={toolPart.state}
+                                                />
+                                                <ToolContent>
+                                                  <ToolInput
+                                                    input={toolPart.input}
+                                                  />
+                                                  {approvalId ? (
+                                                    <div className="flex items-center justify-end gap-2 p-4">
+                                                      <Button
+                                                        size="sm"
+                                                        className="gap-2"
+                                                        onClick={() =>
+                                                          handleApproval(true)
+                                                        }
+                                                      >
+                                                        <CheckCircle2 className="size-4" />
+                                                        Approve
+                                                      </Button>
+                                                      <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="gap-2"
+                                                        onClick={() =>
+                                                          handleApproval(false)
+                                                        }
+                                                      >
+                                                        <XCircle className="size-4" />
+                                                        Deny
+                                                      </Button>
+                                                    </div>
+                                                  ) : (
+                                                    <div className="p-4 text-sm text-muted-foreground">
+                                                      Error: Approval ID not
+                                                      found. Please check the
+                                                      console.
+                                                    </div>
+                                                  )}
+                                                </ToolContent>
+                                              </Tool>
+                                            );
+
                                           case "input-available":
                                             // Tool is being called, show loading state
-                                            if (toolType.includes("getContentAnalyticsData")) {
+                                            if (
+                                              toolType.includes(
+                                                "getContentAnalyticsData"
+                                              )
+                                            ) {
                                               return (
-                                                <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                <div
+                                                  key={`${role}-${i}`}
+                                                  className="my-2 flex items-center gap-2 text-sm text-muted-foreground"
+                                                >
                                                   <Brain className="size-4 animate-pulse" />
                                                   Loading analytics data...
                                                 </div>
                                               );
                                             }
-                                            if (toolType.includes("generateBrandReview")) {
+                                            if (
+                                              toolType.includes(
+                                                "generateBrandReview"
+                                              )
+                                            ) {
                                               return (
-                                                <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                <div
+                                                  key={`${role}-${i}`}
+                                                  className="my-2 flex items-center gap-2 text-sm text-muted-foreground"
+                                                >
                                                   <Brain className="size-4 animate-pulse" />
                                                   Analyzing brand compliance...
                                                 </div>
                                               );
                                             }
-                                            if (toolType.includes("getPageScreenshot")) {
+                                            if (
+                                              toolType.includes(
+                                                "getPageScreenshot"
+                                              )
+                                            ) {
                                               return (
-                                                <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                                <div
+                                                  key={`${role}-${i}`}
+                                                  className="my-2 flex items-center gap-2 text-sm text-muted-foreground"
+                                                >
                                                   <Brain className="size-4 animate-pulse" />
                                                   Capturing page screenshot...
                                                 </div>
@@ -2109,111 +2414,235 @@ export function ChatInterface() {
                                             }
                                             // Generic loading state for other tools
                                             return (
-                                              <div key={`${role}-${i}`} className="my-2 flex items-center gap-2 text-sm text-muted-foreground">
+                                              <div
+                                                key={`${role}-${i}`}
+                                                className="my-2 flex items-center gap-2 text-sm text-muted-foreground"
+                                              >
                                                 <Brain className="size-4 animate-pulse" />
                                                 Processing...
                                               </div>
                                             );
-                                          
+
+                                          case "approval-responded":
+                                            // Approval was given, tool is executing or completed
+                                            return (
+                                              <Tool
+                                                key={`${role}-${i}`}
+                                                defaultOpen
+                                              >
+                                                <ToolHeader
+                                                  type={toolPart.type}
+                                                  state={toolPart.state}
+                                                />
+                                                <ToolContent>
+                                                  <ToolInput
+                                                    input={toolPart.input}
+                                                  />
+                                                  <Confirmation
+                                                    approval={toolPart.approval}
+                                                    state={toolPart.state}
+                                                    className="m-4"
+                                                  >
+                                                    <ConfirmationTitle>
+                                                      {toolPart.approval
+                                                        ?.approved
+                                                        ? "Approval granted. Tool is executing..."
+                                                        : "Approval denied."}
+                                                    </ConfirmationTitle>
+                                                  </Confirmation>
+                                                  {toolPart.output && (
+                                                    <ToolOutput
+                                                      output={toolPart.output}
+                                                      errorText={undefined}
+                                                    />
+                                                  )}
+                                                </ToolContent>
+                                              </Tool>
+                                            );
+
+                                          case "output-denied":
+                                            // Tool execution was denied
+                                            return (
+                                              <Tool
+                                                key={`${role}-${i}`}
+                                                defaultOpen
+                                              >
+                                                <ToolHeader
+                                                  type={toolPart.type}
+                                                  state={toolPart.state}
+                                                />
+                                                <ToolContent>
+                                                  <ToolInput
+                                                    input={toolPart.input}
+                                                  />
+                                                  <Confirmation
+                                                    approval={toolPart.approval}
+                                                    state={toolPart.state}
+                                                    className="m-4"
+                                                  >
+                                                    <ConfirmationTitle>
+                                                      Tool execution was denied.
+                                                      {toolPart.approval
+                                                        ?.reason && (
+                                                        <span className="block mt-2 text-sm text-muted-foreground">
+                                                          Reason:{" "}
+                                                          {
+                                                            toolPart.approval
+                                                              .reason
+                                                          }
+                                                        </span>
+                                                      )}
+                                                    </ConfirmationTitle>
+                                                  </Confirmation>
+                                                </ToolContent>
+                                              </Tool>
+                                            );
+
                                           case "output-error":
                                             // Tool execution failed, show error
                                             return (
-                                              <Alert key={`${role}-${i}`} variant="danger" className="my-2">
+                                              <Alert
+                                                key={`${role}-${i}`}
+                                                variant="danger"
+                                                className="my-2"
+                                              >
                                                 <AlertCircle className="h-4 w-4" />
-                                                <AlertTitle>Tool Error</AlertTitle>
+                                                <AlertTitle>
+                                                  Tool Error
+                                                </AlertTitle>
                                                 <AlertDescription>
-                                                  {toolPart.errorText || "An error occurred while executing the tool."}
+                                                  {toolPart.errorText ||
+                                                    "An error occurred while executing the tool."}
                                                 </AlertDescription>
                                               </Alert>
                                             );
-                                          
+
                                           case "output-available":
                                             // Tool execution succeeded, render output
-                                            
+
                                             // Check if this is a tool result for analytics data
-                                            if (toolType.includes("getContentAnalyticsData")) {
+                                            if (
+                                              toolType.includes(
+                                                "getContentAnalyticsData"
+                                              )
+                                            ) {
                                               if (
                                                 toolPart.output &&
-                                                typeof toolPart.output === "object" &&
+                                                typeof toolPart.output ===
+                                                  "object" &&
                                                 "data" in toolPart.output
                                               ) {
                                                 const analyticsData = (
-                                                  toolPart.output as { data?: unknown }
+                                                  toolPart.output as {
+                                                    data?: unknown;
+                                                  }
                                                 ).data;
                                                 if (
-                                                  Array.isArray(analyticsData) &&
+                                                  Array.isArray(
+                                                    analyticsData
+                                                  ) &&
                                                   analyticsData.length > 0
                                                 ) {
                                                   return (
                                                     <div key={`${role}-${i}`}>
-                                                      <AnalyticsData data={analyticsData} />
+                                                      <AnalyticsData
+                                                        data={analyticsData}
+                                                      />
                                                     </div>
                                                   );
                                                 }
                                               }
                                             }
                                             // Check if this is a tool result for brand review
-                                            if (toolType.includes("generateBrandReview")) {
+                                            if (
+                                              toolType.includes(
+                                                "generateBrandReview"
+                                              )
+                                            ) {
                                               if (
                                                 toolPart.output &&
-                                                typeof toolPart.output === "object" &&
+                                                typeof toolPart.output ===
+                                                  "object" &&
                                                 "data" in toolPart.output &&
                                                 "success" in toolPart.output &&
                                                 toolPart.output.success === true
                                               ) {
                                                 const brandReviewData = (
-                                                  toolPart.output as { data?: unknown; success: boolean }
+                                                  toolPart.output as {
+                                                    data?: unknown;
+                                                    success: boolean;
+                                                  }
                                                 ).data;
                                                 if (
-                                                  Array.isArray(brandReviewData) &&
+                                                  Array.isArray(
+                                                    brandReviewData
+                                                  ) &&
                                                   brandReviewData.length > 0
                                                 ) {
                                                   return (
                                                     <div key={`${role}-${i}`}>
-                                                      <BrandReview data={brandReviewData} />
+                                                      <BrandReview
+                                                        data={brandReviewData}
+                                                      />
                                                     </div>
                                                   );
                                                 }
                                               }
                                             }
                                             // Check if this is a tool result for page screenshot
-                                            if (toolType.includes("getPageScreenshot")) {
+                                            if (
+                                              toolType.includes(
+                                                "getPageScreenshot"
+                                              )
+                                            ) {
                                               if (
                                                 toolPart.output &&
-                                                typeof toolPart.output === "object" &&
-                                                "screenshotData" in toolPart.output
+                                                typeof toolPart.output ===
+                                                  "object" &&
+                                                "screenshotData" in
+                                                  toolPart.output
                                               ) {
-                                                const screenshotOutput = toolPart.output as {
-                                                  screenshotData?: string | { screenshot_base64?: string };
-                                                };
-                                                const screenshotData = screenshotOutput.screenshotData;
+                                                const screenshotOutput =
+                                                  toolPart.output as {
+                                                    screenshotData?:
+                                                      | string
+                                                      | {
+                                                          screenshot_base64?: string;
+                                                        };
+                                                  };
+                                                const screenshotData =
+                                                  screenshotOutput.screenshotData;
 
                                                 if (screenshotData) {
                                                   return (
                                                     <div key={`${role}-${i}`}>
-                                                      <PageScreenshot screenshotData={screenshotData} />
+                                                      <PageScreenshot
+                                                        screenshotData={
+                                                          screenshotData
+                                                        }
+                                                      />
                                                     </div>
                                                   );
                                                 }
                                               }
                                             }
-                                            
+
                                             // If no specific tool handler matched, return null
                                             return null;
-                                          
+
                                           default:
                                             // Unknown state, return null
                                             return null;
                                         }
                                       }
                                       return null;
-                              }
-                            })}
-                          </MessageContent>
-                        </Message>
+                                  }
+                                })}
+                              </MessageContent>
+                            </Message>
                           </div>
-                      );
-                    })}
+                        );
+                      })}
                       {isThinking ||
                         (isStreaming && (
                           <div className="px-4 py-3">
@@ -2226,22 +2655,22 @@ export function ChatInterface() {
                                   <div className="flex items-center gap-1.5">
                                     <span className="text-sm font-medium text-muted-foreground">
                                       Thinking
-                        </span>
+                                    </span>
                                     <div className="flex gap-1">
                                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.3s]" />
                                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce [animation-delay:-0.15s]" />
                                       <span className="inline-block h-1.5 w-1.5 rounded-full bg-primary/60 animate-bounce" />
-                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </MessageContent>
                             </Message>
                           </div>
                         ))}
-                  </>
-                );
-              })()}
-            </ConversationContent>
+                    </>
+                  );
+                })()}
+              </ConversationContent>
             </AutoScrollWrapper>
             <ConversationScrollButton />
           </Conversation>
@@ -2252,7 +2681,7 @@ export function ChatInterface() {
             isTransitioning={isTransitioning}
             isStreaming={isStreaming}
           />
-          
+
           <ChatInput
             onSubmit={handleMessageSubmit}
             isStreaming={isStreaming}

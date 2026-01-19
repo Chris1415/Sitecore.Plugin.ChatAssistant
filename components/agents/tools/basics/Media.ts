@@ -10,6 +10,7 @@ export function generateImageTool(
   return tool({
     description:
       "Generate an image from a text prompt using AI image generation and automatically upload it to Sitecore Media Library. This tool generates high-quality images using AI models and stores them in Sitecore for use in content. The generated image is immediately available in the Media Library with the provided metadata.",
+    needsApproval: true,
     inputSchema: z.object({
       prompt: z
         .string()

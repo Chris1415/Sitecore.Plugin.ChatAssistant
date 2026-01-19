@@ -45,6 +45,7 @@ export function getPageScreenshot(
 export function getPageHtmlTool(accessToken: string, contextId: string): Tool {
   return tool({
     description: "Get the HTML content of a page in Sitecore.",
+    needsApproval: true,
     inputSchema: z.object({
       pageId: z
         .string()

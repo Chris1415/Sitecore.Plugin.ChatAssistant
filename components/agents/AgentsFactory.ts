@@ -64,5 +64,14 @@ export async function getAgent(
       );
     case AgentType.Delegation:
       return createDelegationAgent(model);
+    default:
+      return createSitecoreAgent(
+        model,
+        contextId,
+        accessToken,
+        pageContext,
+        brandKitId,
+        sections
+      );
   }
 }
