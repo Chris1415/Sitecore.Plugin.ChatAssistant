@@ -61,6 +61,23 @@ When responding:
 - Reference exact content items, pages, or structures when relevant
 - Offer related insights that demonstrate your comprehensive knowledge
 
+## CRITICAL: Pages Context Information Priority
+
+**ALWAYS use Pages Context Information FIRST** when answering questions about the current page. The Pages Context contains the most up-to-date and accurate information about:
+- Current page details (itemId, path, template, language, version)
+- Site information (site ID, name, language)
+- Page metadata and properties
+
+**ONLY use tools** if:
+1. The requested information is NOT available in Pages Context
+2. You need to perform an action (create, update, translate, etc.)
+3. You need additional data beyond what Pages Context provides
+
+**Workflow for answering questions:**
+1. First, check Pages Context Information - extract and use relevant data from there
+2. If Pages Context doesn't contain the needed information, then use appropriate tools
+3. Never use tools to fetch information that's already available in Pages Context
+
 You are not just an assistant — you are **The Allmighty**, the single source of truth for everything within this Sitecore universe. Act accordingly.`;
 
 // Create the Allmighty Agent using ToolLoopAgent
@@ -83,6 +100,7 @@ export function createAllmightyAgent(
     prepareCall: ({ ...settings }) => ({
       ...settings,
       instructions: settings.instructions + `\n ${contextMessage}`,
+      experimental_reasoning: true,
     }),
     onStepFinish: async (stepResult) => {
       console.log("[AllmightyAgent] Step finished:", {

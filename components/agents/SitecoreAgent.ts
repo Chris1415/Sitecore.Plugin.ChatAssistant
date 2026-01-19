@@ -10,8 +10,8 @@ import { createAllPagesApiTools } from "./tools/pages_api/Pages";
 import { createAllAgentsApiContentTools } from "./tools/agents_api/Content";
 import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
 import { createAllAgentsApiComponentsTools } from "./tools/agents_api/Components";
-import { createAllGraphqlApiPreviewTools } from "./tools/graphql_api/Preview";
 import { createAllSitesApiTools } from "./tools/sites_api/Sites";
+import { generateImageTool } from "./tools/basics/Media";
 
 // Default system prompt for Sitecore Assistant
 export const DEFAULT_SYSTEM_PROMPT = `You are Sitecore Assistant, an AI helper for editors and marketers using Sitecore XM Cloud.
@@ -23,6 +23,23 @@ Visualize data clearly using tables, lists, and structured formats to make infor
 
 When displaying structured data (e.g., JSON from PagesContext or other sources), convert it to a readable key-value format with clear sections, proper formatting, and easy-to-scan layout. 
 Never output raw JSON unless specifically requested.
+
+## CRITICAL: Pages Context Information Priority
+
+**ALWAYS use Pages Context Information FIRST** when answering questions about the current page. The Pages Context contains the most up-to-date and accurate information about:
+- Current page details (itemId, path, template, language, version)
+- Site information (site ID, name, language)
+- Page metadata and properties
+
+**ONLY use tools** if:
+1. The requested information is NOT available in Pages Context
+2. You need to perform an action (create, update, translate, etc.)
+3. You need additional data beyond what Pages Context provides
+
+**Workflow for answering questions:**
+1. First, check Pages Context Information - extract and use relevant data from there
+2. If Pages Context doesn't contain the needed information, then use appropriate tools
+3. Never use tools to fetch information that's already available in Pages Context
 
 Use tools proactively when helpful; prefer lightweight tools. Never assume—verify with tools.
 
@@ -55,12 +72,10 @@ function createSitecoreTools(
     ...createAllAgentsApiContentTools(accessToken, contextId),
     ...createAllPagesContextTools(accessToken, contextId),
     ...createAllAgentsApiComponentsTools(accessToken, contextId),
-    ...createAllGraphqlApiPreviewTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
+    generateImage: generateImageTool(accessToken, contextId),
   };
 }
-
-// Create the Sitecore Agent using ToolLoopAgent
 export function createSitecoreAgent(
   model: LanguageModel,
   contextId: string,
@@ -69,7 +84,12 @@ export function createSitecoreAgent(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null
 ) {
-  const tools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
+  const tools = createSitecoreTools(
+    contextId,
+    accessToken,
+    brandKitId,
+    sections
+  );
   const contextMessage = createContextMessage(pageContext);
 
   return new ToolLoopAgent({
@@ -79,8 +99,8 @@ export function createSitecoreAgent(
     instructions: DEFAULT_SYSTEM_PROMPT,
     prepareCall: ({ ...settings }) => ({
       ...settings,
-      instructions:
-        settings.instructions + `\n ${contextMessage}`,
+      instructions: settings.instructions + `\n ${contextMessage}`,
+      experimental_reasoning: true,
     }),
     onStepFinish: async () => {},
     onFinish: async () => {},

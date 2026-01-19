@@ -86,5 +86,7 @@ export async function POST(request: Request) {
       delayInMs: 20, // optional: defaults to 10ms
       chunking: "line", // optional: defaults to 'word'
     }),
+    sendReasoning: true,
+    sendSources: true,
   });
 }

@@ -1,6 +1,7 @@
 import z from "zod";
 import { Tool, tool } from "ai";
 import { createXMCClient } from "../../base/sitecoreClient";
+import { uploadAsset } from "@/lib/services/AssetServices";
 
 export function searchForAssetsTool(
   accessToken: string,
@@ -90,10 +91,80 @@ export function getAssetDetailsTool(
   }) as Tool;
 }
 
+export function uploadAssetTool(accessToken: string, contextId: string): Tool {
+  return tool({
+    description:
+      "Upload a new digital asset (image, document, or media file) to Sitecore. The asset will be stored in the Media Library at the specified path with the provided metadata. Returns the uploaded asset's ID, embed URL, size, dimensions, and extension. Use this tool when you need to upload images or other media files to Sitecore, such as after generating an image or when importing assets.",
+    inputSchema: z.object({
+      file: z
+        .string()
+        .describe(
+          "The file to upload as a base64-encoded string with data URL format (e.g., 'data:image/png;base64,iVBORw0KG...'). The file can be an image, document, or any media type supported by Sitecore."
+        ),
+      name: z
+        .string()
+        .describe(
+          "The name of the asset including the file extension (e.g., 'homeimage.jpg', 'logo.png', 'document.pdf'). This will be the filename stored in Sitecore."
+        ),
+      itemPath: z
+        .string()
+        .optional()
+        .default("/sitecore/Media Library/Images")
+        .describe(
+          "The path in Sitecore where the asset should be stored. Defaults to '/sitecore/Media Library/Images'. Common paths include '/sitecore/Media Library/Images', '/sitecore/Media Library/Documents', etc."
+        ),
+      language: z
+        .string()
+        .optional()
+        .default("en")
+        .describe(
+          "The language code for the asset (e.g., 'en', 'en-US', 'de-DE'). Defaults to 'en'."
+        ),
+      extension: z
+        .string()
+        .describe(
+          "The file extension of the asset without the dot (e.g., 'jpg', 'png', 'pdf', 'mp4'). This should match the actual file type."
+        ),
+      siteName: z
+        .string()
+        .describe(
+          "The name of the Sitecore site where the asset should be uploaded (e.g., 'skate-park', 'website'). This identifies which site context to use."
+        ),
+      jobId: z
+        .string()
+        .optional()
+        .describe(
+          "Optional unique identifier for the job, used to trace, audit, and revert actions performed by an AI agent. If not provided, a default value will be used."
+        ),
+    }),
+    execute: async ({
+      file,
+      name,
+      itemPath = "/sitecore/Media Library/Images",
+      language = "en",
+      extension,
+      siteName,
+      jobId,
+    }) => {
+      // Use the asset upload service
+      return await uploadAsset(accessToken, contextId, {
+        fileBase64: file,
+        name: name,
+        itemPath: itemPath,
+        language: language,
+        extension: extension,
+        siteName: siteName,
+        jobId: jobId,
+      });
+    },
+  }) as Tool;
+}
+
 // Combined export of all asset tools
 export const assetTools = {
   searchForAssetsTool,
   getAssetDetailsTool,
+  uploadAssetTool,
 };
 
 // Helper function to create all asset tools initialized
@@ -104,5 +175,6 @@ export function createAllAgentsApiAssetsTools(
   return {
     searchForAssets: searchForAssetsTool(accessToken, contextId),
     getAssetDetails: getAssetDetailsTool(accessToken, contextId),
+    uploadAsset: uploadAssetTool(accessToken, contextId),
   };
 }

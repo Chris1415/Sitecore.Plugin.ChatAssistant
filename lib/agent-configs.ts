@@ -81,7 +81,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Page Context",
         question:
-          "Display current PagesContext as readable key-value pairs.",
+          "Use Pages Context Information to display current page details as readable key-value pairs. Extract all relevant information from Pages Context - do not use tools unless information is missing.",
         icon: FileText,
       },
       {
@@ -140,7 +140,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 10,
         label: "Is This Live?",
         question:
-          "Use checkPagePublishedToEdge to check if this page is published. Output format: ✅ Published in [versions] or ❌ Not published in [versions]. List each version status. Facts only, simple language, use emojis.",
+          "Get the languages using getLanguages tool. Check if the page in each language version is published or not using checkPagePublishedToEdge. Display status for each language: Language | Status (✅ Published / ❌ Not published). Use emojis.",
         icon: CheckCircle2,
         new: true,
       },
@@ -148,7 +148,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 11,
         label: "Translation Status",
         question:
-          "Use getLanguages to see available languages, then checkPagePublishedToEdge for each language version. Output format: Language | Status (✅/❌). List each language status. Facts only, simple language, use emojis.",
+          "Get the languages using getLanguages tool. Check if and which version exists for the current page in each available language. Display for each language: Language | Version exists (✅ Yes / ❌ No) | Version number (if exists). Use emojis.",
         icon: Languages,
         new: true,
       },
@@ -360,7 +360,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 10,
         label: "Is This Live?",
         question:
-          "Use checkPagePublishedToEdge to check if this article is published. Output format: ✅ Published in [versions] or ❌ Not published in [versions]. List each version status. Facts only, simple language, use emojis.",
+          "Get the languages using getLanguages tool. Check if the page in each language version is published or not using checkPagePublishedToEdge. Display status for each language: Language | Status (✅ Published / ❌ Not published). Use emojis.",
         icon: CheckCircle2,
         new: true,
       },
@@ -368,7 +368,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 11,
         label: "Translation Status",
         question:
-          "Use getLanguages to see available languages, then checkPagePublishedToEdge for each language version. Output format: Language | Status (✅/❌). List each language status. Facts only, simple language, use emojis.",
+          "Get the languages using getLanguages tool. Check if and which version exists for the current page in each available language. Display for each language: Language | Version exists (✅ Yes / ❌ No) | Version number (if exists). Use emojis.",
         icon: Languages,
         new: true,
       },

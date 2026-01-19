@@ -18,6 +18,12 @@ import {
   MessageResponse,
 } from "@/components/ai-elements/message";
 import {
+  ChainOfThought,
+  ChainOfThoughtHeader,
+  ChainOfThoughtContent,
+} from "@/components/ai-elements/chain-of-thought";
+import { Streamdown } from "streamdown";
+import {
   PromptInput,
   PromptInputProvider,
   usePromptInputController,
@@ -107,7 +113,7 @@ const AI_MODELS = [
     name: "GPT-5 Mini", 
     provider: "OpenAI", 
     category: "cheap",
-    contextSize: "128K",
+    contextSize: "400K",
     maxOutput: "16K",
     inputCost: "$0.25/M",
     outputCost: "$2.00/M",
@@ -120,7 +126,7 @@ const AI_MODELS = [
     name: "GPT-5 Nano", 
     provider: "OpenAI", 
     category: "cheap",
-    contextSize: "128K",
+    contextSize: "400K",
     maxOutput: "16K",
     inputCost: "$0.05/M",
     outputCost: "$0.40/M",
@@ -133,7 +139,7 @@ const AI_MODELS = [
     name: "GPT-5", 
     provider: "OpenAI", 
     category: "moderate",
-    contextSize: "128K",
+    contextSize: "400K",
     maxOutput: "16K",
     inputCost: "$1.25/M",
     outputCost: "$10.00/M",
@@ -146,7 +152,7 @@ const AI_MODELS = [
     name: "GPT-5 Chat", 
     provider: "OpenAI", 
     category: "moderate",
-    contextSize: "128K",
+    contextSize: "400K",
     maxOutput: "16K",
     inputCost: "$1.25/M",
     outputCost: "$10.00/M",
@@ -159,7 +165,7 @@ const AI_MODELS = [
     name: "GPT-5 Pro", 
     provider: "OpenAI", 
     category: "expensive",
-    contextSize: "128K",
+    contextSize: "400K",
     maxOutput: "16K",
     inputCost: "$15.00/M",
     outputCost: "$120.00/M",
@@ -1319,7 +1325,6 @@ export function ChatInterface() {
           name: kit.name || kit.brandName || kit.id,
           logo: kit.logo || null,
         }));
-        console.log("Loaded brand kits with logos:", loadedKits.map(k => ({ name: k.name, hasLogo: !!k.logo, logo: k.logo })));
         setBrandKits(loadedKits);
       } catch (error) {
         console.error("Failed to load brand kits:", error);
@@ -1440,6 +1445,7 @@ export function ChatInterface() {
       })
     );
   }, [messages.length, setMessages]); // Trigger when new messages are added
+
 
   const { pagesContext, refreshPagesContext, navigatePagesContext } = usePagesContext({
     onContextChange: async (context) => {
@@ -1644,7 +1650,7 @@ export function ChatInterface() {
             isLoadingSections={isLoadingSections}
           />
 
-          <Conversation className="flex-1">
+          <Conversation className="flex-1 relative">
             <AutoScrollWrapper messages={messages} status={status}>
             <ConversationContent>
               {(() => {
@@ -1995,6 +2001,25 @@ export function ChatInterface() {
                           >
                             {parts.map((part, i) => {
                               switch (part.type) {
+                                case "reasoning":
+                                  // Handle reasoning parts with ChainOfThought component
+                                  if (role === "assistant" && "text" in part && part.text) {
+                                    return (
+                                      <ChainOfThought
+                                        key={`${role}-reasoning-${i}`}
+                                        defaultOpen={true}
+                                        className="my-4"
+                                      >
+                                        <ChainOfThoughtHeader>Chain of Thought</ChainOfThoughtHeader>
+                                        <ChainOfThoughtContent>
+                                          <Streamdown className="prose prose-sm dark:prose-invert max-w-none">
+                                            {part.text}
+                                          </Streamdown>
+                                        </ChainOfThoughtContent>
+                                      </ChainOfThought>
+                                    );
+                                  }
+                                  return null;
                                 case "text":
                                       // Skip text parts that come BEFORE the analytics tool result
                                       // This prevents showing raw data, but allows AI response text after the chart
@@ -2227,6 +2252,7 @@ export function ChatInterface() {
             isTransitioning={isTransitioning}
             isStreaming={isStreaming}
           />
+          
           <ChatInput
             onSubmit={handleMessageSubmit}
             isStreaming={isStreaming}
