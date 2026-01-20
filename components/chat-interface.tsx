@@ -1671,6 +1671,10 @@ export function ChatInterface() {
   const isThinking = status === "submitted";
 
   const handleNewChat = () => {
+    // Stop any ongoing requests
+    stop();
+    
+    // Clear client-side messages
     setMessages([]);
     setUserManuallySelectedAgent(false); // Reset manual selection on new chat
   };
@@ -2264,6 +2268,17 @@ export function ChatInterface() {
                                         const toolPart = part as ToolUIPart;
                                         const toolType = part.type as string;
 
+                                        // In production, only show tools that need approval
+                                        // In development, show all tool states
+                                        const isDevelopment =
+                                          process.env.NODE_ENV === "development";
+                                        if (
+                                          !isDevelopment &&
+                                          toolPart.state !== "approval-requested"
+                                        ) {
+                                          return null;
+                                        }
+
                                         // Handle different tool states
                                         switch (toolPart.state) {
                                           case "approval-requested":
@@ -2519,7 +2534,6 @@ export function ChatInterface() {
                                             return (
                                               <Tool
                                                 key={`${role}-${i}`}
-                                                defaultOpen
                                               >
                                                 <ToolHeader
                                                   type={toolPart.type}
@@ -2564,7 +2578,6 @@ export function ChatInterface() {
                                             return (
                                               <Tool
                                                 key={`${role}-${i}`}
-                                                defaultOpen
                                               >
                                                 <ToolHeader
                                                   type={toolPart.type}
@@ -2712,8 +2725,22 @@ export function ChatInterface() {
                                               }
                                             }
 
-                                            // If no specific tool handler matched, return null
-                                            return null;
+                                            // Default tool output rendering
+                                            return (
+                                              <Tool key={`${role}-${i}`}>
+                                                <ToolHeader
+                                                  type={toolPart.type}
+                                                  state={toolPart.state}
+                                                />
+                                                <ToolContent>
+                                                  <ToolInput input={toolPart.input} />
+                                                  <ToolOutput
+                                                    output={toolPart.output}
+                                                    errorText={undefined}
+                                                  />
+                                                </ToolContent>
+                                              </Tool>
+                                            );
 
                                           default:
                                             // Unknown state, return null

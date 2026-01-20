@@ -89,7 +89,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 2,
         label: "Sites & Languages",
         question:
-          "List all sites and languages: names, IDs, language codes, display names, config details.",
+          "Use getSites and getLanguages tools. Output only: Sites table with columns (Name, ID, Root Path from properties) and Languages table with columns (Name, Regional ISO Code, ISO Code). Keep output crystal clean and minimal.",
         icon: Globe,
       },
       {

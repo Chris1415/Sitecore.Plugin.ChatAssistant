@@ -7,6 +7,7 @@ export function listPageChildrenTool(sitecoreContextId: string): Tool {
   return tool({
     description:
       "List all child pages of a specific page in Sitecore. Retrieves the direct children of a page, useful for navigating page hierarchies, understanding site structure, or finding pages within a specific section.",
+    needsApproval: true,
     inputSchema: z.object({
       pageId: z
         .string()

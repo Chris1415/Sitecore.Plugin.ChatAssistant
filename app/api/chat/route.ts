@@ -61,8 +61,21 @@ export async function POST(request: Request) {
     );
   }
 
-  // Get messages to use (handles history management and summarization)
-  const { messages: messagesToUse, summarizationOccurred } = await getMessagesToUse(messages, contextId, finalModel);
+  // If there's only one message, it's a new chat - clear server history and use just that message
+  let messagesToUse: UIMessage[];
+  let summarizationOccurred = false;
+  
+  if (messages.length === 1) {
+    // New chat - clear server history and use only this message
+    const { clearMessageHistory } = await import("@/lib/message-history-manager");
+    clearMessageHistory(contextId);
+    messagesToUse = messages;
+  } else {
+    // Existing chat - get messages to use (handles history management and summarization)
+    const result = await getMessagesToUse(messages, contextId, finalModel);
+    messagesToUse = result.messages;
+    summarizationOccurred = result.summarizationOccurred;
+  }
 
   const agent = await getAgent(
     agentType,

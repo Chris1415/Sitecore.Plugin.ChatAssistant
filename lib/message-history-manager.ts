@@ -191,3 +191,13 @@ export async function getMessagesToUse(
   return { messages: messagesToUse, summarizationOccurred };
 }
 
+/**
+ * Clear message history for a specific session
+ * @param contextId - Session identifier (used as session key)
+ */
+export function clearMessageHistory(contextId: string): void {
+  const sessionKey = contextId;
+  serverMessageHistory.delete(sessionKey);
+  summarizedMessageIds.delete(sessionKey);
+}
+
