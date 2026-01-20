@@ -8,7 +8,8 @@ export function getItemChildrenTool(
 ): Tool {
   return tool({
     description:
-      "Get all children of any Sitecore content item using GraphQL. Returns all fields for each child item. Use this for content items (not page items - use listPageChildren for pages).",
+      "⚠️ EXPERIMENTAL: Get all children of any Sitecore content item using GraphQL. Returns all fields for each child item. Use this for content items (not page items - use listPageChildren for pages). WARNING: This tool is experimental and might not work as expected.",
+    needsApproval: true,
     inputSchema: z.object({
       itemPath: z
         .string()

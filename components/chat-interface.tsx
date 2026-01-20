@@ -796,7 +796,7 @@ function PredefinedQuestions({
 }) {
   // Get attachments from PromptInputProvider
   const { attachments } = usePromptInputController();
-  
+
   // Convert blob URL to data URL (same logic as PromptInput component)
   const convertBlobUrlToDataUrl = async (
     url: string
@@ -814,16 +814,16 @@ function PredefinedQuestions({
       return null;
     }
   };
-  
+
   const handleSelect = async (question: string) => {
     // Get current attachments if any are selected
     const rawFiles = attachments?.files || [];
-    
+
     if (rawFiles.length === 0) {
       onSelect(question, []);
       return;
     }
-    
+
     // Convert blob URLs to data URLs asynchronously (same as PromptInput does)
     const convertedFiles = await Promise.all(
       rawFiles.map(async ({ id: _id, ...item }) => {
@@ -840,7 +840,7 @@ function PredefinedQuestions({
         return item;
       })
     );
-    
+
     onSelect(question, convertedFiles);
   };
 
@@ -1532,12 +1532,19 @@ export function ChatInterface() {
     onFinish: ({ message }) => {
       // Add agent metadata to assistant messages
       if (message.role === "assistant") {
+        const metadata = message.metadata as {
+          summarizationOccurred?: boolean;
+          agentType?: AgentType;
+        };
         setMessages((prevMessages) =>
           prevMessages.map((msg) =>
             msg.id === message.id
               ? {
                   ...msg,
-                  metadata: { agentType: currentAgentRef.current },
+                  metadata: {
+                    ...metadata,
+                    agentType: currentAgentRef.current,
+                  },
                 }
               : msg
           )
@@ -1584,9 +1591,16 @@ export function ChatInterface() {
           (!msg.metadata ||
             !(msg.metadata as { agentType?: AgentType })?.agentType)
         ) {
+          const metadata = msg.metadata as {
+            summarizationOccurred?: boolean;
+            agentType?: AgentType;
+          };
           return {
             ...msg,
-            metadata: { agentType: currentAgentRef.current },
+            metadata: {
+              ...metadata,
+              agentType: currentAgentRef.current,
+            },
           };
         }
         return msg;
@@ -1667,10 +1681,13 @@ export function ChatInterface() {
     );
   };
 
-  const handleQuestionSelect = async (question: string, files?: FileUIPart[]) => {
+  const handleQuestionSelect = async (
+    question: string,
+    files?: FileUIPart[]
+  ) => {
     const accessToken = await getAccessTokenSilently();
     sendMessage(
-      { 
+      {
         text: question,
         files: files || [],
       },
@@ -1913,6 +1930,13 @@ export function ChatInterface() {
                   }
 
                   // Render visible messages
+                  // Find the first message with summarization flag to show note before it
+                  const firstSummarizedMessageIndex = messages.findIndex(
+                    (msg) =>
+                      (msg.metadata as { summarizationOccurred?: boolean })
+                        ?.summarizationOccurred
+                  );
+                  
                   return (
                     <>
                       {messages.map((message, index) => {
@@ -1924,6 +1948,11 @@ export function ChatInterface() {
                         const agentConfig = agentType
                           ? getAgentConfig(agentType)
                           : null;
+                        
+                        // Check for summarization metadata
+                        const summarizationOccurred =
+                          (metadata as { summarizationOccurred?: boolean })
+                            ?.summarizationOccurred || false;
 
                         // Extract tool names from tool parts
                         const toolNames = parts
@@ -1969,6 +1998,19 @@ export function ChatInterface() {
 
                         return (
                           <div key={index} className="relative group/message">
+                            {/* Show summarization note before the first message with summarization flag */}
+                            {summarizationOccurred &&
+                              index === firstSummarizedMessageIndex && (
+                                <div className="flex justify-center w-full my-4">
+                                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-sm font-medium shadow-sm shrink-0">
+                                    <Info className="size-4" />
+                                    <span>
+                                      Previous conversation history has been
+                                      summarized.
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
                             <Message from={role} className="relative">
                               {/* User message header */}
                               {role === "user" && (
@@ -2500,10 +2542,15 @@ export function ChatInterface() {
                                                     </ConfirmationTitle>
                                                   </Confirmation>
                                                   {(() => {
-                                                    const partWithOutput = toolPart as ToolUIPart & { output?: ToolUIPart["output"] };
+                                                    const partWithOutput =
+                                                      toolPart as ToolUIPart & {
+                                                        output?: ToolUIPart["output"];
+                                                      };
                                                     return partWithOutput.output ? (
                                                       <ToolOutput
-                                                        output={partWithOutput.output}
+                                                        output={
+                                                          partWithOutput.output
+                                                        }
                                                         errorText={undefined}
                                                       />
                                                     ) : null;

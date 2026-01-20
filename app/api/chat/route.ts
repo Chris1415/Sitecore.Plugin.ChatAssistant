@@ -62,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   // Get messages to use (handles history management and summarization)
-  const messagesToUse = await getMessagesToUse(messages, contextId, finalModel);
+  const { messages: messagesToUse, summarizationOccurred } = await getMessagesToUse(messages, contextId, finalModel);
 
   const agent = await getAgent(
     agentType,
@@ -86,6 +86,12 @@ export async function POST(request: Request) {
       delayInMs: 20, // optional: defaults to 10ms
       chunking: "line", // optional: defaults to 'word'
     }),
+    messageMetadata(options) {
+      return {
+        ...options,
+        summarizationOccurred: summarizationOccurred,
+      };
+    },
     sendReasoning: true,
     sendSources: true,
   });

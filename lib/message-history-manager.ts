@@ -92,13 +92,13 @@ async function summarizeMessages(
  * @param messages - Incoming messages from the client
  * @param contextId - Session identifier (used as session key)
  * @param model - Language model to use for summarization
- * @returns Messages to use for the agent (potentially summarized)
+ * @returns Object containing messages to use for the agent and a flag indicating if summarization occurred
  */
 export async function getMessagesToUse(
   messages: UIMessage[],
   contextId: string,
   model: LanguageModel
-): Promise<UIMessage[]> {
+): Promise<{ messages: UIMessage[]; summarizationOccurred: boolean }> {
   // Get or initialize server-side message history for this session
   const sessionKey = contextId;
   let serverMessages = serverMessageHistory.get(sessionKey) || [];
@@ -129,9 +129,11 @@ export async function getMessagesToUse(
   );
 
   let messagesToUse: UIMessage[] = serverMessages;
+  let summarizationOccurred = false;
 
   // Summarize when we exceed the threshold (i.e., when we have more than MESSAGE_THRESHOLD messages)
   if (userAndAssistantMessages.length > MESSAGE_THRESHOLD) {
+    summarizationOccurred = true;
     // Find indices of user/assistant messages in serverMessages
     const userAssistantIndices: number[] = [];
     serverMessages.forEach((msg, index) => {
@@ -186,6 +188,6 @@ export async function getMessagesToUse(
     messagesToUse = serverMessages;
   }
 
-  return messagesToUse;
+  return { messages: messagesToUse, summarizationOccurred };
 }
 
