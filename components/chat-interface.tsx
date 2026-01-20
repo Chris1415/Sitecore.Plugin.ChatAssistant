@@ -86,12 +86,8 @@ import { useAuth } from "./providers/auth";
 import { Toaster } from "@/components/ui/sonner";
 import type { ToolUIPart } from "ai";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Confirmation,
-  ConfirmationRequest,
-  ConfirmationActions,
-  ConfirmationAction,
   ConfirmationTitle,
 } from "@/components/ai-elements/confirmation";
 import {
@@ -793,11 +789,61 @@ function PredefinedQuestions({
   isTransitioning,
   isStreaming,
 }: {
-  onSelect: (question: string) => void;
+  onSelect: (question: string, files?: FileUIPart[]) => void;
   agentConfig: AgentConfig;
   isTransitioning: boolean;
   isStreaming: boolean;
 }) {
+  // Get attachments from PromptInputProvider
+  const { attachments } = usePromptInputController();
+  
+  // Convert blob URL to data URL (same logic as PromptInput component)
+  const convertBlobUrlToDataUrl = async (
+    url: string
+  ): Promise<string | null> => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  };
+  
+  const handleSelect = async (question: string) => {
+    // Get current attachments if any are selected
+    const rawFiles = attachments?.files || [];
+    
+    if (rawFiles.length === 0) {
+      onSelect(question, []);
+      return;
+    }
+    
+    // Convert blob URLs to data URLs asynchronously (same as PromptInput does)
+    const convertedFiles = await Promise.all(
+      rawFiles.map(async ({ id: _id, ...item }) => {
+        // Remove id property as sendMessage expects FileUIPart[]
+        void _id; // Suppress unused variable warning
+        if (item.url && item.url.startsWith("blob:")) {
+          const dataUrl = await convertBlobUrlToDataUrl(item.url);
+          // If conversion failed, keep the original blob URL
+          return {
+            ...item,
+            url: dataUrl ?? item.url,
+          };
+        }
+        return item;
+      })
+    );
+    
+    onSelect(question, convertedFiles);
+  };
+
   const themeColor = agentConfig.colors.primary;
   const topQuestions = agentConfig.predefinedQuestions.slice(0, 4);
   const moreQuestions = agentConfig.predefinedQuestions.slice(4);
@@ -830,7 +876,7 @@ function PredefinedQuestions({
                           ? "pr-12 lg:pr-14"
                           : "pr-8 lg:pr-10"
                       } text-left text-xs lg:text-sm font-medium shadow-sm transition-all duration-300 ease-in-out active:scale-[0.98]`}
-                      onClick={() => onSelect(item.question)}
+                      onClick={() => handleSelect(item.question)}
                       disabled={isStreaming}
                       style={{
                         ["--theme-color" as string]: themeColor,
@@ -940,7 +986,7 @@ function PredefinedQuestions({
                         <DropdownMenuItem
                           key={`${agentConfig.id}-more-${item.id}`}
                           className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
-                          onClick={() => onSelect(item.question)}
+                          onClick={() => handleSelect(item.question)}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = `${themeColor}0D`;
                           }}
@@ -1027,7 +1073,7 @@ function PredefinedQuestions({
                           key={`${agentConfig.id}-more-${item.id}`}
                           className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
                           onClick={() =>
-                            !isStreaming && onSelect(item.question)
+                            !isStreaming && handleSelect(item.question)
                           }
                           disabled={isStreaming}
                           onMouseEnter={(e) => {
@@ -1621,10 +1667,13 @@ export function ChatInterface() {
     );
   };
 
-  const handleQuestionSelect = async (question: string) => {
+  const handleQuestionSelect = async (question: string, files?: FileUIPart[]) => {
     const accessToken = await getAccessTokenSilently();
     sendMessage(
-      { text: question },
+      { 
+        text: question,
+        files: files || [],
+      },
       {
         body: {
           agentType: selectedAgent,
@@ -2450,12 +2499,15 @@ export function ChatInterface() {
                                                         : "Approval denied."}
                                                     </ConfirmationTitle>
                                                   </Confirmation>
-                                                  {toolPart.output && (
-                                                    <ToolOutput
-                                                      output={toolPart.output}
-                                                      errorText={undefined}
-                                                    />
-                                                  )}
+                                                  {(() => {
+                                                    const partWithOutput = toolPart as ToolUIPart & { output?: ToolUIPart["output"] };
+                                                    return partWithOutput.output ? (
+                                                      <ToolOutput
+                                                        output={partWithOutput.output}
+                                                        errorText={undefined}
+                                                      />
+                                                    ) : null;
+                                                  })()}
                                                 </ToolContent>
                                               </Tool>
                                             );
@@ -2499,23 +2551,9 @@ export function ChatInterface() {
                                             );
 
                                           case "output-error":
-                                            // Tool execution failed, show error
-                                            return (
-                                              <Alert
-                                                key={`${role}-${i}`}
-                                                variant="danger"
-                                                className="my-2"
-                                              >
-                                                <AlertCircle className="h-4 w-4" />
-                                                <AlertTitle>
-                                                  Tool Error
-                                                </AlertTitle>
-                                                <AlertDescription>
-                                                  {toolPart.errorText ||
-                                                    "An error occurred while executing the tool."}
-                                                </AlertDescription>
-                                              </Alert>
-                                            );
+                                            // Tool execution failed, but don't show error to user
+                                            // The AI can handle errors internally and continue
+                                            return null;
 
                                           case "output-available":
                                             // Tool execution succeeded, render output

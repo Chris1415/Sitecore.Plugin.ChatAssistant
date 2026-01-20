@@ -3,7 +3,7 @@ import { Tool, tool } from "ai";
 import z from "zod";
 import { createXMCClient } from "../../base/sitecoreClient";
 
-export function listPageChildrenTool(): Tool {
+export function listPageChildrenTool(sitecoreContextId: string): Tool {
   return tool({
     description:
       "List all child pages of a specific page in Sitecore. Retrieves the direct children of a page, useful for navigating page hierarchies, understanding site structure, or finding pages within a specific section.",
@@ -59,15 +59,22 @@ export function listPageChildrenTool(): Tool {
 
         const xmcClient = await createXMCClient(accessToken);
 
-        const queryParams: { language?: string } = {};
+        // Remove brackets from IDs if present (e.g., {GUID} -> GUID)
+        const cleanPageId = pageId.replace(/[{}]/g, "");
+        const cleanSiteId = siteId.replace(/[{}]/g, "");
+
+        const queryParams: { language?: string, sitecoreContextId?: string } = {};
         if (language) {
           queryParams.language = language;
+        }
+        if (sitecoreContextId) {
+          queryParams.sitecoreContextId = sitecoreContextId;
         }
 
         const result = await xmcClient.sites.listPageChildren({
           path: {
-            pageId: pageId,
-            siteId: siteId,
+            pageId: cleanPageId,
+            siteId: cleanSiteId,
           },
           query: queryParams,
         });
@@ -99,9 +106,9 @@ export const sitesApiTools = {
 };
 
 // Helper function to create all sites API tools initialized
-export function createAllSitesApiTools() {
+export function createAllSitesApiTools(sitecoreContextId: string) {
   return {
-    listPageChildren: listPageChildrenTool(),
+    listPageChildren: listPageChildrenTool(sitecoreContextId),
   };
 }
 

@@ -58,8 +58,6 @@ export async function listBrandKits(
       clientSecret: process.env.SITECORE_AI_CLIENT_SECRET || "",
     });
 
-    console.error("token", token);
-
     const response = await fetch(
       `${BRAND_API_BASE_URL}/v1/organizations/${organizationId}/brandkits?includeDeleted=false`,
       {
@@ -71,9 +69,7 @@ export async function listBrandKits(
       }
     );
 
-    console.error("response", JSON.stringify(response, null, 2));
-
-    if (!response.ok) {
+    console.error("response", JSON.stringify(response, null, 2));    if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
         errorData.message ||

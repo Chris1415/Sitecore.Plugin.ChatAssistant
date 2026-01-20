@@ -12,6 +12,10 @@ import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
 import { createAllAgentsApiComponentsTools } from "./tools/agents_api/Components";
 import { createAllSitesApiTools } from "./tools/sites_api/Sites";
 import { generateImageTool } from "./tools/basics/Media";
+import { createAllSitecoreConstantsTools } from "./tools/Sitcore_Constants";
+import { createAllSitecoreTools } from "./tools/Sitecore";
+import { createAllPersonsTools } from "./tools/Persons";
+import { createAllGraphqlApiPreviewTools } from "./tools/graphql_api/Preview";
 
 // Default system prompt for Sitecore Assistant
 export const DEFAULT_SYSTEM_PROMPT = `You are Sitecore Assistant, an AI helper for editors and marketers using Sitecore XM Cloud.
@@ -65,13 +69,17 @@ function createSitecoreTools(
   return {
     ...createAllAgentsApiSitesTools(accessToken, contextId),
     ...createAllPagesApiTools(accessToken, contextId),
-    ...createAllSitesApiTools(),
+    ...createAllSitesApiTools(contextId),
     ...createAllAgentsApiAssetsTools(accessToken, contextId),
     ...createAllAgentsApiPagesTools(accessToken, contextId),
     ...createAllBrandManagementApiBrandTools(brandKitId, sections),
     ...createAllAgentsApiContentTools(accessToken, contextId),
     ...createAllPagesContextTools(accessToken, contextId),
     ...createAllAgentsApiComponentsTools(accessToken, contextId),
+    ...createAllSitecoreConstantsTools(),
+    ...createAllSitecoreTools(),
+    ...createAllPersonsTools(accessToken, contextId),
+    ...createAllGraphqlApiPreviewTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
     generateImage: generateImageTool(accessToken, contextId),
   };

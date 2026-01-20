@@ -20,6 +20,7 @@ import {
   GitBranch,
   CheckCircle2,
   Languages,
+  Edit,
   type LucideIcon,
 } from "lucide-react";
 
@@ -158,6 +159,14 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         question:
           "Use getPageScreenshot to capture a visual preview of this page. Show the screenshot and provide a brief 2-3 sentence description of the layout, visual elements, and overall appearance.",
         icon: Image,
+        new: true,
+      },
+      {
+        id: 14,
+        label: "Update Component Content",
+        question:
+          "Update component content on the current page. First, ask the user precisely for: 1) the component name, 2) which field(s) to change, and 3) the new content for each field. If any information is missing, ask specifically for it. Get the pageId from Pages Context, find the component by name, then update its datasource fields with the new values. After successfully updating, refresh the page using navigatePagesContext or refreshPagesContext to show the updated content.",
+        icon: Edit,
         new: true,
       },
     ],
@@ -300,11 +309,11 @@ export const AGENT_CONFIGS: AgentConfig[] = [
     },
     predefinedQuestions: [
       {
-        id: 1,
-        label: "Article Statistics",
+        id: 13,
+        label: "Article Performance",
         question:
-          "Get a comprehensive overview of all articles in the system. Count the total number of articles, then break down how many are published versus unpublished. Present the results clearly: total count, published count, and unpublished count.",
-        icon: FileText,
+          "Use getContentAnalyticsData to show how this article is performing. Display key metrics: views, engagement, trends. Provide a one-line insight about performance.",
+        icon: TrendingUp,
       },
       {
         id: 3,
@@ -321,11 +330,11 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         icon: Globe,
       },
       {
-        id: 13,
-        label: "Article Performance",
+        id: 6,
+        label: "Brand Validation",
         question:
-          "Use getContentAnalyticsData to show how this article is performing. Display key metrics: views, engagement, trends. Provide a one-line insight about performance.",
-        icon: TrendingUp,
+          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+        icon: ShieldCheck,
       },
       {
         id: 5,
@@ -333,13 +342,6 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         question:
           "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
         icon: FileText,
-      },
-      {
-        id: 6,
-        label: "Brand Validation",
-        question:
-          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
-        icon: ShieldCheck,
       },
       {
         id: 7,
@@ -379,6 +381,21 @@ export const AGENT_CONFIGS: AgentConfig[] = [
           "Use getPageScreenshot to capture a visual preview of this article. Show the screenshot and provide a brief 2-3 sentence description of the layout, typography, and visual presentation.",
         icon: Image,
         new: true,
+      },
+      {
+        id: 15,
+        label: "News Campaign Launch",
+        question:
+          "Launch a news campaign by creating a news article and promoting it on the home page. First, ask the user precisely for: 1) news article details (title, content, subtitle, excerpt, and any other fields), 2) promotional title for the Hero Banner, and 3) promotional description for the Hero Banner. If any information is missing, ask specifically for it. Then: 1) Get News Root Page and News Template using getNewsRootPage and getNewsTemplate, 2) Create the news article using createNewsPage with the provided details and capture the returned itemId, 3) Find the home page (typically at path '/sitecore/content/solo/solo-website/Home' or use getPageDetails/searchPages to locate it) and capture its itemId and language, 4) Get components on the home page using getPageComponents, 5) Find the Hero Banner component (look for component with name containing 'Hero' or 'Banner'), 6) Update the Hero Banner's Title and Description fields using updateContentItem (update the component's datasource) with the promotional title and description, 7) Navigate to the newly created news page using navigatePages with the news article's itemId and language, 8) After navigation, provide a clear message with a link/navigation option to the home page (using navigatePages with the home page's itemId and language) explaining that the Hero Banner has been updated there to promote the new article.",
+        icon: Zap,
+        new: true,
+      },
+      {
+        id: 1,
+        label: "Articles Statistics",
+        question:
+          "Get comprehensive articles statistics: use getNewsRootPage to get News Root Page path, then use getSites to get the site name, then use getSitePages to retrieve all pages in the site. Filter pages to find those under the News Root Page path (e.g., pages whose path starts with or contains the News Root Page path). Use getLanguages to get all available languages. For each article page, check publication status in each language using checkPagePublishedToEdge. Display in two tables: 1) Comprehensive overview table (Metric | Count) showing Total Articles, Published (any language), Unpublished (all languages), Articles with all languages published, Articles missing language versions, Percentage Published, 2) Deep dive table (Article Title | Published Languages | Missing Languages | Last Modified | Status) showing detailed information for each article. Format all tables with clear alignment and proper column headers.",
+        icon: FileText,
       },
     ],
     teaserCards: [

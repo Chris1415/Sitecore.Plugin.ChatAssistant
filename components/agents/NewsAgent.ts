@@ -12,6 +12,9 @@ import { createAllAgentsApiContentTools } from "./tools/agents_api/Content";
 import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
 import { createAllAgentsApiComponentsTools } from "./tools/agents_api/Components";
 import { createAllSitesApiTools } from "./tools/sites_api/Sites";
+import { createAllPersonsTools } from "./tools/Persons";
+import { createAllSitecoreConstantsTools } from "./tools/Sitcore_Constants";
+import { createAllGraphqlApiPreviewTools } from "./tools/graphql_api/Preview";
 
 // System prompt for News Assistant
 export const NEWS_SYSTEM_PROMPT = `You are News Assistant, an AI helper for editors and marketers managing news and editorial content in Sitecore XM Cloud.
@@ -68,14 +71,17 @@ function createNewsTools(
   return {
     ...createAllAgentsApiSitesTools(accessToken, contextId),
     ...createAllNewsTools(accessToken, contextId),
+    ...createAllPersonsTools(accessToken, contextId),
+    ...createAllSitecoreConstantsTools(),
     ...createAllAgentsApiContentTools(accessToken, contextId),
     ...createAllPagesApiTools(accessToken, contextId),
-    ...createAllSitesApiTools(),
+    ...createAllSitesApiTools(contextId),
     ...createAllAgentsApiAssetsTools(accessToken, contextId),
     ...createAllAgentsApiPagesTools(accessToken, contextId),
     ...createAllBrandManagementApiBrandTools(brandKitId, sections),
     ...createAllPagesContextTools(accessToken, contextId),
     ...createAllAgentsApiComponentsTools(accessToken, contextId),
+    ...createAllGraphqlApiPreviewTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
   };
 }
