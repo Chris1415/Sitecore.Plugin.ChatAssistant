@@ -1673,7 +1673,7 @@ export function ChatInterface() {
   const handleNewChat = () => {
     // Stop any ongoing requests
     stop();
-    
+
     // Clear client-side messages
     setMessages([]);
     setUserManuallySelectedAgent(false); // Reset manual selection on new chat
@@ -1940,7 +1940,7 @@ export function ChatInterface() {
                       (msg.metadata as { summarizationOccurred?: boolean })
                         ?.summarizationOccurred
                   );
-                  
+
                   return (
                     <>
                       {messages.map((message, index) => {
@@ -1952,7 +1952,7 @@ export function ChatInterface() {
                         const agentConfig = agentType
                           ? getAgentConfig(agentType)
                           : null;
-                        
+
                         // Check for summarization metadata
                         const summarizationOccurred =
                           (metadata as { summarizationOccurred?: boolean })
@@ -1992,12 +1992,22 @@ export function ChatInterface() {
                           ); // Remove duplicates
 
                         // Find the index of the analytics tool result part
-                        const analyticsToolIndex = parts.findIndex(
-                          (part) =>
+                        const analyticsToolIndex = parts.findIndex((part) => {
+                          if (
                             typeof part.type === "string" &&
-                            part.type.startsWith("tool-") &&
-                            part.type.includes("getContentAnalyticsData")
-                        );
+                            part.type.startsWith("tool-")
+                          ) {
+                            return (
+                              part.type.includes("getContentAnalyticsData") ||
+                              part.type.includes(
+                                "get-content-analytics-data"
+                              ) ||
+                              (part as { toolName?: string }).toolName ===
+                                "getContentAnalyticsData"
+                            );
+                          }
+                          return false;
+                        });
                         const hasAnalyticsTool = analyticsToolIndex !== -1;
 
                         return (
@@ -2268,13 +2278,72 @@ export function ChatInterface() {
                                         const toolPart = part as ToolUIPart;
                                         const toolType = part.type as string;
 
+                                        // Check environment variable to override behavior
+                                        // NEXT_PUBLIC_HIDE_TOOL_OUTPUTS can override development mode
+                                        const hideToolOutputs =
+                                          process.env
+                                            .NEXT_PUBLIC_HIDE_TOOL_OUTPUTS ===
+                                            "true" ||
+                                          process.env
+                                            .NEXT_PUBLIC_HIDE_TOOL_OUTPUTS ===
+                                            "1";
+
                                         // In production, only show tools that need approval
-                                        // In development, show all tool states
+                                        // In development, show all tool states (unless overridden by env var)
                                         const isDevelopment =
-                                          process.env.NODE_ENV === "development";
+                                          process.env.NODE_ENV ===
+                                          "development";
+
+                                        // Check if this is a custom UI tool that should always be shown
+                                        const isCustomUITool =
+                                          toolType.includes(
+                                            "getContentAnalyticsData"
+                                          ) ||
+                                          toolType.includes(
+                                            "get-content-analytics-data"
+                                          ) ||
+                                          toolType
+                                            .toLowerCase()
+                                            .includes("analytics") ||
+                                          toolType.includes(
+                                            "generateBrandReviewFromContent"
+                                          ) ||
+                                          toolType.includes(
+                                            "generate-brand-review-from-content"
+                                          ) ||
+                                          toolType.includes(
+                                            "generateBrandReview"
+                                          ) ||
+                                          toolType.includes("getPageScreenshot") ||
+                                          toolType.includes(
+                                            "get-page-screenshot"
+                                          ) ||
+                                          (
+                                            toolPart as {
+                                              toolName?: string;
+                                            }
+                                          ).toolName ===
+                                            "getContentAnalyticsData" ||
+                                          (
+                                            toolPart as {
+                                              toolName?: string;
+                                            }
+                                          ).toolName ===
+                                            "generateBrandReviewFromContent" ||
+                                          (
+                                            toolPart as {
+                                              toolName?: string;
+                                            }
+                                          ).toolName === "getPageScreenshot";
+
+                                        // Hide tool outputs if:
+                                        // 1. We're in production AND it's not approval-requested AND it's not a custom UI tool, OR
+                                        // 2. The env var is set to hide outputs AND it's not approval-requested AND it's not a custom UI tool
                                         if (
-                                          !isDevelopment &&
-                                          toolPart.state !== "approval-requested"
+                                          (hideToolOutputs || !isDevelopment) &&
+                                          toolPart.state !==
+                                            "approval-requested" &&
+                                          !isCustomUITool
                                         ) {
                                           return null;
                                         }
@@ -2473,11 +2542,21 @@ export function ChatInterface() {
 
                                           case "input-available":
                                             // Tool is being called, show loading state
-                                            if (
+                                            const isAnalyticsToolLoading =
                                               toolType.includes(
                                                 "getContentAnalyticsData"
-                                              )
-                                            ) {
+                                              ) ||
+                                              toolType.includes(
+                                                "get-content-analytics-data"
+                                              ) ||
+                                              (
+                                                toolPart as {
+                                                  toolName?: string;
+                                                }
+                                              ).toolName ===
+                                                "getContentAnalyticsData";
+
+                                            if (isAnalyticsToolLoading) {
                                               return (
                                                 <div
                                                   key={`${role}-${i}`}
@@ -2488,11 +2567,24 @@ export function ChatInterface() {
                                                 </div>
                                               );
                                             }
-                                            if (
+                                            const isBrandReviewToolLoading =
+                                              toolType.includes(
+                                                "generateBrandReviewFromContent"
+                                              ) ||
+                                              toolType.includes(
+                                                "generate-brand-review-from-content"
+                                              ) ||
                                               toolType.includes(
                                                 "generateBrandReview"
-                                              )
-                                            ) {
+                                              ) ||
+                                              (
+                                                toolPart as {
+                                                  toolName?: string;
+                                                }
+                                              ).toolName ===
+                                                "generateBrandReviewFromContent";
+
+                                            if (isBrandReviewToolLoading) {
                                               return (
                                                 <div
                                                   key={`${role}-${i}`}
@@ -2503,11 +2595,21 @@ export function ChatInterface() {
                                                 </div>
                                               );
                                             }
-                                            if (
+                                            const isScreenshotToolLoading =
                                               toolType.includes(
                                                 "getPageScreenshot"
-                                              )
-                                            ) {
+                                              ) ||
+                                              toolType.includes(
+                                                "get-page-screenshot"
+                                              ) ||
+                                              (
+                                                toolPart as {
+                                                  toolName?: string;
+                                                }
+                                              ).toolName ===
+                                                "getPageScreenshot";
+
+                                            if (isScreenshotToolLoading) {
                                               return (
                                                 <div
                                                   key={`${role}-${i}`}
@@ -2531,10 +2633,166 @@ export function ChatInterface() {
 
                                           case "approval-responded":
                                             // Approval was given, tool is executing or completed
+                                            // Check for custom UI components first
+                                            const partWithOutput =
+                                              toolPart as ToolUIPart & {
+                                                output?: ToolUIPart["output"];
+                                              };
+
+                                            // Check if this is analytics tool with custom UI
+                                            const isAnalyticsToolApproved =
+                                              (toolType.includes(
+                                                "getContentAnalyticsData"
+                                              ) ||
+                                                toolType.includes(
+                                                  "get-content-analytics-data"
+                                                ) ||
+                                                (
+                                                  toolPart as {
+                                                    toolName?: string;
+                                                  }
+                                                ).toolName ===
+                                                  "getContentAnalyticsData") &&
+                                              partWithOutput.output &&
+                                              typeof partWithOutput.output ===
+                                                "object" &&
+                                              "data" in partWithOutput.output;
+
+                                            if (isAnalyticsToolApproved) {
+                                              const analyticsData = (
+                                                partWithOutput.output as {
+                                                  data?: unknown;
+                                                }
+                                              ).data;
+                                              if (
+                                                Array.isArray(analyticsData) &&
+                                                analyticsData.length > 0
+                                              ) {
+                                                return (
+                                                  <div key={`${role}-${i}`}>
+                                                    <AnalyticsData
+                                                      data={
+                                                        analyticsData as Array<{
+                                                          Day: string;
+                                                          "Number Visits": number;
+                                                          "Number Visitors": number;
+                                                        }>
+                                                      }
+                                                    />
+                                                  </div>
+                                                );
+                                              }
+                                            }
+
+                                            // Check if this is brand review tool with custom UI
+                                            const isBrandReviewToolApproved =
+                                              (toolType.includes(
+                                                "generateBrandReviewFromContent"
+                                              ) ||
+                                                toolType.includes(
+                                                  "generate-brand-review-from-content"
+                                                ) ||
+                                                toolType.includes(
+                                                  "generateBrandReview"
+                                                ) ||
+                                                (
+                                                  toolPart as {
+                                                    toolName?: string;
+                                                  }
+                                                ).toolName ===
+                                                  "generateBrandReviewFromContent") &&
+                                              partWithOutput.output &&
+                                              typeof partWithOutput.output ===
+                                                "object" &&
+                                              "data" in partWithOutput.output &&
+                                              "success" in partWithOutput.output &&
+                                              partWithOutput.output.success ===
+                                                true;
+
+                                            if (isBrandReviewToolApproved) {
+                                              const brandReviewData = (
+                                                partWithOutput.output as {
+                                                  data?: unknown;
+                                                  success: boolean;
+                                                }
+                                              ).data;
+                                              if (
+                                                Array.isArray(brandReviewData) &&
+                                                brandReviewData.length > 0
+                                              ) {
+                                                return (
+                                                  <div key={`${role}-${i}`}>
+                                                    <BrandReview
+                                                      data={
+                                                        brandReviewData as Array<{
+                                                          sectionId: string;
+                                                          sectionName?: string;
+                                                          score: number;
+                                                          reason: string;
+                                                          suggestion: string;
+                                                          fields?: Array<{
+                                                            fieldId: string;
+                                                            fieldName?: string;
+                                                            score: number;
+                                                            reason: string;
+                                                            suggestion: string;
+                                                          }>;
+                                                        }>
+                                                      }
+                                                    />
+                                                  </div>
+                                                );
+                                              }
+                                            }
+
+                                            // Check if this is screenshot tool with custom UI
+                                            const isScreenshotToolApproved =
+                                              (toolType.includes(
+                                                "getPageScreenshot"
+                                              ) ||
+                                                toolType.includes(
+                                                  "get-page-screenshot"
+                                                ) ||
+                                                (
+                                                  toolPart as {
+                                                    toolName?: string;
+                                                  }
+                                                ).toolName ===
+                                                  "getPageScreenshot") &&
+                                              partWithOutput.output &&
+                                              typeof partWithOutput.output ===
+                                                "object" &&
+                                              "screenshotData" in
+                                                partWithOutput.output;
+
+                                            if (isScreenshotToolApproved) {
+                                              const screenshotOutput =
+                                                partWithOutput.output as {
+                                                  screenshotData?:
+                                                    | string
+                                                    | {
+                                                        screenshot_base64?: string;
+                                                      };
+                                                };
+                                              const screenshotData =
+                                                screenshotOutput.screenshotData;
+
+                                              if (screenshotData) {
+                                                return (
+                                                  <div key={`${role}-${i}`}>
+                                                    <PageScreenshot
+                                                      screenshotData={
+                                                        screenshotData
+                                                      }
+                                                    />
+                                                  </div>
+                                                );
+                                              }
+                                            }
+
+                                            // Default rendering for approval-responded
                                             return (
-                                              <Tool
-                                                key={`${role}-${i}`}
-                                              >
+                                              <Tool key={`${role}-${i}`}>
                                                 <ToolHeader
                                                   type={toolPart.type}
                                                   state={toolPart.state}
@@ -2555,20 +2813,14 @@ export function ChatInterface() {
                                                         : "Approval denied."}
                                                     </ConfirmationTitle>
                                                   </Confirmation>
-                                                  {(() => {
-                                                    const partWithOutput =
-                                                      toolPart as ToolUIPart & {
-                                                        output?: ToolUIPart["output"];
-                                                      };
-                                                    return partWithOutput.output ? (
-                                                      <ToolOutput
-                                                        output={
-                                                          partWithOutput.output
-                                                        }
-                                                        errorText={undefined}
-                                                      />
-                                                    ) : null;
-                                                  })()}
+                                                  {partWithOutput.output ? (
+                                                    <ToolOutput
+                                                      output={
+                                                        partWithOutput.output
+                                                      }
+                                                      errorText={undefined}
+                                                    />
+                                                  ) : null}
                                                 </ToolContent>
                                               </Tool>
                                             );
@@ -2576,9 +2828,7 @@ export function ChatInterface() {
                                           case "output-denied":
                                             // Tool execution was denied
                                             return (
-                                              <Tool
-                                                key={`${role}-${i}`}
-                                              >
+                                              <Tool key={`${role}-${i}`}>
                                                 <ToolHeader
                                                   type={toolPart.type}
                                                   state={toolPart.state}
@@ -2616,14 +2866,67 @@ export function ChatInterface() {
                                             return null;
 
                                           case "output-available":
+                                          default:
                                             // Tool execution succeeded, render output
 
-                                            // Check if this is a tool result for analytics data
+                                            // Debug: Log tool type for troubleshooting
                                             if (
+                                              toolType.includes("Analytics") ||
+                                              toolType.includes("analytics")
+                                            ) {
+                                              console.log(
+                                                "[ChatInterface] Analytics tool detected:",
+                                                {
+                                                  toolType,
+                                                  toolName: (
+                                                    toolPart as {
+                                                      toolName?: string;
+                                                    }
+                                                  ).toolName,
+                                                  state: toolPart.state,
+                                                  hasOutput: !!toolPart.output,
+                                                  outputKeys:
+                                                    toolPart.output &&
+                                                    typeof toolPart.output ===
+                                                      "object"
+                                                      ? Object.keys(
+                                                          toolPart.output
+                                                        )
+                                                      : null,
+                                                }
+                                              );
+                                            }
+
+                                            // Check if this is a tool result for analytics data
+                                            // Check both toolType and toolName property for better detection
+                                            const isAnalyticsTool =
                                               toolType.includes(
                                                 "getContentAnalyticsData"
-                                              )
-                                            ) {
+                                              ) ||
+                                              toolType.includes(
+                                                "get-content-analytics-data"
+                                              ) ||
+                                              toolType.includes(
+                                                "getContentAnalytics"
+                                              ) ||
+                                              toolType.toLowerCase().includes(
+                                                "analytics"
+                                              ) ||
+                                              (
+                                                toolPart as {
+                                                  toolName?: string;
+                                                }
+                                              ).toolName ===
+                                                "getContentAnalyticsData" ||
+                                              (
+                                                toolPart as {
+                                                  toolName?: string;
+                                                }
+                                              ).toolName?.includes(
+                                                "Analytics"
+                                              );
+
+                                            if (isAnalyticsTool) {
                                               if (
                                                 toolPart.output &&
                                                 typeof toolPart.output ===
@@ -2644,7 +2947,13 @@ export function ChatInterface() {
                                                   return (
                                                     <div key={`${role}-${i}`}>
                                                       <AnalyticsData
-                                                        data={analyticsData}
+                                                        data={
+                                                          analyticsData as Array<{
+                                                            Day: string;
+                                                            "Number Visits": number;
+                                                            "Number Visitors": number;
+                                                          }>
+                                                        }
                                                       />
                                                     </div>
                                                   );
@@ -2652,11 +2961,25 @@ export function ChatInterface() {
                                               }
                                             }
                                             // Check if this is a tool result for brand review
-                                            if (
+                                            // Check both toolType and toolName property for better detection
+                                            const isBrandReviewTool =
+                                              toolType.includes(
+                                                "generateBrandReviewFromContent"
+                                              ) ||
+                                              toolType.includes(
+                                                "generate-brand-review-from-content"
+                                              ) ||
                                               toolType.includes(
                                                 "generateBrandReview"
-                                              )
-                                            ) {
+                                              ) ||
+                                              (
+                                                toolPart as {
+                                                  toolName?: string;
+                                                }
+                                              ).toolName ===
+                                                "generateBrandReviewFromContent";
+
+                                            if (isBrandReviewTool) {
                                               if (
                                                 toolPart.output &&
                                                 typeof toolPart.output ===
@@ -2680,7 +3003,22 @@ export function ChatInterface() {
                                                   return (
                                                     <div key={`${role}-${i}`}>
                                                       <BrandReview
-                                                        data={brandReviewData}
+                                                        data={
+                                                          brandReviewData as Array<{
+                                                            sectionId: string;
+                                                            sectionName?: string;
+                                                            score: number;
+                                                            reason: string;
+                                                            suggestion: string;
+                                                            fields?: Array<{
+                                                              fieldId: string;
+                                                              fieldName?: string;
+                                                              score: number;
+                                                              reason: string;
+                                                              suggestion: string;
+                                                            }>;
+                                                          }>
+                                                        }
                                                       />
                                                     </div>
                                                   );
@@ -2688,11 +3026,22 @@ export function ChatInterface() {
                                               }
                                             }
                                             // Check if this is a tool result for page screenshot
-                                            if (
+                                            // Check both toolType and toolName property for better detection
+                                            const isScreenshotTool =
                                               toolType.includes(
                                                 "getPageScreenshot"
-                                              )
-                                            ) {
+                                              ) ||
+                                              toolType.includes(
+                                                "get-page-screenshot"
+                                              ) ||
+                                              (
+                                                toolPart as {
+                                                  toolName?: string;
+                                                }
+                                              ).toolName ===
+                                                "getPageScreenshot";
+
+                                            if (isScreenshotTool) {
                                               if (
                                                 toolPart.output &&
                                                 typeof toolPart.output ===
@@ -2733,7 +3082,9 @@ export function ChatInterface() {
                                                   state={toolPart.state}
                                                 />
                                                 <ToolContent>
-                                                  <ToolInput input={toolPart.input} />
+                                                  <ToolInput
+                                                    input={toolPart.input}
+                                                  />
                                                   <ToolOutput
                                                     output={toolPart.output}
                                                     errorText={undefined}
@@ -2741,10 +3092,6 @@ export function ChatInterface() {
                                                 </ToolContent>
                                               </Tool>
                                             );
-
-                                          default:
-                                            // Unknown state, return null
-                                            return null;
                                         }
                                       }
                                       return null;

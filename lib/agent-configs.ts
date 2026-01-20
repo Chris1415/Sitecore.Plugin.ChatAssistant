@@ -82,35 +82,35 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Page Context",
         question:
-          "Use Pages Context Information to display current page details as readable key-value pairs. Extract all relevant information from Pages Context - do not use tools unless information is missing.",
+          "Display current page details from Pages Context as a well-formatted markdown table with columns: Property | Value. Extract all relevant information (page name, ID, path, template, language, version, etc.). Only use tools if information is missing from Pages Context.",
         icon: FileText,
       },
       {
         id: 2,
         label: "Sites & Languages",
         question:
-          "Use getSites and getLanguages tools. Output only: Sites table with columns (Name, ID, Root Path from properties) and Languages table with columns (Name, Regional ISO Code, ISO Code). Keep output crystal clean and minimal.",
+          "Use getSites and getLanguages tools. Display results in two well-formatted markdown tables: 1) Sites table (Name | ID | Root Path from properties), 2) Languages table (Name | Regional ISO Code | ISO Code). Add a brief summary header showing total counts. Format tables with clear headers and proper alignment.",
         icon: Globe,
       },
       {
         id: 4,
         label: "Translate Page",
         question:
-          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew). After translation, use navigatePages tool to navigate to the newly created language version using the pageId (itemId), targetLanguage, and siteName.",
+          "Ask user for: source language, target language, and translation strategy (AddVersion/CreateNew). Use getLanguages to verify languages exist, then translatePage. After successful translation, use navigatePages to navigate to the new language version using returned itemId, targetLanguage, and siteName.",
         icon: Globe,
       },
       {
         id: 13,
         label: "Content Performance",
         question:
-          "Use getContentAnalyticsData to show how this page is performing. Display key metrics: views, engagement, trends. Provide a one-line insight about performance.",
+          "Use getContentAnalyticsData tool. Display key metrics in a formatted markdown table: Metric | Value (include views, engagement rate, trends). Provide a one-sentence performance insight at the top.",
         icon: TrendingUp,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Use getPageHtml, then summarize in 3-5 sentences: purpose, key topics, overall message.",
+          "Use getPageHtml tool, then provide a concise 3-5 sentence summary covering: page purpose, key topics, and overall message.",
         icon: FileText,
         expensive: true,
       },
@@ -118,7 +118,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 6,
         label: "Brand Validation",
         question:
-          "Use getPageHtml, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+          "Use getPageHtml, then generateBrandReviewFromContent. Display results in a brief markdown table: Aspect | Status | Notes. Provide a 1-2 sentence brand compliance summary.",
         icon: ShieldCheck,
         expensive: true,
       },
@@ -126,14 +126,14 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 7,
         label: "Find Assets",
         question:
-          "Search media library: searchForAssets by keywords, then getAssetDetails for dimensions, size, URLs.",
+          "Ask user for search keywords. Use searchForAssets, then getAssetDetails for each result. Display results in a formatted markdown table: Name | Type | Dimensions | Size | URL. Show up to 10 most relevant results.",
         icon: Image,
       },
       {
         id: 9,
         label: "SEO/GEO Check",
         question:
-          "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
+          "Use getPageHtml to analyze SEO and AEO/GEO. Display findings in a markdown table: Issue | How to Fix | Severity (Critical/High/Medium/Low), sorted by severity. Check: meta tags, headings, semantic markup, accessibility, content structure, structured data (JSON-LD/Schema.org). End with a 2-3 sentence overall summary.",
         icon: FileText,
         expensive: true,
       },
@@ -141,7 +141,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 10,
         label: "Is This Live?",
         question:
-          "Get the languages using getLanguages tool. Check if the page in each language version is published or not using checkPagePublishedToEdge. Display status for each language: Language | Status (✅ Published / ❌ Not published). Use emojis.",
+          "Use getLanguages, then checkPagePublishedToEdge for each language. Display results in a markdown table: Language | Status (✅ Published / ❌ Not Published). Include a summary showing total published vs unpublished.",
         icon: CheckCircle2,
         new: true,
       },
@@ -149,7 +149,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 11,
         label: "Translation Status",
         question:
-          "Get the languages using getLanguages tool. Check if and which version exists for the current page in each available language. Display for each language: Language | Version exists (✅ Yes / ❌ No) | Version number (if exists). Use emojis.",
+          "Use getLanguages, then check current page version status for each language. Display results in a markdown table: Language | Version Exists (✅ Yes / ❌ No) | Version Number. Include a summary of translation coverage.",
         icon: Languages,
         new: true,
       },
@@ -157,7 +157,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 12,
         label: "Visual Preview",
         question:
-          "Use getPageScreenshot to capture a visual preview of this page. Show the screenshot and provide a brief 2-3 sentence description of the layout, visual elements, and overall appearance.",
+          "Use getPageScreenshot to capture page preview. Display the screenshot and provide a 2-3 sentence description covering layout structure, visual elements, and overall appearance.",
         icon: Image,
         new: true,
       },
@@ -165,7 +165,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 14,
         label: "Update Component Content",
         question:
-          "Update component content on the current page. First, ask the user precisely for: 1) the component name, 2) which field(s) to change, and 3) the new content for each field. If any information is missing, ask specifically for it. Get the pageId from Pages Context, find the component by name, then update its datasource fields with the new values. After successfully updating, refresh the page using navigatePagesContext or refreshPagesContext to show the updated content.",
+          "Ask user precisely for: 1) component name, 2) field(s) to update, 3) new content for each field. If information is missing, ask specifically. Get pageId from Pages Context, find component by name using getPageComponents, update datasource fields using updateComponentContent. After update, refresh page using refreshPagesContext.",
         icon: Edit,
         new: true,
       },
@@ -214,56 +214,56 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 2,
         label: "Catalog Overview",
         question:
-          "Overview of product catalog: categories, total products, items needing attention.",
+          "Use getSitePages to retrieve product pages. Analyze and display catalog overview in a formatted markdown table: Metric | Value (Total Products, Categories, Items Needing Attention). Provide a brief summary of catalog health.",
         icon: Package,
       },
       {
         id: 3,
         label: "Top Products",
         question:
-          "List top-performing products with views, engagement metrics, and trends.",
+          "Use getContentAnalyticsData to identify top-performing products. Display results in a formatted markdown table: Product | Views | Engagement | Trend. Show top 10 products with a brief performance summary.",
         icon: TrendingUp,
       },
       {
         id: 4,
         label: "Translate Product Page",
         question:
-          "Check languages (getLanguages), then translatePage to create language versions for international access.",
+          "Ask user for source language, target language, and strategy (AddVersion/CreateNew). Use getLanguages to verify, then translatePage. After translation, use navigatePages to navigate to the new language version.",
         icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
+          "Use getContentItemContent, then provide a concise 3-5 sentence summary covering: product purpose, key features, and overall message.",
         icon: FileText,
       },
       {
         id: 6,
         label: "Find Product Assets",
         question:
-          "Search media library: searchForAssets for product images/docs, then getAssetDetails for details.",
+          "Ask user for search keywords. Use searchForAssets for product images/docs, then getAssetDetails. Display results in a formatted markdown table: Name | Type | Dimensions | Size | URL. Show up to 10 results.",
         icon: Image,
       },
       {
         id: 7,
         label: "Brand Validation",
         question:
-          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+          "Use getContentItemContent, then generateBrandReviewFromContent. Display results in a brief markdown table: Aspect | Status | Notes. Provide a 1-2 sentence brand compliance summary.",
         icon: ShieldCheck,
       },
       {
         id: 8,
         label: "Product Page Screenshot",
         question:
-          "Capture screenshot using getPageScreenshot to review product presentation and layout.",
+          "Use getPageScreenshot to capture product page preview. Display the screenshot and provide a 2-3 sentence description of product presentation, layout, and visual elements.",
         icon: Image,
       },
       {
         id: 9,
         label: "Product Content Analysis",
         question:
-          "Use getPageHtml to analyze HTML structure, semantic markup, product info organization. Provide improvement recommendations.",
+          "Use getPageHtml to analyze HTML structure, semantic markup, and product information organization. Display findings in a markdown table: Aspect | Current State | Recommendation. Provide improvement recommendations prioritized by impact.",
         icon: FileText,
         expensive: true,
       },
@@ -312,49 +312,49 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 13,
         label: "Article Performance",
         question:
-          "Use getContentAnalyticsData to show how this article is performing. Display key metrics: views, engagement, trends. Provide a one-line insight about performance.",
+          "Use getContentAnalyticsData tool. Display key metrics in a formatted markdown table: Metric | Value (include views, engagement rate, trends). Provide a one-sentence performance insight at the top.",
         icon: TrendingUp,
       },
       {
         id: 3,
         label: "Create Page",
         question:
-          "Guide creation of new page. I'll provide title, content, and required fields. After creation, use navigatePages tool to navigate to the newly created page using the returned itemId, language, and siteName.",
+          "Ask user for: article title, content, subtitle, excerpt, and any required fields. Use getNewsRootPage and getNewsTemplate, then createNewsPage. After creation, use navigatePages to navigate to the new page using returned itemId, language, and siteName.",
         icon: Newspaper,
       },
       {
         id: 4,
         label: "Translate Article",
         question:
-          "Check languages (getLanguages), then translatePage. Specify source/target languages and strategy (AddVersion/CreateNew). After translation, use navigatePages tool to navigate to the newly created language version using the pageId (itemId), targetLanguage, and siteName.",
+          "Ask user for source language, target language, and strategy (AddVersion/CreateNew). Use getLanguages to verify, then translatePage. After translation, use navigatePages to navigate to the new language version using itemId, targetLanguage, and siteName.",
         icon: Globe,
       },
       {
         id: 6,
         label: "Brand Validation",
         question:
-          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+          "Use getContentItemContent, then generateBrandReviewFromContent. Display results in a brief markdown table: Aspect | Status | Notes. Provide a 1-2 sentence brand compliance summary.",
         icon: ShieldCheck,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
+          "Use getContentItemContent, then provide a concise 3-5 sentence summary covering: article purpose, key topics, and overall message.",
         icon: FileText,
       },
       {
         id: 7,
         label: "Find Images",
         question:
-          "Search media library: searchForAssets for article images/graphics, then getAssetDetails for details.",
+          "Ask user for search keywords. Use searchForAssets for article images/graphics, then getAssetDetails. Display results in a formatted markdown table: Name | Type | Dimensions | Size | URL. Show up to 10 results.",
         icon: Image,
       },
       {
         id: 9,
         label: "SEO/GEO Check",
         question:
-          "Analyze page HTML (getPageHtml) for SEO and AEO/GEO. Output table: Topic | How to Fix | Severity (Critical/High/Medium/Low). One row per issue, sorted by severity. SEO: meta tags, headings, semantic markup, accessibility. AEO: content structure, clarity, structured data (JSON-LD/Schema.org). End with 2-3 sentence overall summary.",
+          "Use getPageHtml to analyze SEO and AEO/GEO. Display findings in a markdown table: Issue | How to Fix | Severity (Critical/High/Medium/Low), sorted by severity. Check: meta tags, headings, semantic markup, accessibility, content structure, structured data (JSON-LD/Schema.org). End with a 2-3 sentence overall summary.",
         icon: FileText,
         expensive: true,
       },
@@ -362,7 +362,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 10,
         label: "Is This Live?",
         question:
-          "Get the languages using getLanguages tool. Check if the page in each language version is published or not using checkPagePublishedToEdge. Display status for each language: Language | Status (✅ Published / ❌ Not published). Use emojis.",
+          "Use getLanguages, then checkPagePublishedToEdge for each language. Display results in a markdown table: Language | Status (✅ Published / ❌ Not Published). Include a summary showing total published vs unpublished.",
         icon: CheckCircle2,
         new: true,
       },
@@ -370,7 +370,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 11,
         label: "Translation Status",
         question:
-          "Get the languages using getLanguages tool. Check if and which version exists for the current page in each available language. Display for each language: Language | Version exists (✅ Yes / ❌ No) | Version number (if exists). Use emojis.",
+          "Use getLanguages, then check current page version status for each language. Display results in a markdown table: Language | Version Exists (✅ Yes / ❌ No) | Version Number. Include a summary of translation coverage.",
         icon: Languages,
         new: true,
       },
@@ -378,7 +378,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 12,
         label: "Visual Preview",
         question:
-          "Use getPageScreenshot to capture a visual preview of this article. Show the screenshot and provide a brief 2-3 sentence description of the layout, typography, and visual presentation.",
+          "Use getPageScreenshot to capture article preview. Display the screenshot and provide a 2-3 sentence description covering layout structure, typography, and visual presentation.",
         icon: Image,
         new: true,
       },
@@ -386,7 +386,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 15,
         label: "News Campaign Launch",
         question:
-          "Launch a news campaign by creating a news article and promoting it on the home page. First, ask the user precisely for: 1) news article details (title, content, subtitle, excerpt, and any other fields), 2) promotional title for the Hero Banner, and 3) promotional description for the Hero Banner. If any information is missing, ask specifically for it. Then: 1) Get News Root Page and News Template using getNewsRootPage and getNewsTemplate, 2) Create the news article using createNewsPage with the provided details and capture the returned itemId, 3) Find the home page (typically at path '/sitecore/content/solo/solo-website/Home' or use getPageDetails/searchPages to locate it) and capture its itemId and language, 4) Get components on the home page using getPageComponents, 5) Find the Hero Banner component (look for component with name containing 'Hero' or 'Banner'), 6) Update the Hero Banner's Title and Description fields using updateContentItem (update the component's datasource) with the promotional title and description, 7) Navigate to the newly created news page using navigatePages with the news article's itemId and language, 8) After navigation, provide a clear message with a link/navigation option to the home page (using navigatePages with the home page's itemId and language) explaining that the Hero Banner has been updated there to promote the new article.",
+          "Ask user for: 1) article details (title, content, subtitle, excerpt), 2) Hero Banner promotional title, 3) Hero Banner promotional description. Use getNewsRootPage and getNewsTemplate, create article with createNewsPage. Find home page using searchPages or getPageDetails, get components with getPageComponents, find Hero Banner component, update Title/Description fields with updateComponentContent. Navigate to new article with navigatePages, then provide link to home page explaining Hero Banner update.",
         icon: Zap,
         new: true,
       },
@@ -394,7 +394,7 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Articles Statistics",
         question:
-          "Get comprehensive articles statistics: use getNewsRootPage to get News Root Page path, then use getSites to get the site name, then use getSitePages to retrieve all pages in the site. Filter pages to find those under the News Root Page path (e.g., pages whose path starts with or contains the News Root Page path). Use getLanguages to get all available languages. For each article page, check publication status in each language using checkPagePublishedToEdge. Display in two tables: 1) Comprehensive overview table (Metric | Count) showing Total Articles, Published (any language), Unpublished (all languages), Articles with all languages published, Articles missing language versions, Percentage Published, 2) Deep dive table (Article Title | Published Languages | Missing Languages | Last Modified | Status) showing detailed information for each article. Format all tables with clear alignment and proper column headers.",
+          "Use getNewsRootPage, getSites, getSitePages (filter by News Root path), getLanguages, and checkPagePublishedToEdge for each article/language. Display two formatted markdown tables: 1) Overview (Metric | Count): Total Articles, Published (any language), Unpublished, All languages published, Missing versions, Percentage Published. 2) Deep Dive (Article Title | Published Languages | Missing Languages | Last Modified | Status). Include summary statistics.",
         icon: FileText,
       },
     ],
@@ -442,56 +442,56 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 2,
         label: "Upcoming Events",
         question:
-          "List events in next 30 days with registration counts and promotion needs.",
+          "Use getSitePages to retrieve event pages, filter by date (next 30 days). Display results in a formatted markdown table: Event Name | Date | Registration Count | Promotion Status. Include a summary of upcoming events requiring attention.",
         icon: Calendar,
       },
       {
         id: 3,
         label: "Event Performance",
         question:
-          "Show recent event performance: attendance rates, engagement metrics, feedback highlights.",
+          "Use getContentAnalyticsData for recent events. Display performance metrics in a formatted markdown table: Event | Attendance Rate | Engagement | Feedback Score. Provide a brief summary of top performers and areas for improvement.",
         icon: TrendingUp,
       },
       {
         id: 4,
         label: "Translate Event Page",
         question:
-          "Check languages (getLanguages), then translatePage for international attendees.",
+          "Ask user for source language, target language, and strategy (AddVersion/CreateNew). Use getLanguages to verify, then translatePage. After translation, use navigatePages to navigate to the new language version.",
         icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
+          "Use getContentItemContent, then provide a concise 3-5 sentence summary covering: event purpose, key details, and overall message.",
         icon: FileText,
       },
       {
         id: 6,
         label: "Brand Validation",
         question:
-          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+          "Use getContentItemContent, then generateBrandReviewFromContent. Display results in a brief markdown table: Aspect | Status | Notes. Provide a 1-2 sentence brand compliance summary.",
         icon: ShieldCheck,
       },
       {
         id: 7,
         label: "Find Event Assets",
         question:
-          "Search media library: searchForAssets for event photos/speaker images/promotional graphics, then getAssetDetails.",
+          "Ask user for search keywords. Use searchForAssets for event photos/speaker images/promotional graphics, then getAssetDetails. Display results in a formatted markdown table: Name | Type | Dimensions | Size | URL. Show up to 10 results.",
         icon: Image,
       },
       {
         id: 8,
         label: "Event Page Screenshot",
         question:
-          "Capture screenshot using getPageScreenshot to review visual presentation and layout.",
+          "Use getPageScreenshot to capture event page preview. Display the screenshot and provide a 2-3 sentence description of visual presentation, layout, and key visual elements.",
         icon: Image,
       },
       {
         id: 9,
         label: "Event HTML Analysis",
         question:
-          "Use getPageHtml to analyze semantic markup, content structure, accessibility. Provide structure improvement recommendations.",
+          "Use getPageHtml to analyze semantic markup, content structure, and accessibility. Display findings in a markdown table: Aspect | Current State | Recommendation. Provide prioritized improvement recommendations.",
         icon: FileText,
         expensive: true,
       },
@@ -540,56 +540,56 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 2,
         label: "Site Overview",
         question:
-          "Comprehensive site overview: content structure, recent changes, upcoming events, product highlights.",
+          "Use getSites, getSitePages, and getContentAnalyticsData. Display comprehensive site overview in formatted markdown tables: 1) Site Structure (Site | Total Pages | Content Types), 2) Recent Activity (Content Type | Recent Changes | Status), 3) Highlights (Category | Count | Status). Include a brief summary of site health and key metrics.",
         icon: Zap,
       },
       {
         id: 3,
         label: "Content Health",
         question:
-          "Analyze content ecosystem health: outdated pages, missing metadata, broken links, optimization opportunities.",
+          "Use getSitePages and analyze content across types. Display health analysis in a formatted markdown table: Issue | Count | Severity | Recommendation. Check: outdated pages, missing metadata, broken links, optimization opportunities. Provide prioritized action items.",
         icon: TrendingUp,
       },
       {
         id: 4,
         label: "Translate Content",
         question:
-          "Check languages (getLanguages), then translatePage for multilingual delivery across products, news, events.",
+          "Ask user for source language, target language, content type (product/news/event), and strategy (AddVersion/CreateNew). Use getLanguages to verify, then translatePage. After translation, use navigatePages to navigate to the new language version.",
         icon: Globe,
       },
       {
         id: 5,
         label: "Summarize Page",
         question:
-          "Use getContentItemContent, then summarize in 3-5 sentences: purpose, key topics, overall message.",
+          "Use getContentItemContent, then provide a concise 3-5 sentence summary covering: content purpose, key topics, and overall message.",
         icon: FileText,
       },
       {
         id: 6,
         label: "Brand Validation",
         question:
-          "Use getContentItemContent, then generateBrandReviewFromContent. Provide 1-2 sentence brand compliance summary only.",
+          "Use getContentItemContent, then generateBrandReviewFromContent. Display results in a brief markdown table: Aspect | Status | Notes. Provide a 1-2 sentence brand compliance summary.",
         icon: ShieldCheck,
       },
       {
         id: 7,
         label: "Search Media Library",
         question:
-          "Search media library: searchForAssets by keywords, then getAssetDetails for comprehensive asset info across all content types.",
+          "Ask user for search keywords. Use searchForAssets, then getAssetDetails. Display results in a formatted markdown table: Name | Type | Dimensions | Size | URL | Content Type. Show up to 15 results across all content types.",
         icon: Image,
       },
       {
         id: 8,
         label: "Visual Page Review",
         question:
-          "Capture screenshots using getPageScreenshot across content types (products/news/events) to compare layouts and ensure design consistency.",
+          "Ask user for content types to compare (products/news/events). Use getPageScreenshot for each type. Display screenshots side-by-side with a comparison table: Content Type | Layout Consistency | Visual Elements | Notes. Provide design consistency recommendations.",
         icon: Image,
       },
       {
         id: 9,
         label: "Content Structure Analysis",
         question:
-          "Use getPageHtml across content types (products/news/events) to compare structures, semantic markup, organization. Provide unified recommendations.",
+          "Use getPageHtml across specified content types (products/news/events). Display comparative analysis in a markdown table: Content Type | Structure Score | Semantic Markup | Organization | Recommendations. Provide unified improvement recommendations prioritized by impact.",
         icon: FileText,
         expensive: true,
       },
@@ -638,28 +638,28 @@ export const AGENT_CONFIGS: AgentConfig[] = [
         id: 1,
         label: "Which agent should I use?",
         question:
-          "Analyze my needs and recommend the most appropriate specialized agent.",
+          "Analyze the user's needs and recommend the most appropriate specialized agent. Display recommendation in a formatted markdown table: Agent | Specialization | Why Recommended | Best For. Provide a clear explanation.",
         icon: GitBranch,
       },
       {
         id: 2,
         label: "Route my query",
         question:
-          "Analyze query and recommend best specialized agent. Explain why it's the right choice.",
+          "Analyze the user's query and recommend the best specialized agent. Display results in a formatted markdown table: Agent | Match Score | Capabilities | Why Recommended. Explain why it's the right choice with specific reasons.",
         icon: Search,
       },
       {
         id: 3,
         label: "List available agents",
         question:
-          "List all available specialized agents and their specializations.",
+          "List all available specialized agents in a formatted markdown table: Agent | Specialization | Key Capabilities | Use Cases. Provide a brief description for each agent.",
         icon: MessageCircle,
       },
       {
         id: 4,
         label: "Agent comparison",
         question:
-          "Compare available agents and recommend the most suitable for my task.",
+          "Compare available agents for the user's task. Display comparison in a formatted markdown table: Agent | Strengths | Limitations | Best For | Recommendation. Provide a clear recommendation with reasoning.",
         icon: BarChart3,
       },
     ],

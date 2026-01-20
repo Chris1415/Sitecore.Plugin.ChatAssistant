@@ -706,7 +706,7 @@ export function generateBrandReviewFromContentTool(
         }));
       }
 
-      return executeBrandReview(token, requestBody);
+      return await executeBrandReview(token, requestBody);
     },
   }) as Tool;
 }
@@ -933,8 +933,14 @@ export function createAllBrandManagementApiBrandTools(
   sections?: Array<{ sectionId: string }> | null
 ) {
   return {
-    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(brandKitId, sections),
-    generateBrandReviewFromContent: generateBrandReviewFromContentTool(brandKitId, sections),
+    generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(
+      brandKitId,
+      sections
+    ),
+    generateBrandReviewFromContent: generateBrandReviewFromContentTool(
+      brandKitId,
+      sections
+    ),
     listBrandKits: listBrandKitsTool(),
     retrieveBrandKit: retrieveBrandKitTool(),
     listBrandKitSections: listBrandKitSectionsTool(),
