@@ -513,33 +513,13 @@ async function executeBrandReview(
  * Generate a brand review from a URL
  */
 export function generateBrandReviewFromUrlTool(
-  defaultBrandKitId?: string | null,
-  defaultSections?: Array<{ sectionId: string }> | null
+  brandkitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
 ): Tool {
   return tool({
     description:
       "Generate a brand review from a URL using Sitecore AI Skills API. Analyzes the content at the provided URL against brand guidelines. Useful for validating website content against brand guidelines or getting brand compliance insights for web pages.",
     inputSchema: z.object({
-      brandkitId: z
-        .string()
-        .optional()
-        .describe(
-          "The unique identifier (GUID) of the brand kit to use for the review. Format: GUID string (e.g., '729af2a0-6492-4d29-9729-a6a195059c59'). If not provided, the brand kit selected in the UI will be used."
-        ),
-      sections: z
-        .array(
-          z.object({
-            sectionId: z
-              .string()
-              .describe(
-                "The unique identifier (GUID) of the section within the brand kit to review. Format: GUID string (e.g., '58034e67-7c32-4c34-8044-233fd56a32e1')."
-              ),
-          })
-        )
-        .optional()
-        .describe(
-          "Optional array of section objects to include in the brand review. Each section represents a specific part of the brand guidelines to analyze. If not provided, all sections in the brand kit will be reviewed."
-        ),
       businessName: z
         .string()
         .optional()
@@ -554,15 +534,9 @@ export function generateBrandReviewFromUrlTool(
     }),
     outputSchema: BrandReviewOutputSchema,
     execute: async ({
-      brandkitId: providedBrandkitId,
-      sections: providedSections,
       businessName: _businessName, // eslint-disable-line @typescript-eslint/no-unused-vars
       businessUrl,
     }) => {
-      // Use provided brandKitId or fall back to default from UI selection
-      const brandkitId = providedBrandkitId || defaultBrandKitId || null;
-      const sections = providedSections || defaultSections || null;
-
       // Validate that a brand kit is selected (not using default)
       if (!brandkitId || brandkitId === DEFAULT_BRANDKIT_ID) {
         return {
@@ -617,33 +591,13 @@ export function generateBrandReviewFromUrlTool(
  * Generate a brand review from content
  */
 export function generateBrandReviewFromContentTool(
-  defaultBrandKitId?: string | null,
-  defaultSections?: Array<{ sectionId: string }> | null
+  brandkitId?: string | null,
+  sections?: Array<{ sectionId: string }> | null
 ): Tool {
   return tool({
     description:
       "Generate a brand review from content using Sitecore AI Skills API. Analyzes the provided content (HTML, text, etc.) against brand guidelines. Useful for validating content against brand guidelines or getting brand compliance insights before publishing.",
     inputSchema: z.object({
-      brandkitId: z
-        .string()
-        .optional()
-        .describe(
-          "The unique identifier (GUID) of the brand kit to use for the review. Format: GUID string (e.g., '729af2a0-6492-4d29-9729-a6a195059c59'). If not provided, the brand kit selected in the UI will be used."
-        ),
-      sections: z
-        .array(
-          z.object({
-            sectionId: z
-              .string()
-              .describe(
-                "The unique identifier (GUID) of the section within the brand kit to review. Format: GUID string (e.g., '58034e67-7c32-4c34-8044-233fd56a32e1')."
-              ),
-          })
-        )
-        .optional()
-        .describe(
-          "Optional array of section objects to include in the brand review. Each section represents a specific part of the brand guidelines to analyze. If not provided, all sections in the brand kit will be reviewed."
-        ),
       businessName: z
         .string()
         .optional()
@@ -658,17 +612,9 @@ export function generateBrandReviewFromContentTool(
     }),
     outputSchema: BrandReviewOutputSchema,
     execute: async ({
-      brandkitId: providedBrandkitId,
-      sections: providedSections,
       businessName: _businessName, // eslint-disable-line @typescript-eslint/no-unused-vars
       content,
     }) => {
-      // Use provided brandKitId or fall back to default from UI selection
-      const brandkitId = providedBrandkitId || defaultBrandKitId || null;
-      const sections = providedSections || defaultSections || null;
-
-      console.error("brandkitId", brandkitId);
-
       // Validate that a brand kit is selected (not using default)
       if (!brandkitId) {
         return {
