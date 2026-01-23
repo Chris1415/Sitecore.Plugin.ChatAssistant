@@ -1,8 +1,4 @@
-import {
-  type UIMessage,
-  type LanguageModel,
-  generateText,
-} from "ai";
+import { type UIMessage, type LanguageModel, generateText } from "ai";
 
 const MESSAGE_THRESHOLD = 6; // Summarize when message count exceeds this
 
@@ -69,12 +65,15 @@ async function summarizeMessages(
 
   const result = await generateText({
     model,
-    system:
-      "You are a text summarization assistant. Your only task is to read and summarize the provided conversation text. Do NOT use any tools, do NOT make any API calls, do NOT retrieve any content. Simply read the conversation text below and provide a concise summary that captures the key points, topics discussed, important decisions made, and essential context needed to continue the conversation.",
+    system: `You are a text summarization assistant. Your only task is to read and summarize the provided conversation text. 
+      Do NOT use any tools, do NOT make any API calls, do NOT retrieve any content. 
+      Simply read the conversation text below and provide a concise summary that captures the key points, topics discussed, 
+      important decisions made, and essential context needed to continue the conversation.`,
     messages: [
       {
         role: "user",
-        content: `Read the following conversation history and provide a concise summary. Do not use any tools or make any external calls. Just summarize the text:\n\n${llmMessages
+        content: `Read the following conversation history and provide a concise summary. 
+        Do not use any tools or make any external calls. Just summarize the text:\n\n${llmMessages
           .map(
             (msg) =>
               `${msg.role === "user" ? "User" : "Assistant"}: ${msg.content}`
@@ -83,6 +82,8 @@ async function summarizeMessages(
       },
     ],
   });
+
+  
 
   return result.text;
 }
@@ -104,7 +105,8 @@ export async function getMessagesToUse(
   let serverMessages = serverMessageHistory.get(sessionKey) || [];
 
   // Get the set of message IDs that have been summarized (to avoid re-adding them)
-  const summarizedIds = summarizedMessageIds.get(sessionKey) || new Set<string>();
+  const summarizedIds =
+    summarizedMessageIds.get(sessionKey) || new Set<string>();
 
   // Update server-side history with incoming messages (client sends full history each time)
   // Use the client's messages as source of truth, but track what we've already processed
@@ -162,10 +164,7 @@ export async function getMessagesToUse(
     summarizedMessageIds.set(sessionKey, updatedSummarizedIds);
 
     // Summarize the messages
-    const summaryText = await summarizeMessages(
-      messagesToSummarize,
-      model
-    );
+    const summaryText = await summarizeMessages(messagesToSummarize, model);
 
     // Create a summary message (treated as a regular assistant message)
     const summaryMessage: UIMessage = {
@@ -200,4 +199,3 @@ export function clearMessageHistory(contextId: string): void {
   serverMessageHistory.delete(sessionKey);
   summarizedMessageIds.delete(sessionKey);
 }
-

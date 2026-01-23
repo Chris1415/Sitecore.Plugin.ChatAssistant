@@ -56,6 +56,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Paperclip,
@@ -848,6 +850,36 @@ function PredefinedQuestions({
   const topQuestions = agentConfig.predefinedQuestions.slice(0, 4);
   const moreQuestions = agentConfig.predefinedQuestions.slice(4);
 
+  // Group questions by their group property
+  const groupedQuestions = moreQuestions.reduce((acc, question) => {
+    const group = question.group || "Other";
+    if (!acc[group]) {
+      acc[group] = [];
+    }
+    acc[group].push(question);
+    return acc;
+  }, {} as Record<string, typeof moreQuestions>);
+
+  // Sort groups in a preferred order
+  const groupOrder = [
+    "Page Information",
+    "Content Management",
+    "Assets & Media",
+    "Brand & Compliance",
+    "Analysis & Insights",
+    "Advanced",
+    "Other",
+  ];
+
+  const sortedGroups = Object.keys(groupedQuestions).sort((a, b) => {
+    const indexA = groupOrder.indexOf(a);
+    const indexB = groupOrder.indexOf(b);
+    if (indexA === -1 && indexB === -1) return a.localeCompare(b);
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+
   return (
     <div className="border-t border-border bg-card/50 px-3 py-3 lg:px-6 lg:py-4">
       <div className="mx-auto max-w-full">
@@ -1066,53 +1098,64 @@ function PredefinedQuestions({
                       ["--theme-color" as string]: themeColor,
                     }}
                   >
-                    {moreQuestions.map((item) => {
-                      const Icon = item.icon;
+                    {sortedGroups.map((groupName, groupIndex) => {
+                      const groupQuestions = groupedQuestions[groupName];
                       return (
-                        <DropdownMenuItem
-                          key={`${agentConfig.id}-more-${item.id}`}
-                          className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
-                          onClick={() =>
-                            !isStreaming && handleSelect(item.question)
-                          }
-                          disabled={isStreaming}
-                          onMouseEnter={(e) => {
-                            if (!isStreaming) {
-                              e.currentTarget.style.backgroundColor = `${themeColor}0D`;
-                            }
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = "";
-                          }}
-                        >
-                          <Icon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm mb-1 flex items-center gap-2">
-                              {item.label}
-                              {item.new && (
-                                <Badge
-                                  variant="default"
-                                  colorScheme="primary"
-                                  size="sm"
-                                >
-                                  New
-                                </Badge>
-                              )}
-                              {item.expensive && (
-                                <Badge
-                                  variant="default"
-                                  colorScheme="warning"
-                                  size="sm"
-                                >
-                                  Expensive
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground line-clamp-2">
-                              {item.question}
-                            </div>
-                          </div>
-                        </DropdownMenuItem>
+                        <div key={groupName}>
+                          {groupIndex > 0 && <DropdownMenuSeparator />}
+                          <DropdownMenuLabel className="px-3 py-2 text-xs font-semibold text-muted-foreground">
+                            {groupName}
+                          </DropdownMenuLabel>
+                          {groupQuestions.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                              <DropdownMenuItem
+                                key={`${agentConfig.id}-more-${item.id}`}
+                                className="flex items-start gap-3 px-3 py-2.5 cursor-pointer"
+                                onClick={() =>
+                                  !isStreaming && handleSelect(item.question)
+                                }
+                                disabled={isStreaming}
+                                onMouseEnter={(e) => {
+                                  if (!isStreaming) {
+                                    e.currentTarget.style.backgroundColor = `${themeColor}0D`;
+                                  }
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.backgroundColor = "";
+                                }}
+                              >
+                                <Icon className="size-4 shrink-0 text-muted-foreground mt-0.5" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-sm mb-1 flex items-center gap-2">
+                                    {item.label}
+                                    {item.new && (
+                                      <Badge
+                                        variant="default"
+                                        colorScheme="primary"
+                                        size="sm"
+                                      >
+                                        New
+                                      </Badge>
+                                    )}
+                                    {item.expensive && (
+                                      <Badge
+                                        variant="default"
+                                        colorScheme="warning"
+                                        size="sm"
+                                      >
+                                        Expensive
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground line-clamp-2">
+                                    {item.question}
+                                  </div>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </div>
                       );
                     })}
                   </DropdownMenuContent>
