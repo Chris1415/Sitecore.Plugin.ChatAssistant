@@ -87,9 +87,16 @@ export function createAllmightyAgent(
   accessToken: string,
   pageContext: PagesContext,
   brandKitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mcpTools?: Record<string, any>
 ) {
-  const tools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
+  const baseTools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
+  // Merge MCP tools with base tools (MCP tools take precedence on conflicts)
+  const tools = {
+    ...baseTools,
+    ...(mcpTools || {}),
+  };
   const contextMessage = createContextMessage(pageContext);
 
   return new ToolLoopAgent({

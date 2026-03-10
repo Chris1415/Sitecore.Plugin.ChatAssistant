@@ -53,11 +53,11 @@ function createSitecoreTools(
   sections?: Array<{ sectionId: string }> | null
 ) {
   return {
-    ...createAllAgentsApiSitesTools(accessToken, contextId),
-    ...createAllAgentsApiComponentsTools(accessToken, contextId),
-    ...createAllAgentsApiAssetsTools(accessToken, contextId),
-    ...createAllAgentsApiPagesTools(accessToken, contextId),
-    ...createAllAgentsApiContentTools(accessToken, contextId),
+    /*...createAllAgentsApiSitesTools(accessToken, contextId),*/
+    /*...createAllAgentsApiComponentsTools(accessToken, contextId),*/
+    /*...createAllAgentsApiAssetsTools(accessToken, contextId),*/
+    /*...createAllAgentsApiPagesTools(accessToken, contextId),*/
+    /*...createAllAgentsApiContentTools(accessToken, contextId),*/
     ...createAllPagesApiTools(accessToken, contextId),
     ...createAllSitesApiTools(contextId),
     ...createAllBrandManagementApiBrandTools(brandKitId, sections),
@@ -76,14 +76,21 @@ export function createSitecoreAgent(
   accessToken: string,
   pageContext: PagesContext,
   brandKitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mcpTools?: Record<string, any>
 ) {
-  const tools = createSitecoreTools(
+  const baseTools = createSitecoreTools(
     contextId,
     accessToken,
     brandKitId,
     sections
   );
+  // Merge MCP tools with base tools (MCP tools take precedence on conflicts)
+  const tools = {
+    ...baseTools,
+    ...(mcpTools || {}),
+  };
   const contextMessage = createContextMessage(pageContext);
 
   return new ToolLoopAgent({

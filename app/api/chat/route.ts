@@ -12,6 +12,7 @@ import { devToolsMiddleware } from "@ai-sdk/devtools";
 import { getAgent } from "@/components/agents/AgentsFactory";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
 import { getMessagesToUse } from "@/lib/message-history-manager";
+import { createMCPClient } from "@ai-sdk/mcp";
 
 export const maxDuration = 30;
 
@@ -57,17 +58,18 @@ export async function POST(request: Request) {
       JSON.stringify({
         error: "Context ID and access token are required for Sitecore agent",
       }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+      { status: 400, headers: { "Content-Type": "application/json" } },
     );
   }
 
   // If there's only one message, it's a new chat - clear server history and use just that message
   let messagesToUse: UIMessage[];
   let summarizationOccurred = false;
-  
+
   if (messages.length === 1) {
     // New chat - clear server history and use only this message
-    const { clearMessageHistory } = await import("@/lib/message-history-manager");
+    const { clearMessageHistory } =
+      await import("@/lib/message-history-manager");
     clearMessageHistory(contextId);
     messagesToUse = messages;
   } else {
@@ -77,6 +79,23 @@ export async function POST(request: Request) {
     summarizationOccurred = result.summarizationOccurred;
   }
 
+  // Create MCP client with Sitecore-required headers
+  const mcpClient = await createMCPClient({
+    transport: {
+      type: "http",
+      // The Sitecore Marketer MCP URL:
+      url: "https://edge-platform.sitecorecloud.io/mcp/marketer-mcp-prod",
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        "sc-resource": "marketplace",
+        "sc-marketplace-auth": "interactive/v1",
+        "x-sitecore-contextid": contextId,
+      },
+    },
+  });
+  // Load MCP tools and pass to AI SDK
+  const tools = await mcpClient.tools();
+  
   const agent = await getAgent(
     agentType,
     finalModel,
@@ -84,7 +103,8 @@ export async function POST(request: Request) {
     accessToken,
     pageContext,
     brandKitId,
-    sections
+    sections,
+    tools,
   );
 
   // Use the agent to handle the request with UI message streaming

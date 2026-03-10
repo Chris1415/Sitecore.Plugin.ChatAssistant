@@ -41,14 +41,22 @@ Do NOT include:
 - Your entire response should be just the key, nothing more`;
 
 // Create the Delegation Agent using ToolLoopAgent
-export function createDelegationAgent(model: LanguageModel) {
+export function createDelegationAgent(
+  model: LanguageModel
+) {
+  const baseTools = {
+    listAvailableAgents: listAvailableAgentsTool,
+  };
+  // Merge MCP tools with base tools (MCP tools take precedence on conflicts)
+  const tools = {
+    ...baseTools
+  };
+
   return new ToolLoopAgent({
     id: "delegation-assistant",
     model,
     instructions: DELEGATION_SYSTEM_PROMPT,
-    tools: {
-      listAvailableAgents: listAvailableAgentsTool,
-    },
+    tools,
     onStepFinish: async (stepResult) => {
       console.log("[DelegationAgent] Step finished:", {
         finishReason: stepResult.finishReason,

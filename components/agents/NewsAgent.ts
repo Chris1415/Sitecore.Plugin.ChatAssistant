@@ -69,18 +69,18 @@ function createNewsTools(
   sections?: Array<{ sectionId: string }> | null
 ) {
   return {
-    ...createAllAgentsApiSitesTools(accessToken, contextId),
+    /*...createAllAgentsApiSitesTools(accessToken, contextId),*/
+    /*...createAllAgentsApiContentTools(accessToken, contextId),*/
+    /*...createAllAgentsApiAssetsTools(accessToken, contextId),*/
+    /*...createAllAgentsApiPagesTools(accessToken, contextId),*/
+    /*...createAllAgentsApiComponentsTools(accessToken, contextId),*/
     ...createAllNewsTools(accessToken, contextId),
     ...createAllPersonsTools(accessToken, contextId),
-    ...createAllSitecoreConstantsTools(),
-    ...createAllAgentsApiContentTools(accessToken, contextId),
+    ...createAllSitecoreConstantsTools(),   
     ...createAllPagesApiTools(accessToken, contextId),
-    ...createAllSitesApiTools(contextId),
-    ...createAllAgentsApiAssetsTools(accessToken, contextId),
-    ...createAllAgentsApiPagesTools(accessToken, contextId),
+    ...createAllSitesApiTools(contextId),  
     ...createAllBrandManagementApiBrandTools(brandKitId, sections),
-    ...createAllPagesContextTools(accessToken, contextId),
-    ...createAllAgentsApiComponentsTools(accessToken, contextId),
+    ...createAllPagesContextTools(accessToken, contextId), 
     ...createAllGraphqlApiPreviewTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
   };
@@ -93,9 +93,16 @@ export function createNewsAgent(
   accessToken: string,
   pageContext: PagesContext,
   brandKitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mcpTools?: Record<string, any>
 ) {
-  const tools = createNewsTools(contextId, accessToken, brandKitId, sections);
+  const baseTools = createNewsTools(contextId, accessToken, brandKitId, sections);
+  // Merge MCP tools with base tools (MCP tools take precedence on conflicts)
+  const tools = {
+    ...baseTools,
+    ...(mcpTools || {}),
+  };
   const contextMessage = createContextMessage(pageContext);
 
   return new ToolLoopAgent({
