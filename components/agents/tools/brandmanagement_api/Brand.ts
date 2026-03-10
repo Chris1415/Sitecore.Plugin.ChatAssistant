@@ -432,6 +432,7 @@ async function executeBrandReview(
       body: requestParams.body,
     });
 
+
     if (Array.isArray(result) && result.length > 0) {
       try {
         const sectionNameMap = await fetchSectionNames(
@@ -507,6 +508,7 @@ async function executeBrandReview(
  */
 export function generateBrandReviewFromUrlTool(
   accessToken: string,
+  contextId: string,
   brandkitId?: string | null,
   sections?: Array<{ sectionId: string }> | null,
   organizationId?: string,
@@ -581,7 +583,7 @@ export function generateBrandReviewFromUrlTool(
         };
       }
 
-      return executeBrandReview(accessToken, "", organizationId, requestBody);
+      return executeBrandReview(accessToken, contextId, organizationId, requestBody);
     },
   }) as Tool;
 }
@@ -591,6 +593,7 @@ export function generateBrandReviewFromUrlTool(
  */
 export function generateBrandReviewFromContentTool(
   accessToken: string,
+  contextId: string,
   brandkitId?: string | null,
   sections?: Array<{ sectionId: string }> | null,
   organizationId?: string,
@@ -657,7 +660,12 @@ export function generateBrandReviewFromContentTool(
         };
       }
 
-      return await executeBrandReview(accessToken, "", organizationId, requestBody);
+      return await executeBrandReview(
+        accessToken,
+        contextId,
+        organizationId,
+        requestBody,
+      );
     },
   }) as Tool;
 }
@@ -723,7 +731,6 @@ export function listBrandKitsTool(organizationId?: string): Tool {
           clientSecret: process.env.SITECORE_AI_CLIENT_SECRET || "",
         });
 
-
         const response = await fetch(
           `${BRAND_API_BASE_URL}/v1/organizations/${organizationId}/brandkits?includeDeleted=false`,
           {
@@ -770,7 +777,7 @@ export function listBrandKitsTool(organizationId?: string): Tool {
  */
 export function retrieveBrandKitTool(
   organizationId?: string,
-  brandkitId?: string | null
+  brandkitId?: string | null,
 ): Tool {
   return tool({
     description:
@@ -808,8 +815,9 @@ export function retrieveBrandKitTool(
         };
       }
 
-      const brandkitIdToUse = inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
-      
+      const brandkitIdToUse =
+        inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
+
       const result = await getBrandKit(organizationId, brandkitIdToUse);
       if (result.success && result.data) {
         const parseResult = BrandKitSchema.safeParse(result.data);
@@ -829,7 +837,7 @@ export function retrieveBrandKitTool(
  */
 export function listBrandKitSectionsTool(
   organizationId?: string,
-  brandkitId?: string | null
+  brandkitId?: string | null,
 ): Tool {
   return tool({
     description:
@@ -870,7 +878,8 @@ export function listBrandKitSectionsTool(
         };
       }
 
-      const brandkitIdToUse = inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
+      const brandkitIdToUse =
+        inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
       return getBrandKitSections(organizationId, brandkitIdToUse);
     },
   }) as Tool;
@@ -882,7 +891,7 @@ export function listBrandKitSectionsTool(
  */
 export function listBrandKitSubsectionsTool(
   organizationId?: string,
-  brandkitId?: string | null
+  brandkitId?: string | null,
 ): Tool {
   return tool({
     description:
@@ -928,7 +937,8 @@ export function listBrandKitSubsectionsTool(
         };
       }
 
-      const brandkitIdToUse = inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
+      const brandkitIdToUse =
+        inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
       return getBrandKitSubsections(sectionId, organizationId, brandkitIdToUse);
     },
   }) as Tool;
@@ -947,6 +957,7 @@ export const brandManagementTools = {
 // Helper function to create all brand management tools initialized
 export function createAllBrandManagementApiBrandTools(
   accessToken: string,
+  contextId: string,
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null,
   organizationId?: string,
@@ -954,12 +965,14 @@ export function createAllBrandManagementApiBrandTools(
   return {
     generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(
       accessToken,
+      contextId,
       brandKitId,
       sections,
       organizationId,
     ),
     generateBrandReviewFromContent: generateBrandReviewFromContentTool(
       accessToken,
+      contextId,
       brandKitId,
       sections,
       organizationId,
@@ -967,6 +980,9 @@ export function createAllBrandManagementApiBrandTools(
     listBrandKits: listBrandKitsTool(organizationId),
     retrieveBrandKit: retrieveBrandKitTool(organizationId, brandKitId),
     listBrandKitSections: listBrandKitSectionsTool(organizationId, brandKitId),
-    listBrandKitSubsections: listBrandKitSubsectionsTool(organizationId, brandKitId),
+    listBrandKitSubsections: listBrandKitSubsectionsTool(
+      organizationId,
+      brandKitId,
+    ),
   };
 }

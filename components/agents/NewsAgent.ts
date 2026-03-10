@@ -70,7 +70,7 @@ function createNewsTools(
     ...createAllSitecoreConstantsTools(),   
     ...createAllPagesApiTools(accessToken, contextId),
     ...createAllSitesApiTools(contextId),  
-    ...createAllBrandManagementApiBrandTools(accessToken, brandKitId, sections, organizationId),
+    ...createAllBrandManagementApiBrandTools(accessToken, contextId, brandKitId, sections, organizationId),
     ...createAllPagesContextTools(accessToken, contextId), 
     ...createAllGraphqlApiPreviewTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
