@@ -427,10 +427,6 @@ async function executeBrandReview(
         })),
       },
     };
-    console.log(
-      "[executeBrandReview] Input parameters:",
-      JSON.stringify(requestParams, null, 2),
-    );
     const result = await aiClient.skills.generateBrandReview({
       query: { sitecoreContextId: contextId },
       body: requestParams.body,
@@ -772,11 +768,21 @@ export function listBrandKitsTool(organizationId?: string): Tool {
  * Retrieve a brand kit by ID
  * GET /api/brands/v1/organizations/{organizationId}/brandkits/{brandkitId}
  */
-export function retrieveBrandKitTool(): Tool {
+export function retrieveBrandKitTool(
+  organizationId?: string,
+  brandkitId?: string | null
+): Tool {
   return tool({
     description:
-      "Retrieve detailed information about a specific brand kit by its ID. Returns comprehensive brand kit metadata including name, description, organization ID, status, tags, and other properties. Uses the default Hahn-Solo brandkit. Use this tool to get full details about the brand kit before using it in brand reviews or other operations.",
-    inputSchema: z.object({}),
+      "Retrieve detailed information about a specific brand kit by its ID. Returns comprehensive brand kit metadata including name, description, organization ID, status, tags, and other properties. Use this tool to get full details about the brand kit before using it in brand reviews or other operations.",
+    inputSchema: z.object({
+      brandkitId: z
+        .string()
+        .optional()
+        .describe(
+          "The unique identifier (GUID) of the brand kit to retrieve. If not provided, uses the currently selected brand kit.",
+        ),
+    }),
     outputSchema: z.object({
       success: z
         .boolean()
@@ -793,8 +799,18 @@ export function retrieveBrandKitTool(): Tool {
           "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, organization ID, authentication issues, or API problems.",
         ),
     }),
-    execute: async () => {
-      const result = await getBrandKit();
+    execute: async ({ brandkitId: inputBrandkitId }) => {
+      if (!organizationId) {
+        return {
+          success: false,
+          data: null,
+          error: "Organization ID is required but was not provided.",
+        };
+      }
+
+      const brandkitIdToUse = inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
+      
+      const result = await getBrandKit(organizationId, brandkitIdToUse);
       if (result.success && result.data) {
         const parseResult = BrandKitSchema.safeParse(result.data);
         return {
@@ -811,11 +827,21 @@ export function retrieveBrandKitTool(): Tool {
  * List all sections in a brand kit
  * GET /api/brands/v1/organizations/{organizationId}/brandkits/{brandkitId}/sections
  */
-export function listBrandKitSectionsTool(): Tool {
+export function listBrandKitSectionsTool(
+  organizationId?: string,
+  brandkitId?: string | null
+): Tool {
   return tool({
     description:
-      "Retrieve a list of all sections within a specific brand kit. Returns an array of section objects with their IDs, names, and metadata. Sections represent different parts of the brand guidelines (e.g., Digital Standards, Brand Context, Dos and Don'ts, Tone of Voice). Uses the default Hahn-Solo brandkit. Use this tool to discover available sections before generating brand reviews or working with specific sections.",
-    inputSchema: z.object({}),
+      "Retrieve a list of all sections within a specific brand kit. Returns an array of section objects with their IDs, names, and metadata. Sections represent different parts of the brand guidelines (e.g., Digital Standards, Brand Context, Dos and Don'ts, Tone of Voice). Use this tool to discover available sections before generating brand reviews or working with specific sections.",
+    inputSchema: z.object({
+      brandkitId: z
+        .string()
+        .optional()
+        .describe(
+          "The unique identifier (GUID) of the brand kit. If not provided, uses the currently selected brand kit.",
+        ),
+    }),
     outputSchema: z.object({
       success: z
         .boolean()
@@ -835,8 +861,17 @@ export function listBrandKitSectionsTool(): Tool {
           "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, organization ID, authentication issues, or API problems.",
         ),
     }),
-    execute: async () => {
-      return getBrandKitSections();
+    execute: async ({ brandkitId: inputBrandkitId }) => {
+      if (!organizationId) {
+        return {
+          success: false,
+          data: null,
+          error: "Organization ID is required but was not provided.",
+        };
+      }
+
+      const brandkitIdToUse = inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
+      return getBrandKitSections(organizationId, brandkitIdToUse);
     },
   }) as Tool;
 }
@@ -845,15 +880,24 @@ export function listBrandKitSectionsTool(): Tool {
  * List all subsections (fields) in a brand kit section
  * GET /api/brands/v2/organizations/{organizationId}/brandkits/{brandkitId}/sections/{sectionId}/fields
  */
-export function listBrandKitSubsectionsTool(): Tool {
+export function listBrandKitSubsectionsTool(
+  organizationId?: string,
+  brandkitId?: string | null
+): Tool {
   return tool({
     description:
-      "Retrieve a list of all subsections (fields) within a specific section of a brand kit. Returns an array of field objects with their IDs, names, and metadata. Fields represent specific aspects or properties within a section (e.g., within 'Digital Standards' section, there might be fields for SEO, Accessibility, Velocity). Uses the default Hahn-Solo brandkit. Use this tool to discover available fields within a section before generating detailed brand reviews.",
+      "Retrieve a list of all subsections (fields) within a specific section of a brand kit. Returns an array of field objects with their IDs, names, and metadata. Fields represent specific aspects or properties within a section (e.g., within 'Digital Standards' section, there might be fields for SEO, Accessibility, Velocity). Use this tool to discover available fields within a section before generating detailed brand reviews.",
     inputSchema: z.object({
       sectionId: z
         .string()
         .describe(
           "The unique identifier (GUID) of the section within the brand kit. Format: GUID string (e.g., 'cbdc5db4-92d9-4858-b5e6-c44c9952e8f8'). Use listBrandKitSectionsTool to get available section IDs.",
+        ),
+      brandkitId: z
+        .string()
+        .optional()
+        .describe(
+          "The unique identifier (GUID) of the brand kit. If not provided, uses the currently selected brand kit.",
         ),
     }),
     outputSchema: z.object({
@@ -875,8 +919,17 @@ export function listBrandKitSubsectionsTool(): Tool {
           "Error message describing what went wrong if success is false. Common errors include invalid section ID, brand kit ID, organization ID, authentication issues, or API problems.",
         ),
     }),
-    execute: async ({ sectionId }) => {
-      return getBrandKitSubsections(sectionId);
+    execute: async ({ sectionId, brandkitId: inputBrandkitId }) => {
+      if (!organizationId) {
+        return {
+          success: false,
+          data: null,
+          error: "Organization ID is required but was not provided.",
+        };
+      }
+
+      const brandkitIdToUse = inputBrandkitId || brandkitId || DEFAULT_BRANDKIT_ID;
+      return getBrandKitSubsections(sectionId, organizationId, brandkitIdToUse);
     },
   }) as Tool;
 }
@@ -912,8 +965,8 @@ export function createAllBrandManagementApiBrandTools(
       organizationId,
     ),
     listBrandKits: listBrandKitsTool(organizationId),
-    retrieveBrandKit: retrieveBrandKitTool(),
-    listBrandKitSections: listBrandKitSectionsTool(),
-    listBrandKitSubsections: listBrandKitSubsectionsTool(),
+    retrieveBrandKit: retrieveBrandKitTool(organizationId, brandKitId),
+    listBrandKitSections: listBrandKitSectionsTool(organizationId, brandKitId),
+    listBrandKitSubsections: listBrandKitSubsectionsTool(organizationId, brandKitId),
   };
 }

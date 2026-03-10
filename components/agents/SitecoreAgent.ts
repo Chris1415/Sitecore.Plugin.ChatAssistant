@@ -2,14 +2,9 @@ import { ToolLoopAgent, type LanguageModel } from "ai";
 import { getPageAnalyticsDataTool } from "./tools/Dummy";
 import { createContextMessage } from "@/lib/context-messages";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
-import { createAllAgentsApiAssetsTools } from "./tools/agents_api/Assets";
 import { createAllBrandManagementApiBrandTools } from "./tools/brandmanagement_api/Brand";
-import { createAllAgentsApiPagesTools } from "./tools/agents_api/Pages";
-import { createAllAgentsApiSitesTools } from "./tools/agents_api/Sites";
 import { createAllPagesApiTools } from "./tools/pages_api/Pages";
-import { createAllAgentsApiContentTools } from "./tools/agents_api/Content";
 import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
-import { createAllAgentsApiComponentsTools } from "./tools/agents_api/Components";
 import { createAllSitesApiTools } from "./tools/sites_api/Sites";
 import { generateImageTool } from "./tools/basics/Media";
 import { createAllSitecoreConstantsTools } from "./tools/Sitcore_Constants";
@@ -54,11 +49,6 @@ function createSitecoreTools(
   organizationId?: string
 ) {
   return {
-    /*...createAllAgentsApiSitesTools(accessToken, contextId),*/
-    /*...createAllAgentsApiComponentsTools(accessToken, contextId),*/
-    /*...createAllAgentsApiAssetsTools(accessToken, contextId),*/
-    /*...createAllAgentsApiPagesTools(accessToken, contextId),*/
-    /*...createAllAgentsApiContentTools(accessToken, contextId),*/
     ...createAllPagesApiTools(accessToken, contextId),
     ...createAllSitesApiTools(contextId),
     ...createAllBrandManagementApiBrandTools(accessToken, brandKitId, sections, organizationId),

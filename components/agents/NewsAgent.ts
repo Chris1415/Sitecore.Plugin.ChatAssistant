@@ -3,14 +3,9 @@ import { createContextMessage } from "@/lib/context-messages";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
 import { getPageAnalyticsDataTool } from "./tools/Dummy";
 import { createAllBrandManagementApiBrandTools } from "./tools/brandmanagement_api/Brand";
-import { createAllAgentsApiPagesTools } from "./tools/agents_api/Pages";
-import { createAllAgentsApiSitesTools } from "./tools/agents_api/Sites";
 import { createAllNewsTools } from "./tools/News";
-import { createAllAgentsApiAssetsTools } from "./tools/agents_api/Assets";
 import { createAllPagesApiTools } from "./tools/pages_api/Pages";
-import { createAllAgentsApiContentTools } from "./tools/agents_api/Content";
 import { createAllPagesContextTools } from "./tools/pages_context/PagesContext";
-import { createAllAgentsApiComponentsTools } from "./tools/agents_api/Components";
 import { createAllSitesApiTools } from "./tools/sites_api/Sites";
 import { createAllPersonsTools } from "./tools/Persons";
 import { createAllSitecoreConstantsTools } from "./tools/Sitcore_Constants";
@@ -70,11 +65,6 @@ function createNewsTools(
   organizationId?: string
 ) {
   return {
-    /*...createAllAgentsApiSitesTools(accessToken, contextId),*/
-    /*...createAllAgentsApiContentTools(accessToken, contextId),*/
-    /*...createAllAgentsApiAssetsTools(accessToken, contextId),*/
-    /*...createAllAgentsApiPagesTools(accessToken, contextId),*/
-    /*...createAllAgentsApiComponentsTools(accessToken, contextId),*/
     ...createAllNewsTools(accessToken, contextId),
     ...createAllPersonsTools(accessToken, contextId),
     ...createAllSitecoreConstantsTools(),   
