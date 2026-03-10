@@ -427,13 +427,15 @@ async function executeBrandReview(
         })),
       },
     };
-    const result = await aiClient.skills.generateBrandReview({
+    const brandReviewResult = await aiClient.skills.generateBrandReview({
       query: { sitecoreContextId: contextId },
       body: requestParams.body,
     });
 
+   
+    const brandReviewData = brandReviewResult.data;
 
-    if (Array.isArray(result) && result.length > 0) {
+    if (Array.isArray(brandReviewData) && brandReviewData.length > 0) {
       try {
         const sectionNameMap = await fetchSectionNames(
           organizationId,
@@ -442,7 +444,7 @@ async function executeBrandReview(
 
         const enrichedResult = await Promise.all(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          result.map(async (section: any) => {
+          brandReviewData.map(async (section: any) => {
             const enrichedSection = {
               ...section,
               sectionName: sectionNameMap.get(section.sectionId) || undefined,
@@ -469,6 +471,8 @@ async function executeBrandReview(
           }),
         );
 
+        console.error(JSON.stringify(enrichedResult, null, 2));
+
         return {
           success: true,
           brandKitId: requestBody.brandkitId,
@@ -480,7 +484,7 @@ async function executeBrandReview(
         return {
           success: true,
           brandKitId: requestBody.brandkitId,
-          data: result,
+          data: brandReviewData,
         };
       }
     }
@@ -488,7 +492,7 @@ async function executeBrandReview(
     return {
       success: true,
       brandKitId: requestBody.brandkitId,
-      data: result,
+      data: brandReviewData,
     };
   } catch (error) {
     return {
@@ -583,7 +587,12 @@ export function generateBrandReviewFromUrlTool(
         };
       }
 
-      return executeBrandReview(accessToken, contextId, organizationId, requestBody);
+      return executeBrandReview(
+        accessToken,
+        contextId,
+        organizationId,
+        requestBody,
+      );
     },
   }) as Tool;
 }
