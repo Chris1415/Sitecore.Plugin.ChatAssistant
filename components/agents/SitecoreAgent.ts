@@ -50,7 +50,8 @@ function createSitecoreTools(
   contextId: string,
   accessToken: string,
   brandKitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  organizationId?: string
 ) {
   return {
     /*...createAllAgentsApiSitesTools(accessToken, contextId),*/
@@ -60,7 +61,7 @@ function createSitecoreTools(
     /*...createAllAgentsApiContentTools(accessToken, contextId),*/
     ...createAllPagesApiTools(accessToken, contextId),
     ...createAllSitesApiTools(contextId),
-    ...createAllBrandManagementApiBrandTools(brandKitId, sections),
+    ...createAllBrandManagementApiBrandTools(accessToken, brandKitId, sections, organizationId),
     ...createAllGraphqlApiPreviewTools(accessToken, contextId),
     ...createAllPagesContextTools(accessToken, contextId),
     ...createAllSitecoreConstantsTools(),
@@ -78,13 +79,15 @@ export function createSitecoreAgent(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mcpTools?: Record<string, any>
+  mcpTools?: Record<string, any>,
+  organizationId?: string
 ) {
   const baseTools = createSitecoreTools(
     contextId,
     accessToken,
     brandKitId,
-    sections
+    sections,
+    organizationId
   );
   // Merge MCP tools with base tools (MCP tools take precedence on conflicts)
   const tools = {

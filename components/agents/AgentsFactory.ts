@@ -14,7 +14,8 @@ export async function getAgent(
   pageContext: PagesContext,
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null,
-  mcpTools?: Record<string, any>
+  mcpTools?: Record<string, any>,
+  organizationId?: string
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<Agent<any, any, any>> {
   switch (agentType) {
@@ -26,7 +27,8 @@ export async function getAgent(
         pageContext,
         brandKitId,
         sections,
-        mcpTools
+        mcpTools,
+        organizationId
       );
     case AgentType.Products:
       return createSitecoreAgent(
@@ -36,7 +38,8 @@ export async function getAgent(
         pageContext,
         brandKitId,
         sections,
-        mcpTools
+        mcpTools,
+        organizationId
       );
     case AgentType.News:
       return createNewsAgent(
@@ -46,7 +49,8 @@ export async function getAgent(
         pageContext,
         brandKitId,
         sections,
-        mcpTools
+        mcpTools,
+        organizationId
       );
     case AgentType.Events:
       return createSitecoreAgent(
@@ -56,7 +60,8 @@ export async function getAgent(
         pageContext,
         brandKitId,
         sections,
-        mcpTools
+        mcpTools,
+        organizationId
       );
     case AgentType.Allmighty:
       return createAllmightyAgent(
@@ -66,7 +71,8 @@ export async function getAgent(
         pageContext,
         brandKitId,
         sections,
-        mcpTools
+        mcpTools,
+        organizationId
       );
     case AgentType.Delegation:
       return createDelegationAgent(model);
@@ -78,7 +84,8 @@ export async function getAgent(
         pageContext,
         brandKitId,
         sections,
-        mcpTools
+        mcpTools,
+        organizationId
       );
   }
 }

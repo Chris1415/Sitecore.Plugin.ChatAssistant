@@ -30,6 +30,7 @@ interface RequestBody {
   contextId?: string;
   brandKitId?: string | null;
   sections?: Array<{ sectionId: string }> | null;
+  organizationId?: string;
 }
 
 export async function POST(request: Request) {
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
     pageContext,
     brandKitId,
     sections,
+    organizationId,
   }: RequestBody = await request.json();
   const accessToken = request.headers.get("authorization")?.split(" ")[1];
 
@@ -105,6 +107,7 @@ export async function POST(request: Request) {
     brandKitId,
     sections,
     tools,
+    organizationId,
   );
 
   // Use the agent to handle the request with UI message streaming

@@ -66,7 +66,8 @@ function createNewsTools(
   contextId: string,
   accessToken: string,
   brandKitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  organizationId?: string
 ) {
   return {
     /*...createAllAgentsApiSitesTools(accessToken, contextId),*/
@@ -79,7 +80,7 @@ function createNewsTools(
     ...createAllSitecoreConstantsTools(),   
     ...createAllPagesApiTools(accessToken, contextId),
     ...createAllSitesApiTools(contextId),  
-    ...createAllBrandManagementApiBrandTools(brandKitId, sections),
+    ...createAllBrandManagementApiBrandTools(accessToken, brandKitId, sections, organizationId),
     ...createAllPagesContextTools(accessToken, contextId), 
     ...createAllGraphqlApiPreviewTools(accessToken, contextId),
     getContentAnalyticsData: getPageAnalyticsDataTool(),
@@ -95,9 +96,10 @@ export function createNewsAgent(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mcpTools?: Record<string, any>
+  mcpTools?: Record<string, any>,
+  organizationId?: string
 ) {
-  const baseTools = createNewsTools(contextId, accessToken, brandKitId, sections);
+  const baseTools = createNewsTools(contextId, accessToken, brandKitId, sections, organizationId);
   // Merge MCP tools with base tools (MCP tools take precedence on conflicts)
   const tools = {
     ...baseTools,

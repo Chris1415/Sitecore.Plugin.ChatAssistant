@@ -12,6 +12,7 @@ import {
   ClientSDK,
 } from "@sitecore-marketplace-sdk/client";
 import { XMC } from "@sitecore-marketplace-sdk/xmc";
+import { AI } from "@sitecore-marketplace-sdk/ai";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 
 interface ClientSDKProviderProps {
@@ -44,7 +45,7 @@ export const MarketplaceProvider: React.FC<ClientSDKProviderProps> = ({
     const init = async () => {
       const config = {
         target: window.parent,
-        modules: [XMC],
+        modules: [XMC, AI],
       };
       try {
         setLoading(true);
@@ -103,7 +104,7 @@ export const useMarketplaceClient = () => {
   const context = useContext(ClientSDKContext);
   if (!context) {
     throw new Error(
-      "useMarketplaceClient must be used within a ClientSDKProvider"
+      "useMarketplaceClient must be used within a ClientSDKProvider",
     );
   }
   return context;

@@ -6,13 +6,11 @@ import {
   getBrandKitSections,
   getBrandKitSubsections,
 } from "@/lib/services/BrandServices";
+import { createAIClient } from "../../base/sitecoreClient";
 
 // Base URL for Brand Management API
 const BRAND_API_BASE_URL =
   "https://edge-platform.sitecorecloud.io/ai/ai-brands-api/api/brands";
-
-// Hardcoded organization ID for testing
-const DEFAULT_ORGANIZATION_ID = "org_Yr0e8LadQ1bxB05s";
 
 // Hardcoded brandkit ID for testing (Hahn-Solo brandkit)
 const DEFAULT_BRANDKIT_ID = "d584f742-23f5-4b68-a193-0493f9ecd135";
@@ -28,7 +26,7 @@ const BrandKitTagSchema = z.object({
   category: z
     .string()
     .describe(
-      "The category of the tag (e.g., 'audience', 'region', 'product')."
+      "The category of the tag (e.g., 'audience', 'region', 'product').",
     ),
   values: z
     .array(z.string())
@@ -52,20 +50,20 @@ const BrandKitSectionSchema = z.object({
     .string()
     .optional()
     .describe(
-      "The username or identifier of the user who created the section."
+      "The username or identifier of the user who created the section.",
     ),
   updatedOn: z
     .string()
     .datetime()
     .optional()
     .describe(
-      "ISO 8601 timestamp indicating when the section was last updated."
+      "ISO 8601 timestamp indicating when the section was last updated.",
     ),
   updatedBy: z
     .string()
     .optional()
     .describe(
-      "The username or identifier of the user who last updated the section."
+      "The username or identifier of the user who last updated the section.",
     ),
   deletedAt: z
     .string()
@@ -73,7 +71,7 @@ const BrandKitSectionSchema = z.object({
     .nullable()
     .optional()
     .describe(
-      "ISO 8601 timestamp indicating when the section was deleted (null if not deleted)."
+      "ISO 8601 timestamp indicating when the section was deleted (null if not deleted).",
     ),
 });
 
@@ -126,7 +124,7 @@ const BrandKitFieldSchema = z.object({
     .string()
     .optional()
     .describe(
-      "The username or identifier of the user who last updated the field."
+      "The username or identifier of the user who last updated the field.",
     ),
   aiEditable: z
     .boolean()
@@ -141,14 +139,14 @@ const BrandKitSchema = z.object({
   organizationId: z
     .string()
     .describe(
-      "The unique identifier of the organization that owns this brand kit."
+      "The unique identifier of the organization that owns this brand kit.",
     ),
   id: z.string().describe("The unique identifier (GUID) of the brand kit."),
   description: z
     .string()
     .nullable()
     .describe(
-      "A detailed description of the brand kit and its purpose. Can be null."
+      "A detailed description of the brand kit and its purpose. Can be null.",
     ),
   name: z.string().describe("The display name of the brand kit."),
   brandName: z
@@ -168,14 +166,14 @@ const BrandKitSchema = z.object({
   status: z
     .string()
     .describe(
-      "The current status of the brand kit (e.g., 'Draft', 'Published', 'Archived')."
+      "The current status of the brand kit (e.g., 'Draft', 'Published', 'Archived').",
     ),
   parentId: z
     .string()
     .nullable()
     .optional()
     .describe(
-      "The unique identifier of the parent brand kit if this is a child brand kit."
+      "The unique identifier of the parent brand kit if this is a child brand kit.",
     ),
   parentType: z
     .string()
@@ -187,27 +185,27 @@ const BrandKitSchema = z.object({
     .nullable()
     .optional()
     .describe(
-      "The industry sector this brand kit is associated with (e.g., 'retail', 'technology')."
+      "The industry sector this brand kit is associated with (e.g., 'retail', 'technology').",
     ),
   createdOn: z
     .string()
     .describe(
-      "Timestamp indicating when the brand kit was created (ISO 8601 format, but accepts various datetime formats)."
+      "Timestamp indicating when the brand kit was created (ISO 8601 format, but accepts various datetime formats).",
     ),
   createdBy: z
     .string()
     .describe(
-      "The username or identifier of the user who created the brand kit."
+      "The username or identifier of the user who created the brand kit.",
     ),
   updatedOn: z
     .string()
     .describe(
-      "Timestamp indicating when the brand kit was last updated (ISO 8601 format, but accepts various datetime formats)."
+      "Timestamp indicating when the brand kit was last updated (ISO 8601 format, but accepts various datetime formats).",
     ),
   updatedBy: z
     .string()
     .describe(
-      "The username or identifier of the user who last updated the brand kit."
+      "The username or identifier of the user who last updated the brand kit.",
     ),
   tags: z
     .array(BrandKitTagSchema)
@@ -222,7 +220,7 @@ const BrandKitSchema = z.object({
     .nullable()
     .optional()
     .describe(
-      "Timestamp indicating when the brand kit was deleted (null if not deleted)."
+      "Timestamp indicating when the brand kit was deleted (null if not deleted).",
     ),
   locked: z
     .boolean()
@@ -232,13 +230,13 @@ const BrandKitSchema = z.object({
 
 /**
  * Fetches all sections for a brand kit and returns a map of sectionId -> sectionName
- * @param organizationId - Organization ID (defaults to DEFAULT_ORGANIZATION_ID)
+ * @param organizationId - Organization ID (required)
  * @param brandkitId - Brand kit ID (defaults to DEFAULT_BRANDKIT_ID)
  * @returns Map of sectionId to sectionName
  */
 async function fetchSectionNames(
-  organizationId: string = DEFAULT_ORGANIZATION_ID,
-  brandkitId: string = DEFAULT_BRANDKIT_ID
+  organizationId: string,
+  brandkitId: string = DEFAULT_BRANDKIT_ID,
 ): Promise<Map<string, string>> {
   const sectionNameMap = new Map<string, string>();
 
@@ -252,7 +250,7 @@ async function fetchSectionNames(
           if (section.id && section.name) {
             sectionNameMap.set(section.id, section.name);
           }
-        }
+        },
       );
     }
   } catch {
@@ -265,14 +263,14 @@ async function fetchSectionNames(
 /**
  * Fetches all fields for a specific section and returns a map of fieldId -> fieldName
  * @param sectionId - Section ID to fetch fields for
- * @param organizationId - Organization ID (defaults to DEFAULT_ORGANIZATION_ID)
+ * @param organizationId - Organization ID (required)
  * @param brandkitId - Brand kit ID (defaults to DEFAULT_BRANDKIT_ID)
  * @returns Map of fieldId to fieldName
  */
 async function fetchFieldNames(
   sectionId: string,
-  organizationId: string = DEFAULT_ORGANIZATION_ID,
-  brandkitId: string = DEFAULT_BRANDKIT_ID
+  organizationId: string,
+  brandkitId: string = DEFAULT_BRANDKIT_ID,
 ): Promise<Map<string, string>> {
   const fieldNameMap = new Map<string, string>();
 
@@ -280,7 +278,7 @@ async function fetchFieldNames(
     const result = await getBrandKitSubsections(
       sectionId,
       organizationId,
-      brandkitId
+      brandkitId,
     );
     if (result.success && result.data) {
       const fieldsArray = Array.isArray(result.data) ? result.data : [];
@@ -290,7 +288,7 @@ async function fetchFieldNames(
           if (field.id && field.name) {
             fieldNameMap.set(field.id, field.name);
           }
-        }
+        },
       );
     }
   } catch {
@@ -307,12 +305,12 @@ const BrandReviewOutputSchema = z.object({
   success: z
     .boolean()
     .describe(
-      "Indicates whether the brand review was successfully generated. If false, check the error field for details."
+      "Indicates whether the brand review was successfully generated. If false, check the error field for details.",
     ),
   brandKitId: z
     .string()
     .describe(
-      "The unique identifier (GUID) of the brand kit that was used for this review."
+      "The unique identifier (GUID) of the brand kit that was used for this review.",
     ),
   data: z
     .array(
@@ -320,28 +318,28 @@ const BrandReviewOutputSchema = z.object({
         sectionId: z
           .string()
           .describe(
-            "The unique identifier (GUID) of the section that was reviewed."
+            "The unique identifier (GUID) of the section that was reviewed.",
           ),
         sectionName: z
           .string()
           .optional()
           .describe(
-            "The human-readable name of the section (e.g., 'Digital Standards', 'Brand Context', 'Tone of Voice')."
+            "The human-readable name of the section (e.g., 'Digital Standards', 'Brand Context', 'Tone of Voice').",
           ),
         score: z
           .number()
           .describe(
-            "The compliance score for this section (typically 1-5, where higher is better). Lower scores indicate areas needing improvement."
+            "The compliance score for this section (typically 1-5, where higher is better). Lower scores indicate areas needing improvement.",
           ),
         reason: z
           .string()
           .describe(
-            "Explanation of why this score was assigned, describing what aspects were evaluated and what was found."
+            "Explanation of why this score was assigned, describing what aspects were evaluated and what was found.",
           ),
         suggestion: z
           .string()
           .describe(
-            "Recommendation for improving brand compliance in this section, providing actionable guidance."
+            "Recommendation for improving brand compliance in this section, providing actionable guidance.",
           ),
         fields: z
           .array(
@@ -349,54 +347,56 @@ const BrandReviewOutputSchema = z.object({
               fieldId: z
                 .string()
                 .describe(
-                  "The unique identifier (GUID) of the specific field within the section that was evaluated."
+                  "The unique identifier (GUID) of the specific field within the section that was evaluated.",
                 ),
               fieldName: z
                 .string()
                 .optional()
                 .describe(
-                  "The human-readable name of the field (e.g., 'SEO', 'Accessibility', 'Velocity')."
+                  "The human-readable name of the field (e.g., 'SEO', 'Accessibility', 'Velocity').",
                 ),
               score: z
                 .number()
                 .describe(
-                  "The compliance score for this specific field (typically 1-5, where higher is better)."
+                  "The compliance score for this specific field (typically 1-5, where higher is better).",
                 ),
               reason: z
                 .string()
                 .describe(
-                  "Explanation of why this field received this score, describing what was evaluated."
+                  "Explanation of why this field received this score, describing what was evaluated.",
                 ),
               suggestion: z
                 .string()
                 .describe(
-                  "Specific recommendation for improving this field's compliance with brand guidelines."
+                  "Specific recommendation for improving this field's compliance with brand guidelines.",
                 ),
-            })
+            }),
           )
           .optional()
           .describe(
-            "Array of field-level evaluations within this section. Each field represents a specific aspect of the brand guidelines that was assessed."
+            "Array of field-level evaluations within this section. Each field represents a specific aspect of the brand guidelines that was assessed.",
           ),
-      })
+      }),
     )
     .nullable()
     .describe(
-      "Array of section review results. Each section contains a score, reason, suggestion, and optional field-level details. The review analyzes brand compliance across different sections of the brand guidelines. Returns null if the operation failed."
+      "Array of section review results. Each section contains a score, reason, suggestion, and optional field-level details. The review analyzes brand compliance across different sections of the brand guidelines. Returns null if the operation failed.",
     ),
   error: z
     .string()
     .optional()
     .describe(
-      "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, section ID, authentication issues, or API problems."
+      "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, section ID, authentication issues, or API problems.",
     ),
 });
 
 /**
- * Shared function to execute brand review API call and enrich results
+ * Shared function to execute brand review API call using aiClient and enrich results
  */
 async function executeBrandReview(
-  token: string,
+  accessToken: string,
+  contextId: string,
+  organizationId: string,
   requestBody: {
     brandkitId: string;
     sections?: Array<{ sectionId: string }>;
@@ -405,7 +405,7 @@ async function executeBrandReview(
       businessUrl?: string;
       content?: string;
     };
-  }
+  },
 ): Promise<{
   success: boolean;
   brandKitId: string;
@@ -413,37 +413,34 @@ async function executeBrandReview(
   error?: string;
 }> {
   try {
-    const response = await fetch(
-      "https://ai-skills-api-euw.sitecorecloud.io/api/skills/v1/brandreview/generate",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          "x-sc-feature": "brandreview",
-          "x-sc-interaction-type": "generate",
-          "x-sc-sellable-product": "contenthubdam",
+    const aiClient = await createAIClient(accessToken);
+    const requestParams = {
+      body: {
+        brandkitId: requestBody.brandkitId,
+        input: {
+          businessName: requestBody.input.businessName,
+          businessUrl: requestBody.input.businessUrl ?? "",
+          content: requestBody.input.content ?? "",
         },
-        body: JSON.stringify(requestBody),
-      }
+        sections: requestBody.sections?.map((section) => ({
+          sectionId: section.sectionId,
+        })),
+      },
+    };
+    console.log(
+      "[executeBrandReview] Input parameters:",
+      JSON.stringify(requestParams, null, 2),
     );
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(
-        errorData.message ||
-          errorData.error ||
-          `Brand review generation failed with status ${response.status}: ${response.statusText}`
-      );
-    }
-
-    const result = await response.json();
+    const result = await aiClient.skills.generateBrandReview({
+      query: { sitecoreContextId: contextId },
+      body: requestParams.body,
+    });
 
     if (Array.isArray(result) && result.length > 0) {
       try {
         const sectionNameMap = await fetchSectionNames(
-          DEFAULT_ORGANIZATION_ID,
-          requestBody.brandkitId
+          organizationId,
+          requestBody.brandkitId,
         );
 
         const enrichedResult = await Promise.all(
@@ -461,8 +458,8 @@ async function executeBrandReview(
             ) {
               const fieldNameMap = await fetchFieldNames(
                 section.sectionId,
-                DEFAULT_ORGANIZATION_ID,
-                requestBody.brandkitId
+                organizationId,
+                requestBody.brandkitId,
               );
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               enrichedSection.fields = section.fields.map((field: any) => ({
@@ -472,7 +469,7 @@ async function executeBrandReview(
             }
 
             return enrichedSection;
-          })
+          }),
         );
 
         return {
@@ -513,8 +510,10 @@ async function executeBrandReview(
  * Generate a brand review from a URL
  */
 export function generateBrandReviewFromUrlTool(
+  accessToken: string,
   brandkitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  organizationId?: string,
 ): Tool {
   return tool({
     description:
@@ -524,12 +523,12 @@ export function generateBrandReviewFromUrlTool(
         .string()
         .optional()
         .describe(
-          "The name of the business or brand being reviewed. This helps contextualize the review. Defaults to 'Hahn-Solo' if not provided."
+          "The name of the business or brand being reviewed. This helps contextualize the review. Defaults to 'Hahn-Solo' if not provided.",
         ),
       businessUrl: z
         .string()
         .describe(
-          "The URL of the business website to review. Can be a full URL or a relative path. If relative, it will be appended to the base URL 'https://my-sitecoreai-devex-journey-editing.vercel.app/'."
+          "The URL of the business website to review. Can be a full URL or a relative path. If relative, it will be appended to the base URL 'https://my-sitecoreai-devex-journey-editing.vercel.app/'.",
         ),
     }),
     outputSchema: BrandReviewOutputSchema,
@@ -547,11 +546,6 @@ export function generateBrandReviewFromUrlTool(
             "Please select a brand kit from the dropdown menu before generating a brand review. A brand kit selection is required to proceed.",
         };
       }
-
-      const token = await getAccessToken({
-        clientId: process.env.SITECORE_AI_CLIENT_ID || "",
-        clientSecret: process.env.SITECORE_AI_CLIENT_SECRET || "",
-      });
 
       const baseUrl = "https://my-sitecoreai-devex-journey-editing.vercel.app";
       const resolvedBusinessUrl =
@@ -582,7 +576,16 @@ export function generateBrandReviewFromUrlTool(
         }));
       }
 
-      return executeBrandReview(token, requestBody);
+      if (!organizationId) {
+        return {
+          success: false,
+          brandKitId: "",
+          data: null,
+          error: "Organization ID is required but was not provided.",
+        };
+      }
+
+      return executeBrandReview(accessToken, "", organizationId, requestBody);
     },
   }) as Tool;
 }
@@ -591,8 +594,10 @@ export function generateBrandReviewFromUrlTool(
  * Generate a brand review from content
  */
 export function generateBrandReviewFromContentTool(
+  accessToken: string,
   brandkitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  organizationId?: string,
 ): Tool {
   return tool({
     description:
@@ -602,12 +607,12 @@ export function generateBrandReviewFromContentTool(
         .string()
         .optional()
         .describe(
-          "The name of the business or brand being reviewed. This helps contextualize the review. Defaults to 'Hahn-Solo' if not provided."
+          "The name of the business or brand being reviewed. This helps contextualize the review. Defaults to 'Hahn-Solo' if not provided.",
         ),
       content: z
         .string()
         .describe(
-          "The content to review against brand guidelines. This can be HTML, text, or any content that should be analyzed for brand compliance."
+          "The content to review against brand guidelines. This can be HTML, text, or any content that should be analyzed for brand compliance.",
         ),
     }),
     outputSchema: BrandReviewOutputSchema,
@@ -625,11 +630,6 @@ export function generateBrandReviewFromContentTool(
             "Please select a brand kit from the dropdown menu before generating a brand review. A brand kit selection is required to proceed.",
         };
       }
-
-      const token = await getAccessToken({
-        clientId: process.env.SITECORE_AI_CLIENT_ID || "",
-        clientSecret: process.env.SITECORE_AI_CLIENT_SECRET || "",
-      });
 
       const requestBody: {
         brandkitId: string;
@@ -652,7 +652,16 @@ export function generateBrandReviewFromContentTool(
         }));
       }
 
-      return await executeBrandReview(token, requestBody);
+      if (!organizationId) {
+        return {
+          success: false,
+          brandKitId: "",
+          data: null,
+          error: "Organization ID is required but was not provided.",
+        };
+      }
+
+      return await executeBrandReview(accessToken, "", organizationId, requestBody);
     },
   }) as Tool;
 }
@@ -661,7 +670,7 @@ export function generateBrandReviewFromContentTool(
  * List all brand kits for an organization
  * GET /api/brands/v1/organizations/{organizationId}/brandkits
  */
-export function listBrandKitsTool(): Tool {
+export function listBrandKitsTool(organizationId?: string): Tool {
   return tool({
     description:
       "Retrieve a list of all brand kits within a specific organization. Returns paginated results with brand kit metadata including name, description, status, and other properties. Uses the default organization. Use this tool to discover available brand kits before retrieving details or generating brand reviews.",
@@ -672,7 +681,7 @@ export function listBrandKitsTool(): Tool {
       success: z
         .boolean()
         .describe(
-          "Indicates whether the brand kits were successfully retrieved. If false, check the error field for details."
+          "Indicates whether the brand kits were successfully retrieved. If false, check the error field for details.",
         ),
       data: z
         .object({
@@ -688,37 +697,46 @@ export function listBrandKitsTool(): Tool {
           data: z
             .array(BrandKitSchema)
             .describe(
-              "Array of brand kit objects. Each brand kit contains comprehensive information including ID, name, description, organization ID, status, tags, timestamps, and other metadata."
+              "Array of brand kit objects. Each brand kit contains comprehensive information including ID, name, description, organization ID, status, tags, timestamps, and other metadata.",
             ),
         })
         .nullable()
         .describe(
-          "Paginated brand kit list response. Contains pagination metadata (totalCount, pageSize, pageNumber) and an array of brand kit objects. Returns null if the operation failed."
+          "Paginated brand kit list response. Contains pagination metadata (totalCount, pageSize, pageNumber) and an array of brand kit objects. Returns null if the operation failed.",
         ),
       error: z
         .string()
         .optional()
         .describe(
-          "Error message describing what went wrong if success is false. Common errors include invalid organization ID, authentication issues, or API problems."
+          "Error message describing what went wrong if success is false. Common errors include invalid organization ID, authentication issues, or API problems.",
         ),
     }),
     // @ts-expect-error - AI SDK tool type inference issue with complex schemas
     execute: async () => {
+      if (!organizationId) {
+        return {
+          success: false,
+          data: null,
+          error: "Organization ID is required but was not provided.",
+        };
+      }
+
       try {
         const token = await getAccessToken({
           clientId: process.env.SITECORE_AI_CLIENT_ID || "",
           clientSecret: process.env.SITECORE_AI_CLIENT_SECRET || "",
         });
 
+
         const response = await fetch(
-          `${BRAND_API_BASE_URL}/v1/organizations/${DEFAULT_ORGANIZATION_ID}/brandkits?includeDeleted=false`,
+          `${BRAND_API_BASE_URL}/v1/organizations/${organizationId}/brandkits?includeDeleted=false`,
           {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-          }
+          },
         );
 
         if (!response.ok) {
@@ -726,7 +744,7 @@ export function listBrandKitsTool(): Tool {
           throw new Error(
             errorData.message ||
               errorData.error ||
-              `Brand kits listing failed with status ${response.status}: ${response.statusText}`
+              `Brand kits listing failed with status ${response.status}: ${response.statusText}`,
           );
         }
 
@@ -763,16 +781,16 @@ export function retrieveBrandKitTool(): Tool {
       success: z
         .boolean()
         .describe(
-          "Indicates whether the brand kit was successfully retrieved. If false, check the error field for details."
+          "Indicates whether the brand kit was successfully retrieved. If false, check the error field for details.",
         ),
       data: BrandKitSchema.nullable().describe(
-        "The brand kit data returned from the API. Contains comprehensive information about the brand kit including ID, name, description, organization ID, status, tags, timestamps, and other metadata. Returns null if the operation failed."
+        "The brand kit data returned from the API. Contains comprehensive information about the brand kit including ID, name, description, organization ID, status, tags, timestamps, and other metadata. Returns null if the operation failed.",
       ),
       error: z
         .string()
         .optional()
         .describe(
-          "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, organization ID, authentication issues, or API problems."
+          "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, organization ID, authentication issues, or API problems.",
         ),
     }),
     execute: async () => {
@@ -802,19 +820,19 @@ export function listBrandKitSectionsTool(): Tool {
       success: z
         .boolean()
         .describe(
-          "Indicates whether the sections were successfully retrieved. If false, check the error field for details."
+          "Indicates whether the sections were successfully retrieved. If false, check the error field for details.",
         ),
       data: z
         .array(BrandKitSectionSchema)
         .nullable()
         .describe(
-          "Array of section objects. Each section contains information like id, name, order, timestamps, and other metadata. Returns null if the operation failed."
+          "Array of section objects. Each section contains information like id, name, order, timestamps, and other metadata. Returns null if the operation failed.",
         ),
       error: z
         .string()
         .optional()
         .describe(
-          "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, organization ID, authentication issues, or API problems."
+          "Error message describing what went wrong if success is false. Common errors include invalid brand kit ID, organization ID, authentication issues, or API problems.",
         ),
     }),
     execute: async () => {
@@ -835,26 +853,26 @@ export function listBrandKitSubsectionsTool(): Tool {
       sectionId: z
         .string()
         .describe(
-          "The unique identifier (GUID) of the section within the brand kit. Format: GUID string (e.g., 'cbdc5db4-92d9-4858-b5e6-c44c9952e8f8'). Use listBrandKitSectionsTool to get available section IDs."
+          "The unique identifier (GUID) of the section within the brand kit. Format: GUID string (e.g., 'cbdc5db4-92d9-4858-b5e6-c44c9952e8f8'). Use listBrandKitSectionsTool to get available section IDs.",
         ),
     }),
     outputSchema: z.object({
       success: z
         .boolean()
         .describe(
-          "Indicates whether the subsections were successfully retrieved. If false, check the error field for details."
+          "Indicates whether the subsections were successfully retrieved. If false, check the error field for details.",
         ),
       data: z
         .array(BrandKitFieldSchema)
         .nullable()
         .describe(
-          "Array of field (subsection) objects. Each field contains information like id, name, type, value, intent, order, timestamps, and other metadata. Returns null if the operation failed."
+          "Array of field (subsection) objects. Each field contains information like id, name, type, value, intent, order, timestamps, and other metadata. Returns null if the operation failed.",
         ),
       error: z
         .string()
         .optional()
         .describe(
-          "Error message describing what went wrong if success is false. Common errors include invalid section ID, brand kit ID, organization ID, authentication issues, or API problems."
+          "Error message describing what went wrong if success is false. Common errors include invalid section ID, brand kit ID, organization ID, authentication issues, or API problems.",
         ),
     }),
     execute: async ({ sectionId }) => {
@@ -875,19 +893,25 @@ export const brandManagementTools = {
 
 // Helper function to create all brand management tools initialized
 export function createAllBrandManagementApiBrandTools(
+  accessToken: string,
   brandKitId?: string | null,
-  sections?: Array<{ sectionId: string }> | null
+  sections?: Array<{ sectionId: string }> | null,
+  organizationId?: string,
 ) {
   return {
     generateBrandReviewFromUrl: generateBrandReviewFromUrlTool(
+      accessToken,
       brandKitId,
-      sections
+      sections,
+      organizationId,
     ),
     generateBrandReviewFromContent: generateBrandReviewFromContentTool(
+      accessToken,
       brandKitId,
-      sections
+      sections,
+      organizationId,
     ),
-    listBrandKits: listBrandKitsTool(),
+    listBrandKits: listBrandKitsTool(organizationId),
     retrieveBrandKit: retrieveBrandKitTool(),
     listBrandKitSections: listBrandKitSectionsTool(),
     listBrandKitSubsections: listBrandKitSubsectionsTool(),

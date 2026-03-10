@@ -89,9 +89,10 @@ export function createAllmightyAgent(
   brandKitId?: string | null,
   sections?: Array<{ sectionId: string }> | null,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  mcpTools?: Record<string, any>
+  mcpTools?: Record<string, any>,
+  organizationId?: string
 ) {
-  const baseTools = createSitecoreTools(contextId, accessToken, brandKitId, sections);
+  const baseTools = createSitecoreTools(contextId, accessToken, brandKitId, sections, organizationId);
   // Merge MCP tools with base tools (MCP tools take precedence on conflicts)
   const tools = {
     ...baseTools,

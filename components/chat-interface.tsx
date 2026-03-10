@@ -1392,7 +1392,7 @@ export function ChatInterface() {
   const [displayAgent, setDisplayAgent] = useState<AgentType>(DEFAULT_AGENT);
   const [userManuallySelectedAgent, setUserManuallySelectedAgent] =
     useState(false);
-  const { resourceAccess } = useAppContext();
+  const { resourceAccess, organizationId } = useAppContext();
   const { getAccessTokenSilently } = useAuth();
 
   // Brand kit state
@@ -1458,10 +1458,16 @@ export function ChatInterface() {
 
   // Load brand kits on app start (server-side)
   useEffect(() => {
+    if (!organizationId) {
+      return; // Wait for organizationId to be available
+    }
+
     const loadBrandKits = async () => {
       setIsLoadingBrandKits(true);
       try {
-        const response = await fetch("/api/brand-kits");
+        const response = await fetch(
+          `/api/brand-kits?organizationId=${encodeURIComponent(organizationId)}`
+        );
         if (!response.ok) {
           throw new Error(`Failed to load brand kits: ${response.statusText}`);
         }
@@ -1481,11 +1487,11 @@ export function ChatInterface() {
     };
 
     loadBrandKits();
-  }, []);
+  }, [organizationId]);
 
   // Load sections when brand kit is selected (server-side)
   useEffect(() => {
-    if (!selectedBrandKit) {
+    if (!selectedBrandKit || !organizationId) {
       setSections([]);
       setSelectedSections([]);
       return;
@@ -1497,7 +1503,7 @@ export function ChatInterface() {
         const response = await fetch(
           `/api/brand-kits/sections?brandkitId=${encodeURIComponent(
             selectedBrandKit
-          )}`
+          )}&organizationId=${encodeURIComponent(organizationId)}`
         );
         if (!response.ok) {
           throw new Error(`Failed to load sections: ${response.statusText}`);
@@ -1520,7 +1526,7 @@ export function ChatInterface() {
     };
 
     loadSections();
-  }, [selectedBrandKit]);
+  }, [selectedBrandKit, organizationId]);
 
   const { pagesContext, refreshPagesContext, navigatePagesContext } =
     usePagesContext({
@@ -1563,6 +1569,7 @@ export function ChatInterface() {
           selectedSections.length > 0
             ? selectedSections.map((id) => ({ sectionId: id }))
             : undefined,
+        organizationId: organizationId,
       }),
       headers: async () => {
         const accessToken = await getAccessTokenSilently();

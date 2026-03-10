@@ -3,9 +3,6 @@ import { getAccessToken } from "@/lib/oauth-login";
 const BRAND_API_BASE_URL =
   "https://edge-platform.sitecorecloud.io/ai/ai-brands-api/api/brands";
 
-const DEFAULT_ORGANIZATION_ID = "org_Yr0e8LadQ1bxB05s";
-const DEFAULT_BRANDKIT_ID = "d584f742-23f5-4b68-a193-0493f9ecd135";
-
 /**
  * Brand Kit data model from the API
  */
@@ -46,7 +43,7 @@ export interface ListBrandKitsResponse {
  * @returns Paginated brand kit list or error
  */
 export async function listBrandKits(
-  organizationId: string = DEFAULT_ORGANIZATION_ID
+  organizationId: string
 ): Promise<{
   success: boolean;
   data: ListBrandKitsResponse | null;
@@ -101,8 +98,8 @@ export async function listBrandKits(
  * @returns Brand kit data or error
  */
 export async function getBrandKit(
-  organizationId: string = DEFAULT_ORGANIZATION_ID,
-  brandkitId: string = DEFAULT_BRANDKIT_ID
+  organizationId: string,
+  brandkitId: string
 ): Promise<{ success: boolean; data: unknown; error?: string }> {
   try {
     const token = await getAccessToken({
@@ -153,8 +150,8 @@ export async function getBrandKit(
  * @returns Array of section objects or error
  */
 export async function getBrandKitSections(
-  organizationId: string = DEFAULT_ORGANIZATION_ID,
-  brandkitId: string = DEFAULT_BRANDKIT_ID
+  organizationId: string,
+  brandkitId: string
 ): Promise<{ success: boolean; data: unknown; error?: string }> {
   try {
     const token = await getAccessToken({
@@ -209,8 +206,8 @@ export async function getBrandKitSections(
  */
 export async function getBrandKitSubsections(
   sectionId: string,
-  organizationId: string = DEFAULT_ORGANIZATION_ID,
-  brandkitId: string = DEFAULT_BRANDKIT_ID
+  organizationId: string,
+  brandkitId: string
 ): Promise<{ success: boolean; data: unknown; error?: string }> {
   try {
     const token = await getAccessToken({

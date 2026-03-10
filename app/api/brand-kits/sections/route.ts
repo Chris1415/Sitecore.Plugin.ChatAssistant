@@ -5,6 +5,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const brandkitId = searchParams.get("brandkitId");
+    const organizationId = searchParams.get("organizationId");
     
     if (!brandkitId) {
       return NextResponse.json(
@@ -12,8 +13,15 @@ export async function GET(request: Request) {
         { status: 400 }
       );
     }
+
+    if (!organizationId) {
+      return NextResponse.json(
+        { error: "Organization ID is required" },
+        { status: 400 }
+      );
+    }
     
-    const result = await getBrandKitSections(undefined, brandkitId);
+    const result = await getBrandKitSections(organizationId, brandkitId);
     
     if (result.success && result.data) {
       return NextResponse.json(result.data);
