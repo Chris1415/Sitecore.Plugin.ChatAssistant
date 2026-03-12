@@ -414,8 +414,9 @@ async function executeBrandReview(
 }> {
   try {
     const aiClient = await createAIClient(accessToken);
-    const requestParams = {
-      body: {
+    const brandReviewResult = await aiClient.skills.generateBrandReview({
+      query: { sitecoreContextId: contextId },
+      body:{
         brandkitId: requestBody.brandkitId,
         input: {
           businessName: requestBody.input.businessName,
@@ -426,13 +427,8 @@ async function executeBrandReview(
           sectionId: section.sectionId,
         })),
       },
-    };
-    const brandReviewResult = await aiClient.skills.generateBrandReview({
-      query: { sitecoreContextId: contextId },
-      body: requestParams.body,
     });
 
-   
     const brandReviewData = brandReviewResult.data;
 
     if (Array.isArray(brandReviewData) && brandReviewData.length > 0) {
@@ -470,8 +466,6 @@ async function executeBrandReview(
             return enrichedSection;
           }),
         );
-
-        console.error(JSON.stringify(enrichedResult, null, 2));
 
         return {
           success: true,

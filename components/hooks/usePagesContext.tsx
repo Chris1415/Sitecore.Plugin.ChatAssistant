@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useMarketplaceClient } from "../providers/marketplace";
 import { PagesContext } from "@sitecore-marketplace-sdk/client";
 
@@ -91,27 +91,30 @@ export default function usePagesContext(options?: UsePagesContextOptions) {
       });
   }, [client]);
 
-  function refreshPagesContext() {
+  const refreshPagesContext = useCallback(() => {
     client?.mutate("pages.reloadCanvas");
-  }
+  }, [client]);
 
-  function navigatePagesContext({
-    itemId,
-    language,
-    itemVersion,
-  }: {
-    itemId: string;
-    language: string;
-    itemVersion: number;
-  }) {
-    client?.mutate("pages.context", {
-      params: {
-        itemId,
-        language,
-        itemVersion,
-      },
-    });
-  }
+  const navigatePagesContext = useCallback(
+    ({
+      itemId,
+      language,
+      itemVersion,
+    }: {
+      itemId: string;
+      language: string;
+      itemVersion: number;
+    }) => {
+      client?.mutate("pages.context", {
+        params: {
+          itemId,
+          language,
+          itemVersion,
+        },
+      });
+    },
+    [client],
+  );
 
   return { pagesContext, isLoading: loading, error, refreshPagesContext, navigatePagesContext };
 }

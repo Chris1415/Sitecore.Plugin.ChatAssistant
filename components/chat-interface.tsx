@@ -1643,6 +1643,9 @@ export function ChatInterface() {
     );
   }, [messages.length, setMessages]); // Trigger when new messages are added
 
+  // Track which message we've already triggered refresh for (prevents loop on re-renders)
+  const lastRefreshedMessageIdRef = useRef<string | null>(null);
+
   // Check for refreshPages and navigatePages tool calls in the last assistant message
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -1657,7 +1660,11 @@ export function ChatInterface() {
     );
 
     if (refreshPart) {
-      refreshPagesContext();
+      // Only refresh once per message to avoid loop (refresh can trigger context update -> re-render -> effect runs again)
+      if (lastRefreshedMessageIdRef.current !== lastMessage.id) {
+        lastRefreshedMessageIdRef.current = lastMessage.id;
+        refreshPagesContext();
+      }
       return;
     }
 
@@ -1712,6 +1719,7 @@ export function ChatInterface() {
     // Clear client-side messages
     setMessages([]);
     setUserManuallySelectedAgent(false); // Reset manual selection on new chat
+    lastRefreshedMessageIdRef.current = null; // Allow refresh in new conversation
   };
 
   const handleDeleteMessage = (messageId: string) => {
