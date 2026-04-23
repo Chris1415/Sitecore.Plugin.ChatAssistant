@@ -26,15 +26,17 @@ Chat history is managed with summarization to avoid context-window overflow; too
 | **Version** | 0.1.0 |
 | **Extension points** | Pages Context |
 | **Built with** | Next.js 16, React 19, Sitecore Marketplace SDK (`@sitecore-marketplace-sdk/client`, `@sitecore-marketplace-sdk/xmc`, `@sitecore-marketplace-sdk/ai`), Vercel AI SDK, Auth0, Tailwind CSS, Radix UI |
-| **Docs** | [Marketplace SDK](https://doc.sitecore.com/mp/en/developers/sdk/latest/sitecore-marketplace-sdk/sitecore-marketplace-sdk-for-javascript.html) · [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) |
+| **Docs** | [Marketplace SDK](https://doc.sitecore.com/mp/en/developers/sdk/latest/sitecore-marketplace-sdk/sitecore-marketplace-sdk-for-javascript.html) · [Quick start — CLI (Scaffold an app)](https://doc.sitecore.com/mp/en/developers/sdk/0/sitecore-marketplace-sdk/quick-start--cli-.html#scaffold-an-app) · [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) |
 | **Notable** | First app to add native Marketer MCP integration into the Vercel AI SDK underlying functionality |
 
 ## 📦 Prerequisites
 
-- **Vercel AI Gateway key** — [Get a key](https://vercel.com/docs/ai-gateway) and set `AI_GATEWAY_API_KEY` in `.env.local`
+- **Environment variables** — Copy [`.env.example`](./.env.example) to `.env.local` and fill in the values. Variable names and sections match what this app expects (Auth0, Sitecore org/tenant, AI Gateway, deploy credentials, and optional flags).
+- **Sitecore Marketplace setup** — Install the CLI, scaffold or register your app, and connect it to the Marketplace as described in [Quick start — CLI: Scaffold an app](https://doc.sitecore.com/mp/en/developers/sdk/0/sitecore-marketplace-sdk/quick-start--cli-.html#scaffold-an-app).
+- **Vercel AI Gateway key** — [Get a key](https://vercel.com/docs/ai-gateway) and set `AI_GATEWAY_API_KEY` in `.env.local` (see `.env.example`).
 - **App Studio** — Create or edit your app at [portal.sitecorecloud.io/app-studio](https://portal.sitecorecloud.io/app-studio)
 - **AI Skills API** — Enable the Brand Review API in App Studio under *Edit* → *API access* for brand validation; update installed apps after enabling so credentials propagate
-- **Auth0** — Configure Auth0 for OAuth (see environment variables in the project)
+- **Auth0** — Configure Auth0 for OAuth (see `.env.example` and App Studio)
 
 ## 📦 Running the Application Locally
 
@@ -47,7 +49,11 @@ You can run this application locally; note that it requires loading within the S
    cd Sitecore.Plugin.ChatAssistant
    ```
 
-2. **Install dependencies**
+2. **Configure environment**
+
+   Copy `.env.example` to `.env.local` and set the required values. For CLI installation, scaffolding, and wiring your app to Sitecore Marketplace, follow [Quick start — CLI: Scaffold an app](https://doc.sitecore.com/mp/en/developers/sdk/0/sitecore-marketplace-sdk/quick-start--cli-.html#scaffold-an-app).
+
+3. **Install dependencies**
 
    ```bash
    npm install --legacy-peer-deps
@@ -55,7 +61,7 @@ You can run this application locally; note that it requires loading within the S
 
    > Use `--legacy-peer-deps` if you run into peer dependency conflicts (e.g. with React 19).
 
-3. **Start the development server**
+4. **Start the development server**
 
    ```bash
    npm run dev
